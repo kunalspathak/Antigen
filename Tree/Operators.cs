@@ -1,7 +1,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Generic;
 
-namespace Antigen
+namespace Antigen.Tree
 {
     public struct Operator
     {
@@ -21,10 +21,17 @@ namespace Antigen
             Yield = 0x800
         }
 
-        public string Name => Oper.ToString();
+        //public string Name => Oper.ToString();
 
         public OpFlags Flags;
         public SyntaxKind Oper;
+
+        public bool HasFlag(OpFlags flag)
+        {
+            bool val = (Flags & flag) != 0;
+            return val;
+        }
+
         private static readonly List<Operator> operators = new List<Operator>()
         {
             new Operator(SyntaxKind.UnaryPlusExpression,                OpFlags.Unary | OpFlags.Math),
@@ -37,7 +44,7 @@ namespace Antigen
             new Operator(SyntaxKind.BitwiseNotExpression,               OpFlags.Unary | OpFlags.Math | OpFlags.Bitwise),
             new Operator(SyntaxKind.TypeOfExpression,                   OpFlags.Unary),
 
-            new Operator(SyntaxKind.AddExpression,                      OpFlags.Binary | OpFlags.Math),
+            new Operator(SyntaxKind.AddExpression,                      OpFlags.Binary | OpFlags.Math | OpFlags.String),
             new Operator(SyntaxKind.SubtractExpression,                 OpFlags.Binary | OpFlags.Math),
             new Operator(SyntaxKind.MultiplyExpression,                 OpFlags.Binary | OpFlags.Math),
             new Operator(SyntaxKind.DivideExpression,                   OpFlags.Binary | OpFlags.Math | OpFlags.Divide),
@@ -65,15 +72,15 @@ namespace Antigen
             new Operator(SyntaxKind.OrAssignmentExpression,             OpFlags.Binary | OpFlags.Math | OpFlags.Bitwise | OpFlags.Assignment),
             new Operator(SyntaxKind.ExclusiveOrAssignmentExpression,    OpFlags.Binary | OpFlags.Math | OpFlags.Bitwise | OpFlags.Assignment),
 
-            new Operator(SyntaxKind.LessThanExpression,                 OpFlags.Binary | OpFlags.Comparison | OpFlags.String),
-            new Operator(SyntaxKind.LessThanOrEqualExpression,          OpFlags.Binary | OpFlags.Comparison | OpFlags.String),
-            new Operator(SyntaxKind.GreaterThanExpression,              OpFlags.Binary | OpFlags.Comparison | OpFlags.String),
-            new Operator(SyntaxKind.GreaterThanOrEqualExpression,       OpFlags.Binary | OpFlags.Comparison | OpFlags.String),
+            new Operator(SyntaxKind.LessThanExpression,                 OpFlags.Binary | OpFlags.Comparison),
+            new Operator(SyntaxKind.LessThanOrEqualExpression,          OpFlags.Binary | OpFlags.Comparison),
+            new Operator(SyntaxKind.GreaterThanExpression,              OpFlags.Binary | OpFlags.Comparison),
+            new Operator(SyntaxKind.GreaterThanOrEqualExpression,       OpFlags.Binary | OpFlags.Comparison),
             new Operator(SyntaxKind.EqualsExpression,                   OpFlags.Binary | OpFlags.Comparison | OpFlags.String),
             new Operator(SyntaxKind.NotEqualsExpression,                OpFlags.Binary | OpFlags.Comparison | OpFlags.String)
         };
 
-        public Operator(SyntaxKind oper, OpFlags flags )
+        private Operator(SyntaxKind oper, OpFlags flags)
         {
             Oper = oper;
             Flags = flags;

@@ -1,7 +1,7 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using Antigen.Tree;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.Emit;
 using System;
 using System.Collections.Generic;
@@ -9,9 +9,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Antigen
 {
@@ -29,66 +27,46 @@ namespace Antigen
         #region PreComputed roslyn syntax tress
         #endregion
 
+        private const string MainMethodName = "MainMethod";
 
-        private SyntaxGenerator synGen = Rsln.synGen;
         private SyntaxNode testClass;
 
         private List<SyntaxNode> classesList;
         private List<SyntaxNode> methodsList;
         private List<SyntaxNode> propertiesList;
         private List<SyntaxNode> fieldsList;
-        
 
         public string Name { get; private set; }
+        public AstUtils AstUtils { get; private set; }
 
         public TestCase(int testId)
         {
-            synGen = SyntaxGenerator.GetGenerator(new AdhocWorkspace(), LanguageNames.CSharp);
-            Name = string.Format("Test{0:0000}", testId);
-
-            //var x = SyntaxFactory.BinaryExpression(SyntaxKind.AddExpression, SyntaxFactory.IdentifierName("a"), SyntaxFactory.IdentifierName("b"));
-            var x = SyntaxFactory.PrefixUnaryExpression(SyntaxKind.UnaryPlusExpression, SyntaxFactory.ParseExpression("a"));
-                //(SyntaxKind.AddExpression, SyntaxFactory.IdentifierName("a"), SyntaxFactory.IdentifierName("b"));
-            Console.WriteLine(x.ToFullString());
-            var ifs = SyntaxFactory.IfStatement(SyntaxFactory.IdentifierName("a"), SyntaxFactory.ParseStatement("1"));
-            Console.WriteLine(ifs.ToFullString());
-            SyntaxList<StatementSyntax> stmts;
-            for (int i = 0; i < 10; i++)
-            {
-                stmts = stmts.Add(SyntaxFactory.ParseStatement("x = " + i));
-            }
-            //SyntaxFactory.expre
-            var block = SyntaxFactory.Block(stmts);
-            ifs = ifs.WithStatement(block);
-            Console.WriteLine(ifs.ToFullString());
-            //var y = x.WithLeft(SyntaxFactory.IdentifierName("x")).WithRight(SyntaxFactory.IdentifierName("y"));
-            //Console.WriteLine(y.ToFullString());
+            AstUtils = new AstUtils(this, new ConfigOptions(), null);
+            Name = "TestClass" + testId;
         }
 
         public void Generate()
         {
-            var usingDirectives = synGen.NamespaceImportDeclaration("System");
+            BaseMethod mainMethod = new BaseMethod(this, MainMethodName);
+            mainMethod.Generate();
 
-            List<SyntaxNode> methods = new List<SyntaxNode>();
-            for (int i = 0; i < 5; i++)
+            IList<BaseMethod> methods = new List<BaseMethod>() { mainMethod };
+
+            for (int i = 1; i < 5; i++)
             {
-                methods.Add(synGen.MethodDeclaration("Method" + i));
+                var testMethod = new BaseMethod(this, "Method" + i);
+                methods.Add(testMethod);
+                testMethod.Generate();
             }
 
-            //synGen.AddExpression()
-
-            // TODO: Figure out why we cannot have string[] in parameter. The Emit() function fails in its presence.
-            var mainArgs = new SyntaxNode[] {
-                synGen.ParameterDeclaration("args", /*synGen.ArrayTypeExpression(synGen.TypeExpression(SpecialType.System_String))*/synGen.TypeExpression(SpecialType.System_String)) };
-
-            methods.Add(synGen.MethodDeclaration("Main", parameters: mainArgs, accessibility: Accessibility.Public, modifiers: DeclarationModifiers.Static ));
-
-            var classDefinition = synGen.ClassDeclaration(Name, null, Accessibility.Public, members: methods);
-
-            var namespaceDeclaration = synGen.NamespaceDeclaration("MyTypes", classDefinition);
-
-            
-            testClass = synGen.CompilationUnit(usingDirectives, namespaceDeclaration).NormalizeWhitespace();
+            ClassDeclarationSyntax klass = ClassDeclaration(Name).WithMembers(new SyntaxList<MemberDeclarationSyntax>(methods.Select(m => m.GeneratedMethod)));
+            testClass = CompilationUnit()
+                            .WithUsings(
+                                SingletonList<UsingDirectiveSyntax>(
+                                    UsingDirective(
+                                        IdentifierName("System"))))
+                            .WithMembers(
+                                SingletonList<MemberDeclarationSyntax>(klass)).NormalizeWhitespace();
         }
 
         public void CompileAndExecute()
@@ -99,15 +77,19 @@ namespace Antigen
 
         private CompileResult Compile(CompilationType compilationType)
         {
-            Console.WriteLine(testClass.ToFullString());
+            Console.WriteLine(testClass.ToString());
 
-            MetadataReference mscorlib = MetadataReference.CreateFromFile(typeof(object).Assembly.Location);
+            string corelibPath = typeof(object).Assembly.Location;
+            string otherAssembliesPath = Path.GetDirectoryName(corelibPath);
+            MetadataReference systemPrivateCorelib = MetadataReference.CreateFromFile(corelibPath);
+            MetadataReference systemConsole = MetadataReference.CreateFromFile(Path.Combine(otherAssembliesPath, "System.Console.dll"));
+            MetadataReference systemRuntime = MetadataReference.CreateFromFile(Path.Combine(otherAssembliesPath, "System.Runtime.dll"));
             MetadataReference codeAnalysis = MetadataReference.CreateFromFile(typeof(SyntaxTree).Assembly.Location);
             MetadataReference csharpCodeAnalysis = MetadataReference.CreateFromFile(typeof(CSharpSyntaxTree).Assembly.Location);
 
-            MetadataReference[] references = { mscorlib, codeAnalysis, csharpCodeAnalysis };
+            MetadataReference[] references = { systemPrivateCorelib, systemConsole, systemRuntime, codeAnalysis, csharpCodeAnalysis };
 
-            var cc = CSharpCompilation.Create("test000", new SyntaxTree[] { testClass.SyntaxTree }, references, compilationType == CompilationType.Debug ? Rsln.DebugOptions : Rsln.ReleaseOptions);
+            var cc = CSharpCompilation.Create(Name, new SyntaxTree[] { testClass.SyntaxTree }, references, compilationType == CompilationType.Debug ? Rsln.DebugOptions : Rsln.ReleaseOptions);
 
             using (var ms = new MemoryStream())
             {
@@ -129,6 +111,7 @@ namespace Antigen
             }
         }
 
+        private delegate void MainMethodInvoke();
         private void Execute(CompileResult compileResult)
         {
             if (compileResult.Assembly == null)
@@ -139,8 +122,9 @@ namespace Antigen
             else
             {
                 Assembly asm = Assembly.Load(compileResult.Assembly);
-                MethodInfo mainMethodInfo = asm.GetType("MyTypes.Test000").GetMethod("Main");
-                Action<string> entryPoint = (Action<string>)Delegate.CreateDelegate(typeof(Action<string>), mainMethodInfo);
+                Type testClassType = asm.GetType(Name);
+                MethodInfo mainMethodInfo = testClassType.GetMethod(MainMethodName);
+                MainMethodInvoke entryPoint = (MainMethodInvoke)Delegate.CreateDelegate(typeof(MainMethodInvoke), Activator.CreateInstance(testClassType), mainMethodInfo);
 
                 Exception ex = null;
                 //TextWriter origOut = Console.Out;
@@ -151,7 +135,7 @@ namespace Antigen
                 try
                 {
                     //Console.SetOut(sw);
-                    entryPoint(null);
+                    entryPoint();
                 }
                 catch (Exception caughtEx)
                 {
@@ -180,23 +164,23 @@ namespace Antigen
         public byte[] Assembly { get; }
     }
 
-    public class TestClass
-    {
+    //public class TestClass
+    //{
 
-    }
+    //}
 
-    public class TestMainClass : TestClass
-    {
+    //public class TestMainClass : TestClass
+    //{
 
-    }
+    //}
 
-    public class TestMethod
-    {
+    //public class TestMethod
+    //{
 
-    }
+    //}
 
-    public class TestMainMethod : TestMethod
-    {
+    //public class TestMainMethod : TestMethod
+    //{
 
-    }
+    //}
 }

@@ -1,15 +1,10 @@
-﻿using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Editing;
-using System;
-
-namespace Antigen
+﻿namespace Antigen
 {
     class Program
     {
         static void Main(string[] args)
         {
-
-
+            PRNG.Initialize(5);
 
             //GenerateTestCase();
             int testId = 1;

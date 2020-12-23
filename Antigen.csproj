@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
-    <RootNamespace>_2020</RootNamespace>
+    <RootNamespace>Antigen</RootNamespace>
     <UserSecretsId>ab71806a-3bd8-4fb1-b0e2-9450aec41a9f</UserSecretsId>
   </PropertyGroup>
 

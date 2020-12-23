@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using Antigen.Tree;
+using Microsoft.CodeAnalysis.CSharp;
+using System;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
 
 namespace Antigen
 {
@@ -16,6 +12,28 @@ namespace Antigen
     public class ConfigOptions : OptionsBase
     {
         public const string WeightSuffix = "Weight";
+
+        // Expression weights
+        public double LiteralWeight = 1;
+
+        // Statement weights
+        public double VariableDeclarationWeight = 1;
+
+        // Type weights
+        public double BooleanWeight = 1;
+        public double ByteWeight = 1;
+        public double CharWeight = 1;
+        public double DecimalWeight = 1;
+        public double DoubleWeight = 1;
+        public double Int16Weight = 1;
+        public double Int32Weight = 1;
+        public double Int64Weight = 1;
+        public double SByteWeight = 1;
+        public double SingleWeight = 1;
+        public double StringWeight = 1;
+        public double UInt16Weight = 1;
+        public double UInt32Weight = 1;
+        public double UInt64Weight = 1;
 
         // Operator weights
         public double UnaryPlusWeight = 1;
@@ -63,8 +81,29 @@ namespace Antigen
         public double EqualsWeight = 1;
         public double NotEqualsWeight = 1;
 
-        public double LookupOperator(string str)
+        public double Lookup(ExprType type)
         {
+            string str = Enum.GetName(typeof(Microsoft.CodeAnalysis.SpecialType), type.DataType);
+            str = str.Replace("System_", "");
+            return Lookup(str + WeightSuffix);
+        }
+
+        public double Lookup(Operator oper)
+        {
+            string str = Enum.GetName(typeof(SyntaxKind), oper.Oper);
+            str = str.Replace("Expression", "");
+            return Lookup(str + WeightSuffix);
+        }
+
+        public double Lookup(StmtKind stmt)
+        {
+            string str = Enum.GetName(typeof(StmtKind), stmt);
+            return Lookup(str + WeightSuffix);
+        }
+
+        public double Lookup(ExprKind expr)
+        {
+            string str = Enum.GetName(typeof(ExprKind), expr);
             str = str.Replace("Expression", "");
             return Lookup(str + WeightSuffix);
         }
