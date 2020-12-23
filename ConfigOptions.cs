@@ -15,6 +15,7 @@ namespace Antigen
 
         // Expression weights
         public double LiteralWeight = 1;
+        public double VariableWeight = 1;
 
         // Statement weights
         public double VariableDeclarationWeight = 1;

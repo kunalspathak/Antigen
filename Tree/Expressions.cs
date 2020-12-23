@@ -2,7 +2,8 @@
 {
     public enum ExprKind
     {
-        LiteralExpression
+        LiteralExpression,
+        VariableExpression,
     }
 
     //public struct Expression

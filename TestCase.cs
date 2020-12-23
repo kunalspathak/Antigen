@@ -27,10 +27,11 @@ namespace Antigen
         #region PreComputed roslyn syntax tress
         #endregion
 
-        private const string MainMethodName = "MainMethod";
+        private const string MainMethodName = "Method0";
 
         private SyntaxNode testClass;
 
+        private Scope GlobalScope;
         private List<SyntaxNode> classesList;
         private List<SyntaxNode> methodsList;
         private List<SyntaxNode> propertiesList;
@@ -47,16 +48,22 @@ namespace Antigen
 
         public void Generate()
         {
-            BaseMethod mainMethod = new BaseMethod(this, MainMethodName);
-            mainMethod.Generate();
+            GlobalScope = new Scope(this);
 
-            IList<BaseMethod> methods = new List<BaseMethod>() { mainMethod };
+            IList<BaseMethod> methods = new List<BaseMethod>();
 
-            for (int i = 1; i < 5; i++)
+            for (int i = 0; i < 5; i++)
             {
                 var testMethod = new BaseMethod(this, "Method" + i);
                 methods.Add(testMethod);
+
+                Scope localScope = new Scope(this);
+                localScope.Parent = GlobalScope;
+
+                testMethod.PushScope(localScope);
+                
                 testMethod.Generate();
+                testMethod.PopScope();
             }
 
             ClassDeclarationSyntax klass = ClassDeclaration(Name).WithMembers(new SyntaxList<MemberDeclarationSyntax>(methods.Select(m => m.GeneratedMethod)));

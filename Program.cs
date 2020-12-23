@@ -8,7 +8,7 @@
 
             //GenerateTestCase();
             int testId = 1;
-            while (true)
+            //while (true)
             {
                 TestCase testCase = new TestCase(testId++);
                 testCase.Generate();
