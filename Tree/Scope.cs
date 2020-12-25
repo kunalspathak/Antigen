@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
 namespace Antigen.Tree
 {
@@ -23,7 +24,7 @@ namespace Antigen.Tree
     public class Scope
     {
         // Optional parent scope.
-        public Scope Parent = null;
+        private Scope parent = null;
         public readonly ScopeKind ScopeType;
         public TestCase TestCase;
 
@@ -35,6 +36,8 @@ namespace Antigen.Tree
         // List of local variables in current scope. 
         private Dictionary<ValueType, List<string>> LocalVariables = new Dictionary<ValueType, List<string>>();
 
+        public List<string> AllVariables => LocalVariables.SelectMany(dict => dict.Value).ToList();
+
         // List of string vars in the current scope.
         private List<string> LocalStringVariables = new List<string>();
 
@@ -45,10 +48,11 @@ namespace Antigen.Tree
             ScopeType = ScopeKind.FunctionScope;
         }
 
-        public Scope(ScopeKind t, TestCase tc)
+        public Scope(TestCase tc, ScopeKind t, Scope parentScope)
         {
             TestCase = tc;
             ScopeType = t;
+            parent = parentScope;
         }
 
         #endregion
@@ -118,7 +122,7 @@ namespace Antigen.Tree
                 {
                     variables.AddRange(curr.ListOfVariables[variableType]);
                 }
-                curr = curr.Parent;
+                curr = curr.parent;
             }
             return variables;
         }

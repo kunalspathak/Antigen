@@ -84,7 +84,7 @@ namespace Antigen
             }
 
             // print all variables
-            foreach (string variableName in variableNames)
+            foreach (string variableName in CurrentScope.AllVariables)
             {
                 methodBody.Add(ParseStatement($"Console.WriteLine(\"{variableName}= \" + {variableName});"));
             }
@@ -107,6 +107,57 @@ namespace Antigen
 
                     return LocalDeclarationStatement(Helpers.GetVariableDeclaration(variableType, variableName, rhs));
 
+                case StmtKind.IfElseStatement:
+
+                    Tree.ValueType condValueType = Tree.ValueType.ForPrimitive(Primitive.Boolean);
+                    ExpressionSyntax conditionExpr = ExprHelper(GetASTUtils().GetRandomExpression(Primitive.Boolean), condValueType, 0);
+
+                    Scope ifBranchScope = new Scope(testCase, ScopeKind.ConditionalScope, CurrentScope);
+                    Scope elseBranchScope = new Scope(testCase, ScopeKind.ConditionalScope, CurrentScope);
+
+                    //TODO-config: Add MaxDepth in config
+                    int ifcount = 3;
+                    IList<StatementSyntax> ifBody = new List<StatementSyntax>();
+
+                    PushScope(ifBranchScope);
+                    for (int i = 0; i < ifcount; i++)
+                    {
+                        StmtKind cur;
+                        //TODO-config: Add MaxDepth in config
+                        if (depth >= 2)
+                        {
+                            cur = StmtKind.VariableDeclaration;
+                        }
+                        else
+                        {
+                            cur = GetASTUtils().GetRandomStatemet();
+                        }
+                        ifBody.Add(StatementHelper(cur, depth + 1));
+                    }
+                    PopScope(); // pop 'if' body scope
+
+                    int elsecount = 3;
+                    IList<StatementSyntax> elseBody = new List<StatementSyntax>();
+
+                    PushScope(elseBranchScope);
+                    for (int i = 0; i < elsecount; i++)
+                    {
+                        StmtKind cur;
+                        //TODO-config: Add MaxDepth in config
+                        if (depth >= 2)
+                        {
+                            cur = StmtKind.VariableDeclaration;
+                        }
+                        else
+                        {
+                            cur = GetASTUtils().GetRandomStatemet();
+                        }
+                        elseBody.Add(StatementHelper(cur, depth + 1));
+                    }
+                    PopScope(); // pop 'else' body scope
+
+                    return IfStatement(conditionExpr, Block(ifBody), ElseClause(Block(elseBody)));
+
                 default:
                     Debug.Assert(false, String.Format("Hit unknown statement type {0}", Enum.GetName(typeof(StmtKind), stmtKind)));
                     break;
@@ -120,17 +171,18 @@ namespace Antigen
             {
                 case ExprKind.LiteralExpression:
                     return Helpers.GetLiteralExpression(exprType);
+
                 case ExprKind.VariableExpression:
                     return IdentifierName(CurrentScope.GetRandomVariable(exprType));
+
                 case ExprKind.BinaryOpExpression:
                     Operator op = GetASTUtils().GetRandomBinaryOperator(returnPrimitiveType: exprType.PrimitiveType);
 
-                    ////TODO-future: Use "" instead of exprType. so we can then do cast.
                     Tree.ValueType lhsExprType = GetASTUtils().GetRandomExprType(op.InputTypes);
                     Tree.ValueType rhsExprType = lhsExprType;
                     if (op.HasFlag(OpFlags.Shift))
                     {
-                        rhsExprType = GetASTUtils().GetRandomExprType(Primitive.Int32);
+                        rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int32);
                     }
                     ExpressionSyntax lhs, rhs;
 
@@ -145,7 +197,6 @@ namespace Antigen
                         lhs = ExprHelper(GetASTUtils().GetRandomExpression(lhsExprType.PrimitiveType), lhsExprType, depth + 1);
                         rhs = ExprHelper(GetASTUtils().GetRandomExpression(rhsExprType.PrimitiveType), rhsExprType, depth + 1);
                     }
-
                     return Helpers.GetWrappedAndCastedExpression(exprType, Helpers.GetBinaryExpression(lhs, op, rhs));
 
                 default:

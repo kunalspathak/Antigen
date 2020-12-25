@@ -57,8 +57,7 @@ namespace Antigen
                 var testMethod = new BaseMethod(this, "Method" + i);
                 methods.Add(testMethod);
 
-                Scope localScope = new Scope(this);
-                localScope.Parent = GlobalScope;
+                Scope localScope = new Scope(this, ScopeKind.FunctionScope, GlobalScope);
 
                 testMethod.PushScope(localScope);
 

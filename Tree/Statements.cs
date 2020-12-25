@@ -3,6 +3,7 @@
     public enum StmtKind
     {
         VariableDeclaration,
+        IfElseStatement,
     }
 
     //public class Statements

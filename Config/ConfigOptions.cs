@@ -19,7 +19,8 @@ namespace Antigen
         public double BinaryOpWeight = 1;
 
         // Statement weights
-        public double VariableDeclarationWeight = 1;
+        public double VariableDeclarationWeight = 0.5;
+        public double IfElseStatementWeight = 1;
 
         // Type weights
         public double BooleanWeight = 1;

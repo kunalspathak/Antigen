@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Antigen.Tree
 {
@@ -87,6 +88,11 @@ namespace Antigen.Tree
         public static List<ValueType> GetTypes()
         {
             return types;
+        }
+
+        public static ValueType ForPrimitive(Primitive primitiveType)
+        {
+            return types.First(t => t.PrimitiveType == primitiveType);
         }
 
         public override string ToString()
