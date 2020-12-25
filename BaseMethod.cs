@@ -1,4 +1,5 @@
 ﻿using Antigen.Tree;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
@@ -12,6 +13,11 @@ namespace Antigen
     {
         private TestCase testCase;
         private string Name;
+#if DEBUG
+        private bool annotateComments = true;
+#else
+        private bool annotateComments = false;
+#endif
         private List<string> variableNames = new List<string>();
 
         private Scope m_ParentScope;
@@ -98,65 +104,77 @@ namespace Antigen
             switch (stmtKind)
             {
                 case StmtKind.VariableDeclaration:
-                    Tree.ValueType variableType = GetASTUtils().GetRandomExprType();
-                    string variableName = Helpers.GetVariableName(variableType, variableNames.Count);
-                    variableNames.Add(variableName);
+                    {
+                        Tree.ValueType variableType = GetASTUtils().GetRandomExprType();
+                        string variableName = Helpers.GetVariableName(variableType, variableNames.Count);
+                        variableNames.Add(variableName);
 
-                    ExpressionSyntax rhs = ExprHelper(GetASTUtils().GetRandomExpression(variableType.PrimitiveType), variableType, 0);
-                    CurrentScope.AddLocal(variableType, variableName);
+                        ExpressionSyntax rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(variableType.PrimitiveType), variableType, 0);
+                        CurrentScope.AddLocal(variableType, variableName);
 
-                    return LocalDeclarationStatement(Helpers.GetVariableDeclaration(variableType, variableName, rhs));
+                        return Annotate(LocalDeclarationStatement(Helpers.GetVariableDeclaration(variableType, variableName, rhs)), "S:VarDecl");
+                    }
 
                 case StmtKind.IfElseStatement:
-
-                    Tree.ValueType condValueType = Tree.ValueType.ForPrimitive(Primitive.Boolean);
-                    ExpressionSyntax conditionExpr = ExprHelper(GetASTUtils().GetRandomExpression(Primitive.Boolean), condValueType, 0);
-
-                    Scope ifBranchScope = new Scope(testCase, ScopeKind.ConditionalScope, CurrentScope);
-                    Scope elseBranchScope = new Scope(testCase, ScopeKind.ConditionalScope, CurrentScope);
-
-                    //TODO-config: Add MaxDepth in config
-                    int ifcount = 3;
-                    IList<StatementSyntax> ifBody = new List<StatementSyntax>();
-
-                    PushScope(ifBranchScope);
-                    for (int i = 0; i < ifcount; i++)
                     {
-                        StmtKind cur;
+                        Tree.ValueType condValueType = Tree.ValueType.ForPrimitive(Primitive.Boolean);
+                        ExpressionSyntax conditionExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Boolean), condValueType, 0);
+
+                        Scope ifBranchScope = new Scope(testCase, ScopeKind.ConditionalScope, CurrentScope);
+                        Scope elseBranchScope = new Scope(testCase, ScopeKind.ConditionalScope, CurrentScope);
+
                         //TODO-config: Add MaxDepth in config
-                        if (depth >= 2)
+                        int ifcount = 3;
+                        IList<StatementSyntax> ifBody = new List<StatementSyntax>();
+
+                        PushScope(ifBranchScope);
+                        for (int i = 0; i < ifcount; i++)
                         {
-                            cur = StmtKind.VariableDeclaration;
+                            StmtKind cur;
+                            //TODO-config: Add MaxDepth in config
+                            if (depth >= 2)
+                            {
+                                cur = StmtKind.VariableDeclaration;
+                            }
+                            else
+                            {
+                                cur = GetASTUtils().GetRandomStatemet();
+                            }
+                            ifBody.Add(StatementHelper(cur, depth + 1));
                         }
-                        else
+                        PopScope(); // pop 'if' body scope
+
+                        int elsecount = 3;
+                        IList<StatementSyntax> elseBody = new List<StatementSyntax>();
+
+                        PushScope(elseBranchScope);
+                        for (int i = 0; i < elsecount; i++)
                         {
-                            cur = GetASTUtils().GetRandomStatemet();
+                            StmtKind cur;
+                            //TODO-config: Add MaxDepth in config
+                            if (depth >= 2)
+                            {
+                                cur = StmtKind.VariableDeclaration;
+                            }
+                            else
+                            {
+                                cur = GetASTUtils().GetRandomStatemet();
+                            }
+                            elseBody.Add(StatementHelper(cur, depth + 1));
                         }
-                        ifBody.Add(StatementHelper(cur, depth + 1));
+                        PopScope(); // pop 'else' body scope
+
+                        return Annotate(IfStatement(conditionExpr, Block(ifBody), ElseClause(Block(elseBody))), "S:IfElse");
                     }
-                    PopScope(); // pop 'if' body scope
 
-                    int elsecount = 3;
-                    IList<StatementSyntax> elseBody = new List<StatementSyntax>();
-
-                    PushScope(elseBranchScope);
-                    for (int i = 0; i < elsecount; i++)
+                case StmtKind.AssignStatement:
                     {
-                        StmtKind cur;
-                        //TODO-config: Add MaxDepth in config
-                        if (depth >= 2)
-                        {
-                            cur = StmtKind.VariableDeclaration;
-                        }
-                        else
-                        {
-                            cur = GetASTUtils().GetRandomStatemet();
-                        }
-                        elseBody.Add(StatementHelper(cur, depth + 1));
+                        Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator();
+                        Tree.ValueType variableType = GetASTUtils().GetRandomExprType(assignOper.InputTypes);
+                        ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, variableType, depth);
+                        ExpressionSyntax rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(variableType.PrimitiveType), variableType, depth);
+                        return Annotate(ExpressionStatement(AssignmentExpression(assignOper.Oper, lhs, rhs)), "S:Assign");
                     }
-                    PopScope(); // pop 'else' body scope
-
-                    return IfStatement(conditionExpr, Block(ifBody), ElseClause(Block(elseBody)));
 
                 default:
                     Debug.Assert(false, String.Format("Hit unknown statement type {0}", Enum.GetName(typeof(StmtKind), stmtKind)));
@@ -170,10 +188,10 @@ namespace Antigen
             switch (exprKind)
             {
                 case ExprKind.LiteralExpression:
-                    return Helpers.GetLiteralExpression(exprType);
+                    return Annotate(Helpers.GetLiteralExpression(exprType), "E:Literal");
 
                 case ExprKind.VariableExpression:
-                    return IdentifierName(CurrentScope.GetRandomVariable(exprType));
+                    return Annotate(IdentifierName(CurrentScope.GetRandomVariable(exprType)), "E:Var");
 
                 case ExprKind.BinaryOpExpression:
                     Operator op = GetASTUtils().GetRandomBinaryOperator(returnPrimitiveType: exprType.PrimitiveType);
@@ -194,16 +212,34 @@ namespace Antigen
                     }
                     else
                     {
-                        lhs = ExprHelper(GetASTUtils().GetRandomExpression(lhsExprType.PrimitiveType), lhsExprType, depth + 1);
-                        rhs = ExprHelper(GetASTUtils().GetRandomExpression(rhsExprType.PrimitiveType), rhsExprType, depth + 1);
+                        lhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(lhsExprType.PrimitiveType), lhsExprType, depth + 1);
+                        rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType), rhsExprType, depth + 1);
                     }
-                    return Helpers.GetWrappedAndCastedExpression(exprType, Helpers.GetBinaryExpression(lhs, op, rhs));
+                    return Annotate(Helpers.GetWrappedAndCastedExpression(exprType, Helpers.GetBinaryExpression(lhs, op, rhs)), "E:BinOp");
 
                 default:
                     Debug.Assert(false, String.Format("Hit unknown expression type {0}", Enum.GetName(typeof(ExprKind), exprKind)));
                     break;
             }
             return null;
+        }
+
+        private ExpressionSyntax Annotate(ExpressionSyntax expression, string comment)
+        {
+            if (!annotateComments)
+            {
+                return expression;
+            }
+            return expression.WithTrailingTrivia(TriviaList(Comment("/* " + comment + " */")));
+        }
+
+        private StatementSyntax Annotate(StatementSyntax statement, string comment)
+        {
+            if (!annotateComments)
+            {
+                return statement;
+            }
+            return statement.WithTrailingTrivia(TriviaList(Comment("/* " + comment + " */")));
         }
     }
 }

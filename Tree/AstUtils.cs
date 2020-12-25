@@ -85,8 +85,17 @@ namespace Antigen.Tree
 
         #region Random expression methods
 
-        //TODO-verify: Should this also take ExprType?
-        public ExprKind GetRandomExpression(Primitive returnPrimitiveType)
+        public ExprKind GetRandomExpression()
+        {
+            IEnumerable<Weights<ExprKind>> exprs =
+                from z in AllExpressions
+                select z;
+
+            // Do a weighted random choice.
+            return PRNG.WeightedChoice(exprs);
+        }
+
+        public ExprKind GetRandomExpressionReturningPrimitive(Primitive returnPrimitiveType)
         {
             IEnumerable<Weights<ExprKind>> exprs;
             // Select all appropriate expressions
@@ -104,7 +113,6 @@ namespace Antigen.Tree
             // Do a weighted random choice.
             return PRNG.WeightedChoice(exprs);
         }
-
         #endregion
 
         #region Random statement methods

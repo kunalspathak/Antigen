@@ -4,6 +4,7 @@
     {
         VariableDeclaration,
         IfElseStatement,
+        AssignStatement,
     }
 
     //public class Statements
