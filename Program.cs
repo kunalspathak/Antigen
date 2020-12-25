@@ -6,7 +6,7 @@ namespace Antigen
     {
         static void Main(string[] args)
         {
-            PRNG.Initialize(5);
+            PRNG.Initialize(-1);
 
             int testId = 1;
             while (true)

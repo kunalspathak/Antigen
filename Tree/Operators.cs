@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeAnalysis.CSharp;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Antigen.Tree
 {
@@ -105,6 +106,11 @@ namespace Antigen.Tree
         public static List<Operator> GetOperators()
         {
             return operators;
+        }
+
+        public static Operator ForSyntaxKind(SyntaxKind operKind)
+        {
+            return operators.First(o => o.Oper == operKind);
         }
 
         public override string ToString()

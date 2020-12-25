@@ -1,4 +1,5 @@
-﻿using Antigen.Tree;
+﻿using Antigen.Statements;
+using Antigen.Tree;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -83,6 +84,14 @@ namespace Antigen
                 methodBody.Add(LocalDeclarationStatement(Helpers.GetVariableDeclaration(variableType, variableName, rhs)));
             }
 
+            //TODO: Define some more constants
+            methodBody.Add(
+                LocalDeclarationStatement(
+                    Helpers.GetVariableDeclaration(
+                        Tree.ValueType.ForPrimitive(Primitive.Int32),
+                        Constants.LoopInvariantName,
+                        LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(10))))));
+
             for (int i = 0; i < 10; i++)
             {
                 StmtKind cur = GetASTUtils().GetRandomStatemet();
@@ -114,7 +123,6 @@ namespace Antigen
 
                         return Annotate(LocalDeclarationStatement(Helpers.GetVariableDeclaration(variableType, variableName, rhs)), "S:VarDecl");
                     }
-
                 case StmtKind.IfElseStatement:
                     {
                         Tree.ValueType condValueType = Tree.ValueType.ForPrimitive(Primitive.Boolean);
@@ -166,7 +174,6 @@ namespace Antigen
 
                         return Annotate(IfStatement(conditionExpr, Block(ifBody), ElseClause(Block(elseBody))), "S:IfElse");
                     }
-
                 case StmtKind.AssignStatement:
                     {
                         Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator();
@@ -175,7 +182,50 @@ namespace Antigen
                         ExpressionSyntax rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(variableType.PrimitiveType), variableType, depth);
                         return Annotate(ExpressionStatement(AssignmentExpression(assignOper.Oper, lhs, rhs)), "S:Assign");
                     }
+                case StmtKind.ForStatement:
+                    {
+                        Scope forLoopScope = new Scope(testCase, ScopeKind.LoopScope, CurrentScope);
+                        ForStatement forStmt = new ForStatement(testCase);
+                        //TODO:config
+                        int n = 3; // max statements
+                        forStmt.LoopVar = CurrentScope.GetRandomVariable(Tree.ValueType.ForPrimitive(Primitive.Int32));
+                        forStmt.NestNum = depth;
+                        forStmt.NumOfSecondaryInductionVariables = PRNG.Next(/*GetOptions().MaxNumberOfSecondaryInductionVariable*/ 1 + 1);
 
+                        // 50% of the time, we'll make it a simple loop, 25% each normal and complex.
+                        if (PRNG.Next(2) == 0)
+                            forStmt.LoopKind = Statements.ForStatement.Kind.SimpleLoop;
+                        else if (PRNG.Next(2) == 0)
+                            forStmt.LoopKind = Statements.ForStatement.Kind.NormalLoop;
+                        else
+                            forStmt.LoopKind = Statements.ForStatement.Kind.ComplexLoop;
+
+                        PushScope(forLoopScope);
+
+                        forStmt.Bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Int32), Tree.ValueType.ForPrimitive(Primitive.Int32), 0);
+                        forStmt.LoopStep = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Int32), Tree.ValueType.ForPrimitive(Primitive.Int32), 0);
+
+                        //TODO-imp: ctrlFlowStack
+                        //TODO future: label
+                        for (int i = 0; i < n; ++i)
+                        {
+                            StmtKind cur;
+                            if (depth >= 2)
+                            {
+                                cur = StmtKind.VariableDeclaration;
+                            }
+                            else
+                            {
+                                cur = GetASTUtils().GetRandomStatemet();
+                            }
+                            forStmt.AddToBody(StatementHelper(cur, depth + 1));
+                        }
+
+                        PopScope(); // pop for-loop scope
+
+                        return Annotate(Block(forStmt.Generate(false)), "S:for-loop");
+
+                    }
                 default:
                     Debug.Assert(false, String.Format("Hit unknown statement type {0}", Enum.GetName(typeof(StmtKind), stmtKind)));
                     break;

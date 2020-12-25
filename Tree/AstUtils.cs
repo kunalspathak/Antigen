@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Antigen.Statements;
 
 namespace Antigen.Tree
 {
@@ -204,6 +205,46 @@ namespace Antigen.Tree
 
             // Do a weighted random choice.
             return PRNG.WeightedChoice(ops);
+        }
+
+        internal LoopControlParameters GetForBoundParameters()
+        {
+            LoopControlParameters Ret = new LoopControlParameters();
+
+            Ret.IsInitInLoopHeader = PRNG.Decide(Options.LoopParametersRemovalProbability);
+            Ret.IsStepInLoopHeader = PRNG.Decide(Options.LoopParametersRemovalProbability);
+            Ret.IsBreakCondInLoopHeader = PRNG.Decide(Options.LoopParametersRemovalProbability);
+
+            Ret.IsLoopInvariantVariableUsed = PRNG.Decide(Options.UseLoopInvariantVariableProbability);
+            Ret.IsBreakCondAtEndOfLoopBody = Options.AllowLoopCondAtEnd ? PRNG.Decide(0.5) : false;
+            Ret.IsForwardLoop = PRNG.Decide(Options.LoopForwardProbability);
+            Ret.IsLoopStartFromInvariant = PRNG.Decide(Options.LoopStartFromInvariantProbabilty);
+            Ret.LoopInductionChangeFactor = PRNG.Next(1, 5);
+            Ret.LoopInitValueVariation = PRNG.Next(0, Ret.LoopInductionChangeFactor);
+            Ret.IsStepBeforeBreakCondition = PRNG.Decide(Options.LoopStepPreBreakCondProbability);
+
+            // Generate operator for break condition in a forward loop
+            // Depending on the loop type/condition, we will later flip the operator in LoopStatement
+            int operatorChoice = PRNG.Next(5);
+            switch (operatorChoice)
+            {
+                case 0:
+                case 1:
+                    Ret.LoopBreakOperator = Operator.ForSyntaxKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.GreaterThanExpression);
+                    break;
+                case 2:
+                case 3:
+                    Ret.LoopBreakOperator = Operator.ForSyntaxKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.GreaterThanOrEqualExpression);
+                    break;
+                case 4:
+                    Ret.LoopBreakOperator = Operator.ForSyntaxKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.EqualsExpression);
+                    // variation doesn't guarantee rounding which is needed with == operator. So make invariant as 0.
+                    // eg. ChangeFactor = 2, __loopvar = 3; __loopvar != (3 * 2); __loopvar += 2; We will break in 3 iterations without invariation
+                    // eg. ChangeFactor = 2, __loopvar = 3 + 1; __loopvar != (3 * 2); __loopvar += 2; We will go to infinite loop because condition is never true
+                    Ret.LoopInitValueVariation = 0;
+                    break;
+            }
+            return Ret;
         }
         #endregion
 

@@ -20,8 +20,9 @@ namespace Antigen
 
         // Statement weights
         public double VariableDeclarationWeight = 0.5;
-        public double IfElseStatementWeight = 1;
-        public double AssignStatementWeight = 1;
+        public double IfElseStatementWeight = 0.4;
+        public double AssignStatementWeight = 0.5;
+        public double ForStatementWeight = 1;
 
         // Type weights
         public double BooleanWeight = 1;
@@ -84,6 +85,28 @@ namespace Antigen
         public double GreaterThanOrEqualWeight = 1;
         public double EqualsWeight = 1;
         public double NotEqualsWeight = 1;
+
+        // Config options
+        // Probablity of removing loop parameters -- see comments on BoundParameters in ForStatement 
+        public double LoopParametersRemovalProbability = 0.1;
+
+        // Probability of having forward loop whose induction variable always increases
+        public double LoopForwardProbability = 0.7;
+
+        //Probabilty whether loop induction variable should start from loop invariant value or +/- 3
+        public double LoopStartFromInvariantProbabilty = 0.5;
+
+        //Probabilty whether loop step should happen pre or post break condition
+        public double LoopStepPreBreakCondProbability = 0.5;
+
+        // Probability of usage of array.length vs. loopinvariant
+        public double UseLoopInvariantVariableProbability = 1.0; // Always have 1.0 for now to stop making .length as invariant because that could lead to long loops
+
+        // This will put loop condition at the end of the loop body. 
+        // Always use ContinueStatementWeight = 0 if this is true (see lessmath_no_continue.xml), otherwise there is a chance of infinite loop here.
+        // This is a quick fix for now.  We need to come up with a better solution for this for IE11.
+        public bool AllowLoopCondAtEnd = false;
+
 
         public double Lookup(Tree.ValueType type)
         {

@@ -5,6 +5,7 @@
         VariableDeclaration,
         IfElseStatement,
         AssignStatement,
+        ForStatement,
     }
 
     //public class Statements
