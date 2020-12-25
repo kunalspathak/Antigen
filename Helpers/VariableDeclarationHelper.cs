@@ -14,7 +14,7 @@ namespace Antigen
 {
     public static partial class Helpers
     {
-        public static VariableDeclarationSyntax GetVariableDeclaration(ExprType variableType, string variableName, ExpressionSyntax value)
+        public static VariableDeclarationSyntax GetVariableDeclaration(Tree.ValueType variableType, string variableName, ExpressionSyntax value)
         {
             return VariableDeclaration(
                     PredefinedType(
@@ -27,9 +27,14 @@ namespace Antigen
                             EqualsValueClause(value))));
         }
 
-        public static string GetVariableName(ExprType variableType, int id)
+        public static string GetVariableName(Tree.ValueType variableType, int id)
         {
             return Enum.GetName(typeof(SpecialType), variableType.DataType).Replace("System_", "").ToLower() + "_" + id;
+        }
+
+        public static PredefinedTypeSyntax GetToken(SyntaxKind syntaxKind)
+        {
+            return PredefinedType(Token(syntaxKind));
         }
     }
 }

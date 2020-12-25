@@ -14,8 +14,9 @@ namespace Antigen
         public const string WeightSuffix = "Weight";
 
         // Expression weights
-        public double LiteralWeight = 1;
-        public double VariableWeight = 1;
+        public double LiteralWeight = 0.25;
+        public double VariableWeight = 0.5;
+        public double BinaryOpWeight = 1;
 
         // Statement weights
         public double VariableDeclarationWeight = 1;
@@ -82,7 +83,7 @@ namespace Antigen
         public double EqualsWeight = 1;
         public double NotEqualsWeight = 1;
 
-        public double Lookup(ExprType type)
+        public double Lookup(Tree.ValueType type)
         {
             string str = Enum.GetName(typeof(Microsoft.CodeAnalysis.SpecialType), type.DataType);
             str = str.Replace("System_", "");

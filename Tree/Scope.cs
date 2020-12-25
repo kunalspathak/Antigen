@@ -30,10 +30,10 @@ namespace Antigen.Tree
         // Combines local variables, properties of members, and array properties.  This is the
         // only list from which GetRandom*Variable will draw -- the other lists are only to track
         // variables so that the TestCase can initialize them and print them.
-        private Dictionary<ExprType, List<string>> ListOfVariables = new Dictionary<ExprType, List<string>>();
+        private Dictionary<ValueType, List<string>> ListOfVariables = new Dictionary<ValueType, List<string>>();
 
         // List of local variables in current scope. 
-        private Dictionary<ExprType, List<string>> LocalVariables = new Dictionary<ExprType, List<string>>();
+        private Dictionary<ValueType, List<string>> LocalVariables = new Dictionary<ValueType, List<string>>();
 
         // List of string vars in the current scope.
         private List<string> LocalStringVariables = new List<string>();
@@ -54,7 +54,7 @@ namespace Antigen.Tree
         #endregion
 
         #region Get variables from the scope
-        public string GetRandomVariable(ExprType variableType)
+        public string GetRandomVariable(ValueType variableType)
         {
             List<string> allUsableVariables = GetUsableVariables(variableType);
             return allUsableVariables[PRNG.Next(allUsableVariables.Count)];
@@ -69,7 +69,7 @@ namespace Antigen.Tree
         #endregion
 
         #region Add variables to scope
-        public void AddLocal(ExprType variableType, string variableName)
+        public void AddLocal(ValueType variableType, string variableName)
         {
 #if DEBUG
             foreach (var valueType in LocalVariables.Keys)
@@ -106,7 +106,7 @@ namespace Antigen.Tree
         /// </summary>
         /// <returns></returns>
         ///  
-        private List<string> GetUsableVariables(ExprType variableType)
+        private List<string> GetUsableVariables(ValueType variableType)
         {
             List<string> variables = new List<string>();
 

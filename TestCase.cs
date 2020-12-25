@@ -32,10 +32,10 @@ namespace Antigen
         private SyntaxNode testClass;
 
         private Scope GlobalScope;
-        private List<SyntaxNode> classesList;
-        private List<SyntaxNode> methodsList;
-        private List<SyntaxNode> propertiesList;
-        private List<SyntaxNode> fieldsList;
+        //private List<SyntaxNode> classesList;
+        //private List<SyntaxNode> methodsList;
+        //private List<SyntaxNode> propertiesList;
+        //private List<SyntaxNode> fieldsList;
 
         public string Name { get; private set; }
         public AstUtils AstUtils { get; private set; }
@@ -52,7 +52,7 @@ namespace Antigen
 
             IList<BaseMethod> methods = new List<BaseMethod>();
 
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 1; i++)
             {
                 var testMethod = new BaseMethod(this, "Method" + i);
                 methods.Add(testMethod);
@@ -61,7 +61,7 @@ namespace Antigen
                 localScope.Parent = GlobalScope;
 
                 testMethod.PushScope(localScope);
-                
+
                 testMethod.Generate();
                 testMethod.PopScope();
             }
@@ -84,7 +84,15 @@ namespace Antigen
 
         private CompileResult Compile(CompilationType compilationType)
         {
-            Console.WriteLine(testClass.ToString());
+            string testClassContents = testClass.ToFullString();
+            File.WriteAllText(@"E:\git\Antigen\TestClass.g.cs", testClassContents);
+
+            string[] testClassCode = testClassContents.Split(Environment.NewLine);
+            int lineNum = 1;
+            foreach (string code in testClassCode)
+            {
+                Console.WriteLine("[{0,4:D4}]{1}", lineNum++, code);
+            }
 
             string corelibPath = typeof(object).Assembly.Location;
             string otherAssembliesPath = Path.GetDirectoryName(corelibPath);
@@ -125,6 +133,7 @@ namespace Antigen
             {
                 Console.WriteLine("Got compiler errors:");
                 Console.WriteLine(string.Join(Environment.NewLine, compileResult.CompileErrors));
+                Console.ReadLine();
             }
             else
             {

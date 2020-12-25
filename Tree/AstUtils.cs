@@ -7,12 +7,13 @@ namespace Antigen.Tree
     public class AstUtils
     {
         private List<Weights<ExprKind>> AllExpressions = new List<Weights<ExprKind>>();
+        private List<Weights<ExprKind>> AllNonNumericExpressions = new List<Weights<ExprKind>>();
         private List<Weights<StmtKind>> AllStatements = new List<Weights<StmtKind>>();
-        private List<Weights<ExprType>> AllTypes = new List<Weights<ExprType>>();
-        private List<Weights<ExprType>> AllStatementsWithCFStmts = new List<Weights<ExprType>>();
-        private List<Weights<ExprType>> AllTerminalExpressions = new List<Weights<ExprType>>();
-        private List<Weights<ExprType>> AllTerminalStatements = new List<Weights<ExprType>>();
-        private List<Weights<ExprType>> AllTerminalStatementsWithCFStmts = new List<Weights<ExprType>>();
+        private List<Weights<ValueType>> AllTypes = new List<Weights<ValueType>>();
+        private List<Weights<ValueType>> AllStatementsWithCFStmts = new List<Weights<ValueType>>();
+        private List<Weights<ValueType>> AllTerminalExpressions = new List<Weights<ValueType>>();
+        private List<Weights<ValueType>> AllTerminalStatements = new List<Weights<ValueType>>();
+        private List<Weights<ValueType>> AllTerminalStatementsWithCFStmts = new List<Weights<ValueType>>();
         private List<Weights<Operator>> AllOperators = new List<Weights<Operator>>();
 
         private ConfigOptions Options;
@@ -26,9 +27,9 @@ namespace Antigen.Tree
             TestCase = tc;
 
             // Initialize types
-            foreach (ExprType type in ExprType.GetTypes())
+            foreach (ValueType type in ValueType.GetTypes())
             {
-                AllTypes.Add(new Weights<ExprType>(type, Options.Lookup(type)));
+                AllTypes.Add(new Weights<ValueType>(type, Options.Lookup(type)));
             }
 
             // Initialize statements
@@ -41,6 +42,12 @@ namespace Antigen.Tree
             foreach (ExprKind expr in (ExprKind[])Enum.GetValues(typeof(ExprKind)))
             {
                 AllExpressions.Add(new Weights<ExprKind>(expr, Options.Lookup(expr)));
+                // For binary operation, there is no operator that don't have assign flag and that returns char or string
+                // Hence do not choose binary expression if return is expected to be string
+                if (expr != ExprKind.BinaryOpExpression)
+                {
+                    AllNonNumericExpressions.Add(new Weights<ExprKind>(expr, Options.Lookup(expr)));
+                }
             }
 
             // Initialize operators
@@ -51,26 +58,48 @@ namespace Antigen.Tree
         }
 
         #region Random type methods
-        public ExprType GetRandomType()
+        public ValueType GetRandomExprType()
         {
-            // Select all appropriate statements
-            IEnumerable<Weights<ExprType>> types =
+            // Select all appropriate types
+            IEnumerable<Weights<ValueType>> types =
                                         from z in AllTypes
                                         select z;
 
             // Do a weighted random choice.
             return PRNG.WeightedChoice(types);
         }
+
+        public ValueType GetRandomExprType(Primitive valueType)
+        {
+            // Select all appropriate types
+            IEnumerable<Weights<ValueType>> types =
+                                        from z in AllTypes
+                                        where z.Data.AllowedPrimitive(valueType)
+                                        select z;
+
+            // Do a weighted random choice.
+            return PRNG.WeightedChoice(types);
+        }
+
         #endregion
 
-        #region Random statement methods
+        #region Random expression methods
 
-        public ExprKind GetRandomExpression()
+        //TODO-verify: Should this also take ExprType?
+        public ExprKind GetRandomExpression(Primitive returnPrimitiveType)
         {
-            // Select all appropriate statements
-            IEnumerable<Weights<ExprKind>> exprs =
-                                        from z in AllExpressions
-                                        select z;
+            IEnumerable<Weights<ExprKind>> exprs;
+            // Select all appropriate expressions
+            if (returnPrimitiveType == Primitive.Char)
+            {
+                exprs = from z in AllNonNumericExpressions
+                        select z;
+            }
+            else
+            {
+                exprs = from z in AllExpressions
+                        select z;
+            }
 
             // Do a weighted random choice.
             return PRNG.WeightedChoice(exprs);
@@ -95,12 +124,12 @@ namespace Antigen.Tree
 
         #region Random operator methods
 
-        public Operator GetRandomBinaryOperator()
+        public Operator GetRandomBinaryOperator(Primitive returnPrimitiveType)
         {
             // Select all appropriate operators
             IEnumerable<Weights<Operator>> ops =
                                         from z in AllOperators
-                                        where z.Data.HasFlag(Operator.OpFlags.Binary) && !z.Data.HasFlag(Operator.OpFlags.Assignment)
+                                        where z.Data.HasFlag(OpFlags.Binary) && !z.Data.HasFlag(OpFlags.Assignment) && z.Data.HasReturnType(returnPrimitiveType)
                                         select z;
 
             // Do a weighted random choice.
@@ -112,20 +141,12 @@ namespace Antigen.Tree
             // Select all appropriate operators
             IEnumerable<Weights<Operator>> ops =
                                         from z in AllOperators
-                                        where z.Data.HasFlag(Operator.OpFlags.Comparison)
+                                        where z.Data.HasFlag(OpFlags.Comparison)
                                         where z.Weight != 0
                                         select z;
 
-            // If we've disabled all comparison operators, just use another binary operator.
-            if (ops.Count() == 0)
-            {
-                return GetRandomBinaryOperator();
-            }
-            else
-            {
-                // Do a weighted random choice.
-                return PRNG.WeightedChoice(ops);
-            }
+            // Do a weighted random choice.
+            return PRNG.WeightedChoice(ops);
         }
 
         public Operator GetRandomLogicalOperator()
@@ -133,20 +154,12 @@ namespace Antigen.Tree
             // Select all appropriate operators
             IEnumerable<Weights<Operator>> ops =
                                         from z in AllOperators
-                                        where z.Data.HasFlag(Operator.OpFlags.Logical)
+                                        where z.Data.HasFlag(OpFlags.Logical)
                                         where z.Weight != 0
                                         select z;
 
-            // If we've disabled all comparison operators, just use another binary operator.
-            if (ops.Count() == 0)
-            {
-                return GetRandomBinaryOperator();
-            }
-            else
-            {
-                // Do a weighted random choice.
-                return PRNG.WeightedChoice(ops);
-            }
+            // Do a weighted random choice.
+            return PRNG.WeightedChoice(ops);
         }
 
         public Operator GetRandomUnaryOperator()
@@ -154,7 +167,7 @@ namespace Antigen.Tree
             // Select all appropriate operators
             IEnumerable<Weights<Operator>> ops =
                                         from z in AllOperators
-                                        where z.Data.HasFlag(Operator.OpFlags.Unary)
+                                        where z.Data.HasFlag(OpFlags.Unary)
                                         select z;
 
             // Do a weighted random choice.
@@ -166,7 +179,7 @@ namespace Antigen.Tree
             // Select all appropriate operators
             IEnumerable<Weights<Operator>> ops =
                                         from z in AllOperators
-                                        where z.Data.HasFlag(Operator.OpFlags.Assignment)
+                                        where z.Data.HasFlag(OpFlags.Assignment)
                                         select z;
 
             // Do a weighted random choice.
@@ -178,7 +191,7 @@ namespace Antigen.Tree
             // Select all appropriate operators
             IEnumerable<Weights<Operator>> ops =
                                         from z in AllOperators
-                                        where z.Data.HasFlag(Operator.OpFlags.String)
+                                        where z.Data.HasFlag(OpFlags.String)
                                         select z;
 
             // Do a weighted random choice.

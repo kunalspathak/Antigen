@@ -4,6 +4,7 @@
     {
         LiteralExpression,
         VariableExpression,
+        BinaryOpExpression,
     }
 
     //public struct Expression

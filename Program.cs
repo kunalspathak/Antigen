@@ -1,4 +1,6 @@
-﻿namespace Antigen
+﻿using System;
+
+namespace Antigen
 {
     class Program
     {
@@ -6,9 +8,8 @@
         {
             PRNG.Initialize(5);
 
-            //GenerateTestCase();
             int testId = 1;
-            //while (true)
+            while (true)
             {
                 TestCase testCase = new TestCase(testId++);
                 testCase.Generate();

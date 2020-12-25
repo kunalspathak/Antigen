@@ -92,13 +92,13 @@ namespace Antigen
             return (decimal)(PRNG.Next(int.MaxValue) + 3.5);
         }
 
-        public static LiteralExpressionSyntax GetLiteralExpression(ExprType literalType)
+        public static LiteralExpressionSyntax GetLiteralExpression(Tree.ValueType literalType)
         {
             SyntaxToken literalToken;
             SyntaxKind kind;
-            switch (literalType.ValueType)
+            switch (literalType.PrimitiveType)
             {
-                case Tree.ValueType.Boolean:
+                case Tree.Primitive.Boolean:
                     if (GetRandomBoolean())
                     {
                         kind = SyntaxKind.TrueLiteralExpression;
@@ -110,60 +110,60 @@ namespace Antigen
                         literalToken = Token(SyntaxKind.FalseKeyword);
                     }
                     break;
-                case Tree.ValueType.Byte:
+                case Tree.Primitive.Byte:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomByte());
                     break;
-                case Tree.ValueType.Char:
+                case Tree.Primitive.Char:
                     kind = SyntaxKind.CharacterLiteralExpression;
                     literalToken = Literal(GetRandomChar());
                     break;
-                case Tree.ValueType.Int16:
+                case Tree.Primitive.Int16:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomShort());
                     break;
-                case Tree.ValueType.Int32:
+                case Tree.Primitive.Int32:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomInt());
                     break;
-                case Tree.ValueType.Int64:
+                case Tree.Primitive.Int64:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomLong());
                     break;
-                case Tree.ValueType.UInt16:
+                case Tree.Primitive.UInt16:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomUShort());
                     break;
-                case Tree.ValueType.UInt32:
+                case Tree.Primitive.UInt32:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomUInt());
                     break;
-                case Tree.ValueType.UInt64:
+                case Tree.Primitive.UInt64:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomULong());
                     break;
-                case Tree.ValueType.SByte:
+                case Tree.Primitive.SByte:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomSByte());
                     break;
-                case Tree.ValueType.Single:
+                case Tree.Primitive.Single:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomFloat());
                     break;
-                case Tree.ValueType.Decimal:
+                case Tree.Primitive.Decimal:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomDecimal());
                     break;
-                case Tree.ValueType.Double:
+                case Tree.Primitive.Double:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomDouble());
                     break;
-                case Tree.ValueType.String:
+                case Tree.Primitive.String:
                     kind = SyntaxKind.StringLiteralExpression;
                     literalToken = Literal(GetRandomString());
                     break;
                 default:
-                    Debug.Assert(false, String.Format("Hit unknown value type {0}", Enum.GetName(typeof(Tree.ValueType), literalType.ValueType)));
+                    Debug.Assert(false, String.Format("Hit unknown value type {0}", Enum.GetName(typeof(Tree.Primitive), literalType.PrimitiveType)));
 
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(1);
@@ -172,6 +172,8 @@ namespace Antigen
             }
 
             return LiteralExpression(kind, literalToken);
+
+            //return LiteralExpression(kind, literalToken);
         }
     }
 }
