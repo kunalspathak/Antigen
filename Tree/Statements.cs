@@ -6,6 +6,7 @@
         IfElseStatement,
         AssignStatement,
         ForStatement,
+        DoWhileStatement,
     }
 
     //public class Statements

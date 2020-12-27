@@ -205,6 +205,7 @@ namespace Antigen
                         forStmt.Bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Int32), Tree.ValueType.ForPrimitive(Primitive.Int32), 0);
                         forStmt.LoopStep = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Int32), Tree.ValueType.ForPrimitive(Primitive.Int32), 0);
 
+                        //TODO-imp: AddInductionVariables
                         //TODO-imp: ctrlFlowStack
                         //TODO future: label
                         for (int i = 0; i < n; ++i)
@@ -224,7 +225,39 @@ namespace Antigen
                         PopScope(); // pop for-loop scope
 
                         return Annotate(Block(forStmt.Generate(false)), "S:for-loop");
+                    }
+                case StmtKind.DoWhileStatement:
+                    {
+                        Scope doWhileScope = new Scope(testCase, ScopeKind.LoopScope, CurrentScope);
+                        DoWhileStatement doStmt = new DoWhileStatement(testCase);
+                        //TODO:config
+                        int n = 3; // max statements
+                        doStmt.NestNum = depth;
+                        doStmt.NumOfSecondaryInductionVariables = PRNG.Next(/*GetOptions().MaxNumberOfSecondaryInductionVariable*/ 1 + 1);
 
+                        PushScope(doWhileScope);
+
+                        doStmt.Bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Boolean), Tree.ValueType.ForPrimitive(Primitive.Boolean), 0);
+
+                        //TODO-imp: AddInductionVariables
+                        //TODO-imp: ctrlFlowStack
+                        //TODO future: label
+                        for (int i = 0; i < n; ++i)
+                        {
+                            StmtKind cur;
+                            if (depth >= 2)
+                            {
+                                cur = StmtKind.VariableDeclaration;
+                            }
+                            else
+                            {
+                                cur = GetASTUtils().GetRandomStatemet();
+                            }
+                            doStmt.AddToBody(StatementHelper(cur, depth + 1));
+                        }
+
+                        PopScope(); // pop do-while scope
+                        return Annotate(Block(doStmt.Generate(false)), "S:do-while");
                     }
                 default:
                     Debug.Assert(false, String.Format("Hit unknown statement type {0}", Enum.GetName(typeof(StmtKind), stmtKind)));
