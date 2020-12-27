@@ -16,6 +16,8 @@ namespace Antigen
         private string Name;
 #if DEBUG
         private bool annotateComments = true;
+        private Dictionary<string, int> expressionsCount = new Dictionary<string, int>();
+        private Dictionary<string, int> statementsCount = new Dictionary<string, int>(); 
 #else
         private bool annotateComments = false;
 #endif
@@ -121,7 +123,7 @@ namespace Antigen
                         ExpressionSyntax rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(variableType.PrimitiveType), variableType, 0);
                         CurrentScope.AddLocal(variableType, variableName);
 
-                        return Annotate(LocalDeclarationStatement(Helpers.GetVariableDeclaration(variableType, variableName, rhs)), "S:VarDecl");
+                        return Annotate(LocalDeclarationStatement(Helpers.GetVariableDeclaration(variableType, variableName, rhs)), "VarDecl");
                     }
                 case StmtKind.IfElseStatement:
                     {
@@ -172,7 +174,7 @@ namespace Antigen
                         }
                         PopScope(); // pop 'else' body scope
 
-                        return Annotate(IfStatement(conditionExpr, Block(ifBody), ElseClause(Block(elseBody))), "S:IfElse");
+                        return Annotate(IfStatement(conditionExpr, Block(ifBody), ElseClause(Block(elseBody))), "IfElse");
                     }
                 case StmtKind.AssignStatement:
                     {
@@ -180,7 +182,7 @@ namespace Antigen
                         Tree.ValueType variableType = GetASTUtils().GetRandomExprType(assignOper.InputTypes);
                         ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, variableType, depth);
                         ExpressionSyntax rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(variableType.PrimitiveType), variableType, depth);
-                        return Annotate(ExpressionStatement(AssignmentExpression(assignOper.Oper, lhs, rhs)), "S:Assign");
+                        return Annotate(ExpressionStatement(AssignmentExpression(assignOper.Oper, lhs, rhs)), "Assign");
                     }
                 case StmtKind.ForStatement:
                     {
@@ -224,7 +226,7 @@ namespace Antigen
 
                         PopScope(); // pop for-loop scope
 
-                        return Annotate(Block(forStmt.Generate(false)), "S:for-loop");
+                        return Annotate(Block(forStmt.Generate(false)), "for-loop");
                     }
                 case StmtKind.DoWhileStatement:
                     {
@@ -257,7 +259,7 @@ namespace Antigen
                         }
 
                         PopScope(); // pop do-while scope
-                        return Annotate(Block(doStmt.Generate(false)), "S:do-while");
+                        return Annotate(Block(doStmt.Generate(false)), "do-while");
                     }
                 default:
                     Debug.Assert(false, String.Format("Hit unknown statement type {0}", Enum.GetName(typeof(StmtKind), stmtKind)));
@@ -271,10 +273,10 @@ namespace Antigen
             switch (exprKind)
             {
                 case ExprKind.LiteralExpression:
-                    return Annotate(Helpers.GetLiteralExpression(exprType), "E:Literal");
+                    return Annotate(Helpers.GetLiteralExpression(exprType), "Literal");
 
                 case ExprKind.VariableExpression:
-                    return Annotate(IdentifierName(CurrentScope.GetRandomVariable(exprType)), "E:Var");
+                    return Annotate(IdentifierName(CurrentScope.GetRandomVariable(exprType)), "Var");
 
                 case ExprKind.BinaryOpExpression:
                     Operator op = GetASTUtils().GetRandomBinaryOperator(returnPrimitiveType: exprType.PrimitiveType);
@@ -298,7 +300,7 @@ namespace Antigen
                         lhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(lhsExprType.PrimitiveType), lhsExprType, depth + 1);
                         rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType), rhsExprType, depth + 1);
                     }
-                    return Annotate(Helpers.GetWrappedAndCastedExpression(exprType, Helpers.GetBinaryExpression(lhs, op, rhs)), "E:BinOp");
+                    return Annotate(Helpers.GetWrappedAndCastedExpression(exprType, Helpers.GetBinaryExpression(lhs, op, rhs)), "BinOp");
 
                 default:
                     Debug.Assert(false, String.Format("Hit unknown expression type {0}", Enum.GetName(typeof(ExprKind), exprKind)));
@@ -313,7 +315,14 @@ namespace Antigen
             {
                 return expression;
             }
-            return expression.WithTrailingTrivia(TriviaList(Comment("/* " + comment + " */")));
+
+            string typeName = expression.GetType().Name;
+            if (!expressionsCount.ContainsKey(typeName))
+            {
+                expressionsCount[typeName] = 0;
+            }
+            expressionsCount[typeName]++;
+            return expression.WithTrailingTrivia(TriviaList(Comment($"/* E#{expressionsCount[typeName]}: {comment} */")));
         }
 
         private StatementSyntax Annotate(StatementSyntax statement, string comment)
@@ -322,7 +331,13 @@ namespace Antigen
             {
                 return statement;
             }
-            return statement.WithTrailingTrivia(TriviaList(Comment("/* " + comment + " */")));
+            string typeName = statement.GetType().Name;
+            if (!statementsCount.ContainsKey(typeName))
+            {
+                statementsCount[typeName] = 0;
+            }
+            statementsCount[typeName]++;
+            return statement.WithTrailingTrivia(TriviaList(Comment($"/* S#{statementsCount[typeName]}: {comment} */")));
         }
     }
 }
