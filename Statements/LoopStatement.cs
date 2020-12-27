@@ -107,23 +107,23 @@ namespace Antigen.Statements
 
         #region Methods
 
-        //public override string ToString()
-        //{
-        //    if (__loopStart == -1) GetLoopStart();
-        //    if (__loopEnd == -1) GetLoopEnd();
+        public override string ToString()
+        {
+            if (__loopStart == -1) GetLoopStart();
+            if (__loopEnd == -1) GetLoopEnd();
 
-        //    if (IsPrimary)
-        //    {
-        //        if (LoopParameters.IsStepBeforeBreakCondition)
-        //            return String.Format("({0} = {1} ; {4}, {0} {2} {3}; )", Name, __loopStart, getLoopControlOperator(true), __loopEnd, GetLoopStep());
-        //        else
-        //            return String.Format("({0} = {1} ; {0} {2} {3}; {4})", Name, __loopStart, getLoopControlOperator(true), __loopEnd, GetLoopStep());
-        //    }
-        //    else
-        //    {
-        //        return String.Format("({0} = {1} ; ; {2})", Name, __loopStart, GetLoopStep());
-        //    }
-        //}
+            if (IsPrimary)
+            {
+                if (LoopParameters.IsStepBeforeBreakCondition)
+                    return String.Format("({0} = {1} ; {4}, {0} {2} {3}; )", Name, __loopStart, getLoopControlOperator(true), __loopEnd, GetLoopStep());
+                else
+                    return String.Format("({0} = {1} ; {0} {2} {3}; {4})", Name, __loopStart, getLoopControlOperator(true), __loopEnd, GetLoopStep());
+            }
+            else
+            {
+                return String.Format("({0} = {1} ; ; {2})", Name, __loopStart, GetLoopStep());
+            }
+        }
 
         /// <summary>
         /// Returns if this induction variable had generated code for init, step and guard check.
@@ -531,18 +531,12 @@ namespace Antigen.Statements
         public LoopStatement(TestCase tc)
         {
             TC = tc;
-            //LocalScope = new Scope(TC, ScopeKind.loopScope, tc);
         }
 
         public string GetImplicitLoopVar()
         {
             return "__loopvar" + NestNum;
         }
-
-        //public virtual StatementSyntax GeneratePreLoopBody(bool labels)
-        //{
-        //    return null;
-        //}
 
         public virtual List<StatementSyntax> Generate(bool labels)
         {
@@ -566,11 +560,6 @@ namespace Antigen.Statements
             return Body;
         }
 
-        //public virtual StatementSyntax GeneratePostLoopBody(bool labels)
-        //{
-        //    return null;
-        //}
-
         #region Loop induction code generation
 
         private List<string> generateComments()
@@ -590,13 +579,11 @@ namespace Antigen.Statements
                 {
                     inductionVar.isLoopInitGenerated = true;
                     loopInits.Add(VariableDeclarator(Identifier(inductionVar.Name)).WithInitializer(EqualsValueClause(inductionVar.GetLoopStart())));
-                    //loopInits.Add(String.Format("{0} = {1}", inductionVar.Name, inductionVar.GetLoopStart()));
                 }
             }
             if (loopInits.Count > 0)
             {
                 return VariableDeclaration(Helpers.GetToken(SyntaxKind.IntKeyword), SeparatedList(loopInits));
-                //return "var " + String.Join(",", loopInits);
             }
             return null;
         }
@@ -613,9 +600,7 @@ namespace Antigen.Statements
                 if (inductionVariable.LoopParameters.IsStepInLoopHeader)
                 {
                     inductionVariable.isLoopStepGenerated = true;
-                    //loopInits.Add(Token(SyntaxKind.CommaToken));
                     loopInits.Add(inductionVariable.GetLoopStep());
-                    //loopInits.Add(String.Format("{0}", inductionVar.GetLoopStep()));
                 }
             }
 
@@ -630,7 +615,6 @@ namespace Antigen.Statements
             }
 
             return SeparatedList<ExpressionSyntax>(finalInits);
-            //return String.Join(", ", loopInits);
         }
 
         protected List<StatementSyntax> GenerateIVBreakAndStepCode(bool isCodeForBreakCondAtTheEnd)
@@ -648,7 +632,6 @@ namespace Antigen.Statements
                 {
                     inductionVar.isLoopBreakGenerated = true;
                     loopBreaks.Add(IfStatement(inductionVar.GetLoopBreakCondition(), Block(BreakStatement())));
-                    //loopBreaks.Add(String.Format("if {0} break;", inductionVar.GetLoopBreakCondition()));
                 }
             }
 
@@ -663,12 +646,10 @@ namespace Antigen.Statements
                     if (inductionVar.LoopParameters.IsStepBeforeBreakCondition)
                     {
                         loopPreCondSteps.Add(ExpressionStatement(inductionVar.GetLoopStep()));
-                        //loopPreCondSteps.Add(String.Format("{0};", inductionVar.GetLoopStep()));
                     }
                     else
                     {
                         loopPostCondSteps.Add(ExpressionStatement(inductionVar.GetLoopStep()));
-                        //loopPostCondSteps.Add(String.Format("{0};", inductionVar.GetLoopStep()));
                     }
                 }
             }
@@ -679,16 +660,7 @@ namespace Antigen.Statements
 
         protected ExpressionSyntax GenerateIVLoopGuardCode()
         {
-            List<ExpressionSyntax> loopInits = new List<ExpressionSyntax>();
-            //InductionVariable inductionVariable = PrimaryInductionVariables[0];
             ExpressionSyntax guardCondition = null;
-
-            //// Only generate guard condition for primary induction variables and whose LoopHeadCondition = true
-            //if (inductionVariable.LoopParameters.IsBreakCondInLoopHeader)
-            //{
-            //    inductionVariable.isLoopBreakGenerated = true;
-            //    loopInits.Add(inductionVariable.GetLoopGuardCondition());
-            //}
 
             // Secondary induction variables to be incr/decr in loop body
             foreach (var inductionVariable in PrimaryInductionVariables)
@@ -706,12 +678,9 @@ namespace Antigen.Statements
                     {
                         guardCondition = currCondition;
                     }
-
-                    //loopInits.Add(inductionVariable.GetLoopGuardCondition());
                 }
             }
             return guardCondition;
-            //return String.Join("&&", loopInits);
         }
 
         #endregion

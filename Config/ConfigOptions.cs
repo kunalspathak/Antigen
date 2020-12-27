@@ -23,7 +23,8 @@ namespace Antigen
         public double IfElseStatementWeight = 0.4;
         public double AssignStatementWeight = 0.5;
         public double ForStatementWeight = 0.5;
-        public double DoWhileStatementWeight = 0.5;
+        public double DoWhileStatementWeight = 0.2;
+        public double WhileStatementWeight = 0.5;
 
         // Type weights
         public double BooleanWeight = 1;

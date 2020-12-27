@@ -9,3 +9,4 @@ C# test generator and RyuJIT tester - Named after Covid-19 antigen test.
 5. Assignment statement, /* S:Assign */ annotation
 6. For-loop
 7. Do-While loop
+8. While loop

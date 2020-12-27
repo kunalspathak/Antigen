@@ -30,25 +30,10 @@ namespace Antigen.Statements
             ComplexLoop
         }
 
-        public ForStatement(TestCase tc)
-            : base(tc)
-        {
-        }
-
-        //public StatementSyntax Generate()
-        //{
-        //    RenderPreLoopBody(context, labels);
-
-        //    RenderLoopBody(context);
-
-        //    RenderPostLoopBody(context, labels);
-        //}
+        public ForStatement(TestCase tc) : base(tc) {}
 
         public override List<StatementSyntax> Generate(bool labels)
         {
-            //TODO-feature render comments
-            //base.RenderInternal(context, labels);
-
             List<StatementSyntax> result = new List<StatementSyntax>();
 
             // Induction variables to be initialized outside the loop
@@ -57,23 +42,12 @@ namespace Antigen.Statements
             {
                 result.Add(LocalDeclarationStatement(initCode));
             }
-            //context.BeginLine(GenerateIVInitCode(false));
-            //context.WriteLine(";");
-
-            //if (labels)
-            //{
-            //    foreach (string sLbl in Labels)
-            //    {
-            //        context.BeginLine("{0}: ", sLbl);
-            //        context.WriteLine("");
-            //    }
-            //}
 
             // guard condition
             ExpressionSyntax condition = GenerateIVLoopGuardCode();
             if (LoopKind == Kind.NormalLoop || LoopKind == Kind.ComplexLoop)
             {
-                ExpressionSyntax boundCond = BinaryExpression(SyntaxKind.LessThanExpression, IdentifierName(LoopVar), Bounds);
+                ExpressionSyntax boundCond = BinaryExpression(SyntaxKind.LessThanExpression, Helpers.GetVariableAccessExpression(LoopVar), Bounds);
                 if (condition == null)
                 {
                     condition = boundCond;
@@ -88,7 +62,7 @@ namespace Antigen.Statements
             SeparatedSyntaxList<ExpressionSyntax> incrementors = GenerateIVStepCode();
             if (LoopKind == Kind.NormalLoop)
             {
-                incrementors.Add(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, IdentifierName(LoopVar)));
+                incrementors.Add(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, Helpers.GetVariableAccessExpression(LoopVar)));
             }
             else if (LoopKind == Kind.ComplexLoop)
             {
@@ -113,78 +87,9 @@ namespace Antigen.Statements
             }
             forStmt = forStmt.WithCondition(condition).WithIncrementors(incrementors);
             result.Add(forStmt);
+            Debug.Assert(HasSuccessfullyGenerated(), "ForStatement didn't generate properly. Please check the loop variables.");
+
             return result;
-
-            //return ForStatement(
-            //    declaration: GenerateIVInitCode(true), // induction variables to be initialized inside the loop
-            //    initializers: null,
-            //    condition: condition,
-            //    incrementors: incrementors,
-            //    statement: Block(loopBody)
-            //    );
-
-            //// Init
-            //context.BeginLine("for(");
-
-            //// induction variables to be initialized inside the loop
-            //context.Write(GenerateIVInitCode(true));
-            //context.Write(";");
-
-            //// Cond
-            //loopCode = GenerateIVLoopGuardCode();
-            //context.Write("{0}", loopCode);
-
-            //if (LoopKind == Kind.NormalLoop || LoopKind == Kind.ComplexLoop)
-            //{
-            //    if (!String.IsNullOrEmpty(loopCode))
-            //        context.Write(" &&");
-            //    context.Write(" {0} < (", LoopVar);
-            //    Bounds.Render(context);
-            //    context.Write(")");
-
-            //}
-            //context.Write(";");
-
-            //// induction variables to be incr/decr
-            //loopCode = GenerateIVStepCode();
-            //context.Write("{0}", loopCode);
-
-            //if (LoopKind == Kind.NormalLoop)
-            //{
-            //    if (!String.IsNullOrEmpty(loopCode))
-            //        context.Write(" ,");
-            //    context.Write(" {0}++", LoopVar);
-            //}
-            //else if (LoopKind == Kind.ComplexLoop)
-            //{
-            //    if (!String.IsNullOrEmpty(loopCode))
-            //        context.Write(",");
-            //    context.Write(" ");
-            //    LoopStep.Render(context);
-            //}
-            //context.Write(") {{");
-            //context.WriteLine("");
-          
-            //context.Depth++;
-
-            //// Add step/break condition at the beginning 
-            //GenerateIVBreakAndStepCode(isCodeForBreakCondAtTheEnd: false).ForEach(bc => { context.BeginLine(bc); context.WriteLine(""); });
-
         }
-
-
-        //public override void RenderPostLoopBody(RenderContext context, bool labels)
-        //{
-        //    // Add step/break condition at the end 
-        //    GenerateIVBreakAndStepCode(isCodeForBreakCondAtTheEnd: true).ForEach(bc => { context.BeginLine(bc); context.WriteLine(""); });
-
-        //    context.Depth--;
-        //    context.BeginLine("}}");
-        //    context.WriteLine("");
-
-        //    RenderFunctionWrapperEnd(context);
-
-        //    Debug.Assert(HasSuccessfullyGenerated(), "ForStatement didn't generate properly. Please check the loop variables.");
-        //}
     };
 }

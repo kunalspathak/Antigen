@@ -261,6 +261,39 @@ namespace Antigen
                         PopScope(); // pop do-while scope
                         return Annotate(Block(doStmt.Generate(false)), "do-while");
                     }
+                case StmtKind.WhileStatement:
+                    {
+                        Scope whileScope = new Scope(testCase, ScopeKind.LoopScope, CurrentScope);
+                        WhileStatement whileStmt = new WhileStatement(testCase);
+                        //TODO:config
+                        int n = 3; // max statements
+                        whileStmt.NestNum = depth;
+                        whileStmt.NumOfSecondaryInductionVariables = PRNG.Next(/*GetOptions().MaxNumberOfSecondaryInductionVariable*/ 1 + 1);
+
+                        PushScope(whileScope);
+
+                        whileStmt.Bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Boolean), Tree.ValueType.ForPrimitive(Primitive.Boolean), 0);
+
+                        //TODO-imp: AddInductionVariables
+                        //TODO-imp: ctrlFlowStack
+                        //TODO future: label
+                        for (int i = 0; i < n; ++i)
+                        {
+                            StmtKind cur;
+                            if (depth >= 2)
+                            {
+                                cur = StmtKind.VariableDeclaration;
+                            }
+                            else
+                            {
+                                cur = GetASTUtils().GetRandomStatemet();
+                            }
+                            whileStmt.AddToBody(StatementHelper(cur, depth + 1));
+                        }
+
+                        PopScope(); // pop while scope
+                        return Annotate(Block(whileStmt.Generate(false)), "while-loop");
+                    }
                 default:
                     Debug.Assert(false, String.Format("Hit unknown statement type {0}", Enum.GetName(typeof(StmtKind), stmtKind)));
                     break;

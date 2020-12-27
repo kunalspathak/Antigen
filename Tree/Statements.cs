@@ -7,6 +7,7 @@
         AssignStatement,
         ForStatement,
         DoWhileStatement,
+        WhileStatement,
     }
 
     //public class Statements
