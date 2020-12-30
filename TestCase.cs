@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis.Emit;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -29,9 +30,8 @@ namespace Antigen
 
         private const string MainMethodName = "Method0";
 
-        private SyntaxNode testClass;
+        private SyntaxNode testCase;
 
-        private Scope GlobalScope;
         //private List<SyntaxNode> classesList;
         //private List<SyntaxNode> methodsList;
         //private List<SyntaxNode> propertiesList;
@@ -48,31 +48,22 @@ namespace Antigen
 
         public void Generate()
         {
-            GlobalScope = new Scope(this);
+            UsingDirectiveSyntax usingDirective =
+                UsingDirective(IdentifierName("System"))
+                .WithUsingKeyword(Token(TriviaList(new[]{
+                    Comment("// Licensed to the .NET Foundation under one or more agreements."),
+                    Comment("// The .NET Foundation licenses this file to you under the MIT license."),
+                    Comment("// See the LICENSE file in the project root for more information."),
+                    Comment("//"),
+                    Comment("// This file is auto-generated."),
+                    Comment("//"),
+                    }), SyntaxKind.UsingKeyword, TriviaList()));
 
-            IList<BaseMethod> methods = new List<BaseMethod>();
+            ClassDeclarationSyntax klass = new TestClass(this, Name).Generate();
 
-            for (int i = 0; i < 1; i++)
-            {
-                var testMethod = new BaseMethod(this, "Method" + i);
-                methods.Add(testMethod);
-
-                Scope localScope = new Scope(this, ScopeKind.FunctionScope, GlobalScope);
-
-                testMethod.PushScope(localScope);
-
-                testMethod.Generate();
-                testMethod.PopScope();
-            }
-
-            ClassDeclarationSyntax klass = ClassDeclaration(Name).WithMembers(new SyntaxList<MemberDeclarationSyntax>(methods.Select(m => m.GeneratedMethod)));
-            testClass = CompilationUnit()
-                            .WithUsings(
-                                SingletonList<UsingDirectiveSyntax>(
-                                    UsingDirective(
-                                        IdentifierName("System"))))
-                            .WithMembers(
-                                SingletonList<MemberDeclarationSyntax>(klass)).NormalizeWhitespace();
+            testCase = CompilationUnit()
+                            .WithUsings(SingletonList(usingDirective))
+                            .WithMembers(new SyntaxList<MemberDeclarationSyntax>(klass)).NormalizeWhitespace();
         }
 
         public void CompileAndExecute()
@@ -83,16 +74,17 @@ namespace Antigen
 
         private CompileResult Compile(CompilationType compilationType)
         {
-            string testClassContents = testClass.ToFullString();
-            File.WriteAllText(@"E:\git\Antigen\TestClass.g.cs", testClassContents);
+            string testCaseContents = testCase.ToFullString();
+            File.WriteAllText(@$"E:\git\Antigen\{Name}.g.cs", testCaseContents);
 
-            string[] testClassCode = testClassContents.Split(Environment.NewLine);
+            string[] testCaseCode = testCaseContents.Split(Environment.NewLine);
             int lineNum = 1;
-            foreach (string code in testClassCode)
+            foreach (string code in testCaseCode)
             {
                 Console.WriteLine("[{0,4:D4}]{1}", lineNum++, code);
             }
 
+            SyntaxTree syntaxTree = testCase.SyntaxTree;
             string corelibPath = typeof(object).Assembly.Location;
             string otherAssembliesPath = Path.GetDirectoryName(corelibPath);
             MetadataReference systemPrivateCorelib = MetadataReference.CreateFromFile(corelibPath);
@@ -103,7 +95,7 @@ namespace Antigen
 
             MetadataReference[] references = { systemPrivateCorelib, systemConsole, systemRuntime, codeAnalysis, csharpCodeAnalysis };
 
-            var cc = CSharpCompilation.Create(Name, new SyntaxTree[] { testClass.SyntaxTree }, references, compilationType == CompilationType.Debug ? Rsln.DebugOptions : Rsln.ReleaseOptions);
+            var cc = CSharpCompilation.Create(Name, new SyntaxTree[] { syntaxTree }, references, compilationType == CompilationType.Debug ? Rsln.DebugOptions : Rsln.ReleaseOptions);
 
             using (var ms = new MemoryStream())
             {

@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace Antigen.Tree
@@ -36,6 +37,7 @@ namespace Antigen.Tree
         UInt16 = 0x800,
         UInt32 = 0x1000,
         UInt64 = 0x2000,
+        Struct = 0x4000,
 
         Numeric = Byte | Decimal | Double | Int16 | Int32 | Int64 | SByte | Single | UInt16 | UInt32 | UInt64,
         SignedInteger = SByte | Int16 | Int32 | Int64,
@@ -55,6 +57,16 @@ namespace Antigen.Tree
             return val;
         }
 
+        public string TypeName
+        {
+            get
+            {
+                Debug.Assert(PrimitiveType == Primitive.Struct);
+                return _structTypeName;
+            }
+        }
+
+        private string _structTypeName;
         public Primitive PrimitiveType;
         //private TypeFlags Flags;
         public SpecialType DataType;
@@ -78,11 +90,19 @@ namespace Antigen.Tree
             new ValueType(Primitive.UInt64, SpecialType.System_UInt64,     SyntaxKind.ULongKeyword),
         };
 
+        public static ValueType CreateStructType(string typeName)
+        {
+            var structType = new ValueType(Primitive.Struct, SpecialType.None, SyntaxKind.None);
+            structType._structTypeName = typeName;
+            return structType;
+        }
+
         private ValueType(Primitive valueType, SpecialType dataType, SyntaxKind typeKind)
         {
             PrimitiveType = valueType;
             DataType = dataType;
             TypeKind = typeKind;
+            _structTypeName = null;
         }
 
         public static List<ValueType> GetTypes()
@@ -90,14 +110,42 @@ namespace Antigen.Tree
             return types;
         }
 
+        public override bool Equals(object obj)
+        {
+            ValueType otherType = (ValueType)obj;
+            return PrimitiveType == otherType.PrimitiveType &&
+                DataType == otherType.DataType &&
+                TypeKind == otherType.TypeKind &&
+                _structTypeName == otherType._structTypeName;
+        }
+
         public static ValueType ForPrimitive(Primitive primitiveType)
         {
             return types.First(t => t.PrimitiveType == primitiveType);
         }
 
+        public string VariableNameHint()
+        {
+            if (PrimitiveType != Primitive.Struct)
+            {
+                return Enum.GetName(typeof(SpecialType), DataType).Replace("System_", "").ToLower();
+            }
+            else
+            {
+                return TypeName.ToLower().Replace(".", "_").ToLower();
+            }
+        }
+
         public override string ToString()
         {
-            return Enum.GetName(typeof(Primitive), PrimitiveType);
+            if (PrimitiveType != Primitive.Struct)
+            {
+                return Enum.GetName(typeof(Primitive), PrimitiveType);
+            }
+            else
+            {
+                return $"struct {_structTypeName}";
+            }
         }
     }
 }

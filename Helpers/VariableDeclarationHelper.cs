@@ -14,27 +14,108 @@ namespace Antigen
 {
     public static partial class Helpers
     {
-        public static VariableDeclarationSyntax GetVariableDeclaration(Tree.ValueType variableType, string variableName, ExpressionSyntax value)
+        public static VariableDeclarationSyntax GetVariableDeclaration(Tree.ValueType variableType, string variableName, ExpressionSyntax value = null)
         {
-            return VariableDeclaration(
-                    PredefinedType(
-                        Token(variableType.TypeKind)))
-                .WithVariables(
-                    SingletonSeparatedList<VariableDeclaratorSyntax>(
-                        VariableDeclarator(
-                            Identifier(variableName))
-                        .WithInitializer(
-                            EqualsValueClause(value))));
+            VariableDeclarationSyntax varDecl;
+            if (variableType.PrimitiveType == Primitive.Struct)
+            {
+                varDecl = GetVariableDeclaration(variableType.TypeName, variableName);
+            }
+            else
+            {
+                varDecl = VariableDeclaration(PredefinedType(Token(variableType.TypeKind)));
+            }
+
+            var declarator = VariableDeclarator(Identifier(variableName));
+            if (value != null)
+            {
+                declarator = declarator.WithInitializer(EqualsValueClause(value));
+            }
+            return varDecl.WithVariables(SingletonSeparatedList(declarator));
+        }
+
+        private static VariableDeclarationSyntax GetVariableDeclaration(string variableType, string variableName)
+        {
+            TypeSyntax variableTypeSyntax;
+            if (variableType.Contains("."))
+            {
+                string[] seperatedTypes = variableType.Split('.', StringSplitOptions.RemoveEmptyEntries);
+                NameSyntax nameSyntax = QualifiedName(
+                    IdentifierName(seperatedTypes[0]),
+                    IdentifierName(seperatedTypes[1]));
+                for (int subType = 2; subType < seperatedTypes.Length; subType++)
+                {
+                    nameSyntax = QualifiedName(nameSyntax, IdentifierName(seperatedTypes[subType]));
+                }
+                variableTypeSyntax = nameSyntax;
+            }
+            else
+            {
+                variableTypeSyntax = IdentifierName(variableType);
+            }
+
+            var varDecl = VariableDeclarator(Identifier(variableName));
+            return VariableDeclaration(variableTypeSyntax)
+                .WithVariables(SingletonSeparatedList(varDecl));
         }
 
         public static string GetVariableName(Tree.ValueType variableType, int id)
         {
-            return Enum.GetName(typeof(SpecialType), variableType.DataType).Replace("System_", "").ToLower() + "_" + id;
+            return variableType.VariableNameHint() + "_" + id;
         }
 
         public static PredefinedTypeSyntax GetToken(SyntaxKind syntaxKind)
         {
             return PredefinedType(Token(syntaxKind));
+        }
+
+        public static ExpressionSyntax GetVariableAccessExpression(string variableName)
+        {
+            if (variableName.Contains("."))
+            {
+                string[] seperatedFields = variableName.Split('.', StringSplitOptions.RemoveEmptyEntries);
+                var memberAccessExpr = MemberAccessExpression(
+                    SyntaxKind.SimpleMemberAccessExpression,
+                    IdentifierName(seperatedFields[0]),
+                    IdentifierName(seperatedFields[1]));
+                for (int subType = 2; subType < seperatedFields.Length; subType++)
+                {
+                    memberAccessExpr = MemberAccessExpression(
+                        SyntaxKind.SimpleMemberAccessExpression,
+                        memberAccessExpr,
+                        IdentifierName(seperatedFields[subType]));
+                }
+
+                return memberAccessExpr;
+            }
+            else
+            {
+                return IdentifierName(variableName);
+            }
+        }
+
+        public static ObjectCreationExpressionSyntax GetObjectCreationExpression(string objectType)
+        {
+            TypeSyntax objectTypeSyntax;
+
+            if (objectType.Contains("."))
+            {
+                string[] seperatedTypes = objectType.Split('.', StringSplitOptions.RemoveEmptyEntries);
+                NameSyntax nameSyntax = QualifiedName(
+                    IdentifierName(seperatedTypes[0]),
+                    IdentifierName(seperatedTypes[1]));
+                for (int subType = 2; subType < seperatedTypes.Length; subType++)
+                {
+                    nameSyntax = QualifiedName(nameSyntax, IdentifierName(seperatedTypes[subType]));
+                }
+                objectTypeSyntax = nameSyntax;
+            }
+            else
+            {
+                objectTypeSyntax = IdentifierName(objectType);
+            }
+            return ObjectCreationExpression(objectTypeSyntax).WithArgumentList(
+                                                            ArgumentList());
         }
     }
 }

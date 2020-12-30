@@ -6,84 +6,90 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Antigen
 {
+    /// <summary>
+    ///     Denotes the method to generate.
+    /// </summary>
     public class BaseMethod
     {
-        private TestCase testCase;
+        private TestClass testClass;
+        private TestCase TC => testClass.TC;
         private string Name;
 #if DEBUG
-        private bool annotateComments = true;
         private Dictionary<string, int> expressionsCount = new Dictionary<string, int>();
-        private Dictionary<string, int> statementsCount = new Dictionary<string, int>(); 
-#else
-        private bool annotateComments = false;
+        private Dictionary<string, int> statementsCount = new Dictionary<string, int>();
 #endif
-        private List<string> variableNames = new List<string>();
+
+        private int variablesCount = 0;
 
         private Scope m_ParentScope;
-        private Stack<Scope> ScopeStack = new Stack<Scope>();
-
-        public MethodDeclarationSyntax GeneratedMethod { get; private set; }
+        //private Stack<Scope> ScopeStack = new Stack<Scope>();
 
         public AstUtils GetASTUtils()
         {
-            return testCase.AstUtils;
+            return TC.AstUtils;
         }
 
-        public void AddParentScope(Scope parent)
-        {
-            m_ParentScope = parent;
-        }
-
-        public Scope GetParentScope()
-        {
-            if (m_ParentScope != null)
-                return m_ParentScope;
-            else
-                return null;
-        }
-
-        public Scope CurrentScope
-        {
-            get { return ScopeStack.Peek(); }
-        }
+        private Scope MethodScope;
+        public Scope CurrentScope => testClass.CurrentScope;
 
         public void PushScope(Scope scope)
         {
-            ScopeStack.Push(scope);
+            testClass.PushScope(scope);
         }
 
         public Scope PopScope()
         {
-            Scope ret = ScopeStack.Pop();
+            Scope ret = testClass.PopScope();
             //Debug.Assert(ret.Parent == ScopeStack.Peek());
             return ret;
         }
 
-        public BaseMethod(TestCase tc, string name)
+        public BaseMethod(TestClass enclosingClass, string methodName)
         {
-            testCase = tc;
-            Name = name;
+            testClass = enclosingClass;
+            Name = methodName;
+            MethodScope = new Scope(enclosingClass.TC, ScopeKind.FunctionScope, enclosingClass.ClassScope);
         }
 
-        public void Generate()
+        public MethodDeclarationSyntax Generate()
         {
+            PushScope(MethodScope);
+
             MethodDeclarationSyntax methodDeclaration = MethodDeclaration(PredefinedType(Token(SyntaxKind.VoidKeyword)), Name).WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
             IList<StatementSyntax> methodBody = new List<StatementSyntax>();
 
             // TODO-TEMP initialize one variable of each type
             foreach (Tree.ValueType variableType in Tree.ValueType.GetTypes())
             {
-                string variableName = Helpers.GetVariableName(variableType, variableNames.Count);
-                variableNames.Add(variableName);
+                string variableName = Helpers.GetVariableName(variableType, variablesCount++);
 
                 ExpressionSyntax rhs = ExprHelper(ExprKind.LiteralExpression, variableType, 0);
                 CurrentScope.AddLocal(variableType, variableName);
 
                 methodBody.Add(LocalDeclarationStatement(Helpers.GetVariableDeclaration(variableType, variableName, rhs)));
+            }
+
+            // TODO-TEMP initialize one variable of each struct type
+            foreach (Tree.ValueType structType in CurrentScope.AllStructTypes)
+            {
+                string variableName = Helpers.GetVariableName(structType, variablesCount++);
+
+                ExpressionSyntax rhs = Annotate(Helpers.GetObjectCreationExpression(structType.TypeName), "struct-init");
+                CurrentScope.AddLocal(structType, variableName);
+
+                // Add all the fields to the scope
+                var listOfStructFields = CurrentScope.GetStructFields(structType);
+                foreach(var structField in listOfStructFields)
+                {
+                    CurrentScope.AddLocal(structField.FieldType, $"{variableName}.{structField.FieldName}");
+                }
+
+                methodBody.Add(LocalDeclarationStatement(Helpers.GetVariableDeclaration(structType, variableName, rhs)));
             }
 
             //TODO: Define some more constants
@@ -106,8 +112,10 @@ namespace Antigen
                 methodBody.Add(ParseStatement($"Console.WriteLine(\"{variableName}= \" + {variableName});"));
             }
 
+            PopScope();
+
             // Wrap everything in unchecked so we do not see overflow compilation errors
-            GeneratedMethod = methodDeclaration.WithBody(Block(CheckedStatement(SyntaxKind.UncheckedStatement, Block(methodBody))));
+            return methodDeclaration.WithBody(Block(CheckedStatement(SyntaxKind.UncheckedStatement, Block(methodBody))));
         }
 
         public StatementSyntax StatementHelper(StmtKind stmtKind, int depth)
@@ -116,12 +124,31 @@ namespace Antigen
             {
                 case StmtKind.VariableDeclaration:
                     {
-                        Tree.ValueType variableType = GetASTUtils().GetRandomExprType();
-                        string variableName = Helpers.GetVariableName(variableType, variableNames.Count);
-                        variableNames.Add(variableName);
+                        Tree.ValueType variableType;
+                        //TODO:config - probability of struct variables
+                        if (PRNG.Decide(0.3) && CurrentScope.NumOfStructTypes > 0)
+                        {
+                            variableType = CurrentScope.AllStructTypes[PRNG.Next(CurrentScope.NumOfStructTypes)];
+                        }
+                        else
+                        {
+                            variableType = GetASTUtils().GetRandomExprType();
+                        }
+
+                        string variableName = Helpers.GetVariableName(variableType, variablesCount++);
 
                         ExpressionSyntax rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(variableType.PrimitiveType), variableType, 0);
                         CurrentScope.AddLocal(variableType, variableName);
+
+                        // Add all the fields to the scope
+                        if (variableType.PrimitiveType == Primitive.Struct)
+                        {
+                            var listOfStructFields = CurrentScope.GetStructFields(variableType);
+                            foreach (var structField in listOfStructFields)
+                            {
+                                CurrentScope.AddLocal(structField.FieldType, $"{variableName}.{structField.FieldName}");
+                            }
+                        }
 
                         return Annotate(LocalDeclarationStatement(Helpers.GetVariableDeclaration(variableType, variableName, rhs)), "VarDecl");
                     }
@@ -130,8 +157,8 @@ namespace Antigen
                         Tree.ValueType condValueType = Tree.ValueType.ForPrimitive(Primitive.Boolean);
                         ExpressionSyntax conditionExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Boolean), condValueType, 0);
 
-                        Scope ifBranchScope = new Scope(testCase, ScopeKind.ConditionalScope, CurrentScope);
-                        Scope elseBranchScope = new Scope(testCase, ScopeKind.ConditionalScope, CurrentScope);
+                        Scope ifBranchScope = new Scope(TC, ScopeKind.ConditionalScope, CurrentScope);
+                        Scope elseBranchScope = new Scope(TC, ScopeKind.ConditionalScope, CurrentScope);
 
                         //TODO-config: Add MaxDepth in config
                         int ifcount = 3;
@@ -179,15 +206,27 @@ namespace Antigen
                 case StmtKind.AssignStatement:
                     {
                         Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator();
-                        Tree.ValueType variableType = GetASTUtils().GetRandomExprType(assignOper.InputTypes);
+                        Tree.ValueType variableType;
+                        //TODO-cleanup: Somehow combine GetRandomExprType() and GetRandomStructType() functionality
+                        // Currently the only problem is AllStructTypes is in scope object but GetRandomExprType() is
+                        // in AstUtils.
+                        if (((assignOper.InputTypes & Primitive.Struct) != 0) && PRNG.Decide(0.2) && CurrentScope.NumOfStructTypes > 0)
+                        {
+                            variableType = CurrentScope.AllStructTypes[PRNG.Next(CurrentScope.NumOfStructTypes)];
+                        }
+                        else
+                        {
+                            variableType = GetASTUtils().GetRandomExprType(assignOper.InputTypes);
+                        }
+
                         ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, variableType, depth);
                         ExpressionSyntax rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(variableType.PrimitiveType), variableType, depth);
                         return Annotate(ExpressionStatement(AssignmentExpression(assignOper.Oper, lhs, rhs)), "Assign");
                     }
                 case StmtKind.ForStatement:
                     {
-                        Scope forLoopScope = new Scope(testCase, ScopeKind.LoopScope, CurrentScope);
-                        ForStatement forStmt = new ForStatement(testCase);
+                        Scope forLoopScope = new Scope(TC, ScopeKind.LoopScope, CurrentScope);
+                        ForStatement forStmt = new ForStatement(TC);
                         //TODO:config
                         int n = 3; // max statements
                         forStmt.LoopVar = CurrentScope.GetRandomVariable(Tree.ValueType.ForPrimitive(Primitive.Int32));
@@ -230,8 +269,8 @@ namespace Antigen
                     }
                 case StmtKind.DoWhileStatement:
                     {
-                        Scope doWhileScope = new Scope(testCase, ScopeKind.LoopScope, CurrentScope);
-                        DoWhileStatement doStmt = new DoWhileStatement(testCase);
+                        Scope doWhileScope = new Scope(TC, ScopeKind.LoopScope, CurrentScope);
+                        DoWhileStatement doStmt = new DoWhileStatement(TC);
                         //TODO:config
                         int n = 3; // max statements
                         doStmt.NestNum = depth;
@@ -263,8 +302,8 @@ namespace Antigen
                     }
                 case StmtKind.WhileStatement:
                     {
-                        Scope whileScope = new Scope(testCase, ScopeKind.LoopScope, CurrentScope);
-                        WhileStatement whileStmt = new WhileStatement(testCase);
+                        Scope whileScope = new Scope(TC, ScopeKind.LoopScope, CurrentScope);
+                        WhileStatement whileStmt = new WhileStatement(TC);
                         //TODO:config
                         int n = 3; // max statements
                         whileStmt.NestNum = depth;
@@ -309,7 +348,7 @@ namespace Antigen
                     return Annotate(Helpers.GetLiteralExpression(exprType), "Literal");
 
                 case ExprKind.VariableExpression:
-                    return Annotate(IdentifierName(CurrentScope.GetRandomVariable(exprType)), "Var");
+                    return Annotate(Helpers.GetVariableAccessExpression(CurrentScope.GetRandomVariable(exprType)), "Var");
 
                 case ExprKind.BinaryOpExpression:
                     Operator op = GetASTUtils().GetRandomBinaryOperator(returnPrimitiveType: exprType.PrimitiveType);
@@ -336,19 +375,16 @@ namespace Antigen
                     return Annotate(Helpers.GetWrappedAndCastedExpression(exprType, Helpers.GetBinaryExpression(lhs, op, rhs)), "BinOp");
 
                 default:
-                    Debug.Assert(false, String.Format("Hit unknown expression type {0}", Enum.GetName(typeof(ExprKind), exprKind)));
+                    Debug.Assert(false, string.Format("Hit unknown expression type {0}", Enum.GetName(typeof(ExprKind), exprKind)));
                     break;
             }
             return null;
         }
 
+
         private ExpressionSyntax Annotate(ExpressionSyntax expression, string comment)
         {
-            if (!annotateComments)
-            {
-                return expression;
-            }
-
+#if DEBUG
             string typeName = expression.GetType().Name;
             if (!expressionsCount.ContainsKey(typeName))
             {
@@ -356,14 +392,14 @@ namespace Antigen
             }
             expressionsCount[typeName]++;
             return expression.WithTrailingTrivia(TriviaList(Comment($"/* E#{expressionsCount[typeName]}: {comment} */")));
+#else
+            return expression;
+#endif
         }
 
         private StatementSyntax Annotate(StatementSyntax statement, string comment)
         {
-            if (!annotateComments)
-            {
-                return statement;
-            }
+#if DEBUG
             string typeName = statement.GetType().Name;
             if (!statementsCount.ContainsKey(typeName))
             {
@@ -371,6 +407,9 @@ namespace Antigen
             }
             statementsCount[typeName]++;
             return statement.WithTrailingTrivia(TriviaList(Comment($"/* S#{statementsCount[typeName]}: {comment} */")));
+#else
+            return statement;
+#endif
         }
     }
 }

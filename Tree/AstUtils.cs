@@ -9,6 +9,7 @@ namespace Antigen.Tree
     {
         private List<Weights<ExprKind>> AllExpressions = new List<Weights<ExprKind>>();
         private List<Weights<ExprKind>> AllNonNumericExpressions = new List<Weights<ExprKind>>();
+        private List<Weights<ExprKind>> AllStructExpressions = new List<Weights<ExprKind>>();
         private List<Weights<StmtKind>> AllStatements = new List<Weights<StmtKind>>();
         private List<Weights<ValueType>> AllTypes = new List<Weights<ValueType>>();
         private List<Weights<ValueType>> AllStatementsWithCFStmts = new List<Weights<ValueType>>();
@@ -48,6 +49,11 @@ namespace Antigen.Tree
                 if (expr != ExprKind.BinaryOpExpression)
                 {
                     AllNonNumericExpressions.Add(new Weights<ExprKind>(expr, Options.Lookup(expr)));
+                }
+
+                if (expr == ExprKind.VariableExpression)
+                {
+                    AllStructExpressions.Add(new Weights<ExprKind>(expr, Options.Lookup(expr)));
                 }
             }
 
@@ -103,6 +109,11 @@ namespace Antigen.Tree
             if (returnPrimitiveType == Primitive.Char)
             {
                 exprs = from z in AllNonNumericExpressions
+                        select z;
+            }
+            else if (returnPrimitiveType == Primitive.Struct)
+            {
+                exprs = from z in AllStructExpressions
                         select z;
             }
             else

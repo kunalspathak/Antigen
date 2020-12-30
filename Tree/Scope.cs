@@ -38,6 +38,13 @@ namespace Antigen.Tree
 
         public List<string> AllVariables => LocalVariables.SelectMany(dict => dict.Value).ToList();
 
+        // A mapping of all the primitive fields present in given struct
+        // Every time a variable "xyz" of one of the struct is defined, all the fields corresponding to that struct
+        // will be added to the scope in the form "xyz.field1", "xyz.field2" and so forth.
+        public Dictionary<Tree.ValueType, List<StructField>> StructToFieldsMapping = new Dictionary<Tree.ValueType, List<StructField>>();
+
+        private List<ValueType> ListOfStructTypes = new List<ValueType>();
+
         // List of string vars in the current scope.
         private List<string> LocalStringVariables = new List<string>();
 
@@ -57,12 +64,18 @@ namespace Antigen.Tree
 
         #endregion
 
-        #region Get variables from the scope
+        #region Get variables/types from the scope
         public string GetRandomVariable(ValueType variableType)
         {
             List<string> allUsableVariables = GetUsableVariables(variableType);
             return allUsableVariables[PRNG.Next(allUsableVariables.Count)];
         }
+
+        public ValueType GetRandomStructType()
+        {
+            return ListOfStructTypes[PRNG.Next(ListOfStructTypes.Count)];
+        }
+
         #endregion
 
         #region Gets From Scope
@@ -72,7 +85,7 @@ namespace Antigen.Tree
         }
         #endregion
 
-        #region Add variables to scope
+        #region Add variables/types to scope
         public void AddLocal(ValueType variableType, string variableName)
         {
 #if DEBUG
@@ -102,6 +115,52 @@ namespace Antigen.Tree
 
             ListOfVariables[variableType].Add(variableName);
         }
+
+        /// <summary>
+        ///     Adds the struct type <paramref name="typeName"/> in the list of types
+        ///     defined in current scope.
+        ///     
+        ///     It also resolves all the fields present in <paramref name="structFields"/>
+        ///     and store the fully qualifier name in <see cref="StructToFieldsMapping"/>.
+        /// </summary>
+        public void AddStructType(string typeName, List<StructField> structFields)
+        {
+            ValueType newStructType = ValueType.CreateStructType(typeName);
+            List<StructField> fieldsInCurrStruct = new List<StructField>();
+
+            foreach (StructField field in structFields)
+            {
+                if (StructToFieldsMapping.TryGetValue(field.FieldType, out List<StructField> childFields))
+                {
+                    // If the field type is present in structToFieldsMapping, meaning the field is a struct
+                    Debug.Assert(field.FieldType.PrimitiveType == Primitive.Struct);
+
+                    foreach (StructField childField in childFields)
+                    {
+                        // structs present in structToFieldsMapping should have all the child fields expanded.
+                        Debug.Assert((childField.FieldType.PrimitiveType & Primitive.Any) != 0);
+
+                        string expandedFieldName = field.FieldName + "." + childField.FieldName;
+
+                        fieldsInCurrStruct.Add(new StructField(childField.FieldType, expandedFieldName));
+                    }
+                }
+                else
+                {
+                    // else it is a primitive
+                    Debug.Assert((field.FieldType.PrimitiveType & Primitive.Any) != 0);
+
+                    //string expandedFieldName = field.FieldName + "." + childField.FieldName;
+
+                    fieldsInCurrStruct.Add(new StructField(field.FieldType, field.FieldName));
+                }
+            }
+
+            Debug.Assert(!StructToFieldsMapping.ContainsKey(newStructType));
+            StructToFieldsMapping[newStructType] = fieldsInCurrStruct;
+
+            ListOfStructTypes.Add(newStructType);
+        }
         #endregion
 
         #region Aggregate Scopes methods
@@ -125,6 +184,68 @@ namespace Antigen.Tree
                 curr = curr.parent;
             }
             return variables;
+        }
+
+        /// <summary>
+        ///     Counts number of struct types defined so far in
+        ///     current scope or parent scope.
+        /// </summary>
+        public int NumOfStructTypes
+        {
+            get
+            {
+                int count = 0;
+
+                Scope curr = this;
+
+                while (curr != null)
+                {
+                    count += curr.ListOfStructTypes.Count;
+                    curr = curr.parent;
+                }
+                return count;
+            }
+        }
+
+        /// <summary>
+        ///     Returns all the struct types defined in current
+        ///     and parent scopes.
+        /// </summary>
+        public List<ValueType> AllStructTypes
+        {
+            get
+            {
+                List<ValueType> result = new List<ValueType>();
+                Scope curr = this;
+
+                while (curr != null)
+                {
+                    result.AddRange(curr.ListOfStructTypes);
+                    curr = curr.parent;
+                }
+                return result;
+            }
+        }
+
+        /// <summary>
+        ///     Get all the fields (having fully qualifier name) present in
+        ///     <paramref name="structType"/>.
+        /// </summary>
+        public List<StructField> GetStructFields(Tree.ValueType structType)
+        {
+            List<StructField> result = null;
+            Scope curr = this;
+
+            while (curr != null)
+            {
+                if (curr.StructToFieldsMapping.TryGetValue(structType, out result))
+                {
+                    return result;
+                }
+
+                curr = curr.parent;
+            }
+            return result;
         }
         #endregion
     }
