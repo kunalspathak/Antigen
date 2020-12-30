@@ -148,7 +148,7 @@ namespace Antigen
             //TODO-config: No. of methods per class
             for (int i = 0; i < 1; i++)
             {
-                var testMethod = new BaseMethod(this, "Method" + i);
+                var testMethod = new TestMethod(this, "Method" + i);
                 methods.Add(testMethod.Generate());
             }
 

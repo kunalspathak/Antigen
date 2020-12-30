@@ -14,7 +14,7 @@ namespace Antigen
     /// <summary>
     ///     Denotes the method to generate.
     /// </summary>
-    public class BaseMethod
+    public class TestMethod
     {
         private TestClass testClass;
         private TestCase TC => testClass.TC;
@@ -49,7 +49,7 @@ namespace Antigen
             return ret;
         }
 
-        public BaseMethod(TestClass enclosingClass, string methodName)
+        public TestMethod(TestClass enclosingClass, string methodName)
         {
             testClass = enclosingClass;
             Name = methodName;

@@ -72,6 +72,40 @@ namespace Antigen
             Execute(compileResult);
         }
 
+        /// <summary>
+        ///     Method to find diff of generated tree vs. roslyn generated tree by parsing the
+        ///     generated code.
+        /// </summary>
+        /// <param name="expected"></param>
+        /// <param name="actual"></param>
+        private void FindDiff(SyntaxNode expected, SyntaxNode actual)
+        {
+            if ((expected is LiteralExpressionSyntax) || (actual is LiteralExpressionSyntax))
+            {
+                // ignore
+                return;
+            }
+
+            if (!expected.IsEquivalentTo(actual))
+            {
+                var expectedChildNodes = expected.ChildNodes().ToArray();
+                var actualChildNodes = actual.ChildNodes().ToArray();
+
+                int expectedCount = expectedChildNodes.Length;
+                int actualCount = actualChildNodes.Length;
+                if (expectedCount != actualCount)
+                {
+                    Debug.Assert(false, $"Child nodes mismatch. Expected= {expected}, Actual= {actual}");
+                    return;
+                }
+                for (int ch = 0; ch < expectedCount; ch++)
+                {
+                    FindDiff(expectedChildNodes[ch], actualChildNodes[ch]);
+                }
+                return;
+            }
+        }
+
         private CompileResult Compile(CompilationType compilationType)
         {
             string testCaseContents = testCase.ToFullString();
@@ -84,7 +118,17 @@ namespace Antigen
                 Console.WriteLine("[{0,4:D4}]{1}", lineNum++, code);
             }
 
+#if DEBUG
             SyntaxTree syntaxTree = testCase.SyntaxTree;
+            SyntaxTree expectedTree = CSharpSyntaxTree.ParseText(testCase.ToFullString());
+            FindDiff(expectedTree.GetRoot(), syntaxTree.GetRoot());
+#else
+            // In release, make sure that we didn't end up generating wrong syntax tree,
+            // hence parse the text to reconstruct the tree.
+
+            SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(testCase.ToFullString());
+#endif
+
             string corelibPath = typeof(object).Assembly.Location;
             string otherAssembliesPath = Path.GetDirectoryName(corelibPath);
             MetadataReference systemPrivateCorelib = MetadataReference.CreateFromFile(corelibPath);
@@ -122,7 +166,7 @@ namespace Antigen
         {
             if (compileResult.Assembly == null)
             {
-                Console.WriteLine("Got compiler errors:");
+                Console.WriteLine($"Got {compileResult.CompileErrors.Length} compiler error(s):");
                 Console.WriteLine(string.Join(Environment.NewLine, compileResult.CompileErrors));
                 Console.ReadLine();
             }
@@ -159,35 +203,30 @@ namespace Antigen
 
     internal class CompileResult
     {
-        public CompileResult(Exception roslynException, ImmutableArray<Diagnostic> compileErrors, byte[] assembly)
+        public CompileResult(Exception roslynException, ImmutableArray<Diagnostic> diagnostics, byte[] assembly)
         {
             RoslynException = roslynException;
-            CompileErrors = compileErrors;
+            List<Diagnostic> errors = new List<Diagnostic>();
+            List<Diagnostic> warnings = new List<Diagnostic>();
+            foreach (var diag in diagnostics)
+            {
+                if (diag.Severity == DiagnosticSeverity.Error)
+                {
+                    errors.Add(diag);
+                }
+                else if (diag.Severity == DiagnosticSeverity.Warning)
+                {
+                    errors.Add(diag);
+                }
+            }
+            CompileErrors = errors.ToImmutableArray();
+            CompileWarnings = warnings.ToImmutableArray();
             Assembly = assembly;
         }
 
         public Exception RoslynException { get; }
         public ImmutableArray<Diagnostic> CompileErrors { get; }
+        public ImmutableArray<Diagnostic> CompileWarnings { get; }
         public byte[] Assembly { get; }
     }
-
-    //public class TestClass
-    //{
-
-    //}
-
-    //public class TestMainClass : TestClass
-    //{
-
-    //}
-
-    //public class TestMethod
-    //{
-
-    //}
-
-    //public class TestMainMethod : TestMethod
-    //{
-
-    //}
 }
