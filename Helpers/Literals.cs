@@ -172,8 +172,6 @@ namespace Antigen
             }
 
             return LiteralExpression(kind, literalToken);
-
-            //return LiteralExpression(kind, literalToken);
         }
     }
 }

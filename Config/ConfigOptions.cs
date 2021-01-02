@@ -14,7 +14,7 @@ namespace Antigen
         public const string WeightSuffix = "Weight";
 
         // Expression weights
-        public double LiteralWeight = 0.25;
+        public double LiteralWeight = 0.025;
         public double VariableWeight = 0.5;
         public double BinaryOpWeight = 1;
 

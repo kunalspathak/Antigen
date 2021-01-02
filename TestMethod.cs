@@ -26,9 +26,6 @@ namespace Antigen
 
         private int variablesCount = 0;
 
-        private Scope m_ParentScope;
-        //private Stack<Scope> ScopeStack = new Stack<Scope>();
-
         public AstUtils GetASTUtils()
         {
             return TC.AstUtils;
@@ -206,21 +203,38 @@ namespace Antigen
                 case StmtKind.AssignStatement:
                     {
                         Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator();
-                        Tree.ValueType variableType;
+                        Tree.ValueType lhsExprType, rhsExprType;
                         //TODO-cleanup: Somehow combine GetRandomExprType() and GetRandomStructType() functionality
                         // Currently the only problem is AllStructTypes is in scope object but GetRandomExprType() is
                         // in AstUtils.
                         if (((assignOper.InputTypes & Primitive.Struct) != 0) && PRNG.Decide(0.2) && CurrentScope.NumOfStructTypes > 0)
                         {
-                            variableType = CurrentScope.AllStructTypes[PRNG.Next(CurrentScope.NumOfStructTypes)];
+                            lhsExprType = CurrentScope.AllStructTypes[PRNG.Next(CurrentScope.NumOfStructTypes)];
                         }
                         else
                         {
-                            variableType = GetASTUtils().GetRandomExprType(assignOper.InputTypes);
+                            lhsExprType = GetASTUtils().GetRandomExprType(assignOper.InputTypes);
                         }
 
-                        ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, variableType, depth);
-                        ExpressionSyntax rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(variableType.PrimitiveType), variableType, depth);
+                        if (assignOper.HasFlag(OpFlags.Shift))
+                        {
+                            rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int32);
+                        }
+                        else
+                        {
+                            rhsExprType = lhsExprType;
+                        }
+
+                        ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, depth);
+                        ExpressionSyntax rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType), rhsExprType, depth);
+
+                        // For division, make sure that divisor is not 0
+                        if ((assignOper.Oper == SyntaxKind.DivideAssignmentExpression) || (assignOper.Oper == SyntaxKind.ModuloAssignmentExpression))
+                        {
+                            rhs = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, ParenthesizedExpression(rhs), LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(100)))));
+                            rhs = Helpers.GetWrappedAndCastedExpression(rhsExprType, rhs);
+                        }
+
                         return Annotate(ExpressionStatement(AssignmentExpression(assignOper.Oper, lhs, rhs)), "Assign");
                     }
                 case StmtKind.ForStatement:
@@ -351,27 +365,56 @@ namespace Antigen
                     return Annotate(Helpers.GetVariableAccessExpression(CurrentScope.GetRandomVariable(exprType)), "Var");
 
                 case ExprKind.BinaryOpExpression:
-                    Operator op = GetASTUtils().GetRandomBinaryOperator(returnPrimitiveType: exprType.PrimitiveType);
+                    Primitive returnType = exprType.PrimitiveType;
 
-                    Tree.ValueType lhsExprType = GetASTUtils().GetRandomExprType(op.InputTypes);
+                    Operator op = GetASTUtils().GetRandomBinaryOperator(returnPrimitiveType: returnType);
+
+                    // If the return type is boolean, then take any ExprType that returns boolean.
+                    // However for other types, choose the same type for BinOp expression as the one used to store the result on LHS.
+                    //TODO-future: Consider doing GetRandomExprType(op.InputTypes) below. Currently, if this is done,
+                    // we end up getting code like (short)(1233342432.5M + 35435435.5M), where "short" is the exprType and
+                    // the literals are selected of different type ("decimal" in this example) and we get compilation error
+                    // because they can't be casted to short.
+                    Tree.ValueType lhsExprType = GetASTUtils().GetRandomExprType(returnType == Primitive.Boolean ? op.InputTypes : returnType);
+                    //Tree.ValueType lhsExprType = GetASTUtils().GetRandomExprType(op.InputTypes);
                     Tree.ValueType rhsExprType = lhsExprType;
+
                     if (op.HasFlag(OpFlags.Shift))
                     {
                         rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int32);
                     }
-                    ExpressionSyntax lhs, rhs;
 
+                    ExprKind lhsExprKind, rhsExprKind;
                     //TODO-config: Add MaxDepth in config
                     if (depth >= 5)
                     {
-                        lhs = ExprHelper(ExprKind.LiteralExpression, lhsExprType, 0);
-                        rhs = ExprHelper(ExprKind.LiteralExpression, rhsExprType, 0);
+                        lhsExprKind = rhsExprKind = ExprKind.LiteralExpression;
                     }
                     else
                     {
-                        lhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(lhsExprType.PrimitiveType), lhsExprType, depth + 1);
-                        rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType), rhsExprType, depth + 1);
+                        lhsExprKind = GetASTUtils().GetRandomExpressionReturningPrimitive(lhsExprType.PrimitiveType);
+                        rhsExprKind = GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType);
                     }
+
+                    // Fold arithmetic binop expressions that has constants.
+                    // csc.exe would automatically fold that for us, but by doing it here, we eliminate generate 
+                    // errors during compiling the test case.
+                    if (op.HasFlag(OpFlags.Math) && lhsExprKind == ExprKind.LiteralExpression && rhsExprKind == ExprKind.LiteralExpression)
+                    {
+                        return Annotate(Helpers.GetWrappedAndCastedExpression(exprType, Helpers.GetLiteralExpression(exprType)), "BinOp-folded");
+                    }
+
+                    //TODO-config: Add MaxDepth in config
+                    ExpressionSyntax lhs = ExprHelper(lhsExprKind, lhsExprType, depth >= 5 ? 0 : depth + 1);
+                    ExpressionSyntax rhs = ExprHelper(rhsExprKind, rhsExprType, depth >= 5 ? 0 : depth + 1);
+
+                    // For division, make sure that divisor is not 0
+                    if ((op.Oper == SyntaxKind.DivideExpression) || (op.Oper == SyntaxKind.ModuloExpression))
+                    {
+                        rhs = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, ParenthesizedExpression(rhs), LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(100)))));
+                        rhs = Helpers.GetWrappedAndCastedExpression(rhsExprType, rhs);
+                    }
+
                     return Annotate(Helpers.GetWrappedAndCastedExpression(exprType, Helpers.GetBinaryExpression(lhs, op, rhs)), "BinOp");
 
                 default:
