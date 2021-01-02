@@ -118,27 +118,27 @@ namespace Antigen
                     kind = SyntaxKind.CharacterLiteralExpression;
                     literalToken = Literal(GetRandomChar());
                     break;
-                case Tree.Primitive.Int16:
+                case Tree.Primitive.Short:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomShort());
                     break;
-                case Tree.Primitive.Int32:
+                case Tree.Primitive.Int:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomInt());
                     break;
-                case Tree.Primitive.Int64:
+                case Tree.Primitive.Long:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomLong());
                     break;
-                case Tree.Primitive.UInt16:
+                case Tree.Primitive.UShort:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomUShort());
                     break;
-                case Tree.Primitive.UInt32:
+                case Tree.Primitive.UInt:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomUInt());
                     break;
-                case Tree.Primitive.UInt64:
+                case Tree.Primitive.ULong:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomULong());
                     break;
@@ -146,7 +146,7 @@ namespace Antigen
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomSByte());
                     break;
-                case Tree.Primitive.Single:
+                case Tree.Primitive.Float:
                     kind = SyntaxKind.NumericLiteralExpression;
                     literalToken = Literal(GetRandomFloat());
                     break;

@@ -93,7 +93,7 @@ namespace Antigen
             methodBody.Add(
                 LocalDeclarationStatement(
                     Helpers.GetVariableDeclaration(
-                        Tree.ValueType.ForPrimitive(Primitive.Int32),
+                        Tree.ValueType.ForPrimitive(Primitive.Int),
                         Constants.LoopInvariantName,
                         LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(10))))));
 
@@ -218,7 +218,7 @@ namespace Antigen
 
                         if (assignOper.HasFlag(OpFlags.Shift))
                         {
-                            rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int32);
+                            rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
                         }
                         else
                         {
@@ -232,7 +232,7 @@ namespace Antigen
                         if ((assignOper.Oper == SyntaxKind.DivideAssignmentExpression) || (assignOper.Oper == SyntaxKind.ModuloAssignmentExpression))
                         {
                             rhs = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, ParenthesizedExpression(rhs), LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(100)))));
-                            rhs = Helpers.GetWrappedAndCastedExpression(rhsExprType, rhs);
+                            rhs = Helpers.GetWrappedAndCastedExpression(rhsExprType, lhsExprType, rhs);
                         }
 
                         return Annotate(ExpressionStatement(AssignmentExpression(assignOper.Oper, lhs, rhs)), "Assign");
@@ -243,7 +243,7 @@ namespace Antigen
                         ForStatement forStmt = new ForStatement(TC);
                         //TODO:config
                         int n = 3; // max statements
-                        forStmt.LoopVar = CurrentScope.GetRandomVariable(Tree.ValueType.ForPrimitive(Primitive.Int32));
+                        forStmt.LoopVar = CurrentScope.GetRandomVariable(Tree.ValueType.ForPrimitive(Primitive.Int));
                         forStmt.NestNum = depth;
                         forStmt.NumOfSecondaryInductionVariables = PRNG.Next(/*GetOptions().MaxNumberOfSecondaryInductionVariable*/ 1 + 1);
 
@@ -257,8 +257,8 @@ namespace Antigen
 
                         PushScope(forLoopScope);
 
-                        forStmt.Bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Int32), Tree.ValueType.ForPrimitive(Primitive.Int32), 0);
-                        forStmt.LoopStep = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Int32), Tree.ValueType.ForPrimitive(Primitive.Int32), 0);
+                        forStmt.Bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Int), Tree.ValueType.ForPrimitive(Primitive.Int), 0);
+                        forStmt.LoopStep = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Int), Tree.ValueType.ForPrimitive(Primitive.Int), 0);
 
                         //TODO-imp: AddInductionVariables
                         //TODO-imp: ctrlFlowStack
@@ -381,7 +381,7 @@ namespace Antigen
 
                     if (op.HasFlag(OpFlags.Shift))
                     {
-                        rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int32);
+                        rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
                     }
 
                     ExprKind lhsExprKind, rhsExprKind;
@@ -401,7 +401,7 @@ namespace Antigen
                     // errors during compiling the test case.
                     if (op.HasFlag(OpFlags.Math) && lhsExprKind == ExprKind.LiteralExpression && rhsExprKind == ExprKind.LiteralExpression)
                     {
-                        return Annotate(Helpers.GetWrappedAndCastedExpression(exprType, Helpers.GetLiteralExpression(exprType)), "BinOp-folded");
+                        return Annotate(Helpers.GetWrappedAndCastedExpression(exprType, exprType, Helpers.GetLiteralExpression(exprType)), "BinOp-folded");
                     }
 
                     //TODO-config: Add MaxDepth in config
@@ -412,10 +412,10 @@ namespace Antigen
                     if ((op.Oper == SyntaxKind.DivideExpression) || (op.Oper == SyntaxKind.ModuloExpression))
                     {
                         rhs = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, ParenthesizedExpression(rhs), LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(100)))));
-                        rhs = Helpers.GetWrappedAndCastedExpression(rhsExprType, rhs);
+                        rhs = Helpers.GetWrappedAndCastedExpression(rhsExprType, exprType, rhs);
                     }
 
-                    return Annotate(Helpers.GetWrappedAndCastedExpression(exprType, Helpers.GetBinaryExpression(lhs, op, rhs)), "BinOp");
+                    return Annotate(Helpers.GetWrappedAndCastedExpression(lhsExprType, exprType, Helpers.GetBinaryExpression(lhs, op, rhs)), "BinOp");
 
                 default:
                     Debug.Assert(false, string.Format("Hit unknown expression type {0}", Enum.GetName(typeof(ExprKind), exprKind)));

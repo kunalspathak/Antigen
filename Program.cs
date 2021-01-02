@@ -6,7 +6,7 @@ namespace Antigen
     {
         static void Main(string[] args)
         {
-            PRNG.Initialize(-1);
+            PRNG.Initialize(5);
 
             int testId = 1;
             while (true)
@@ -14,7 +14,7 @@ namespace Antigen
                 TestCase testCase = new TestCase(testId++);
                 testCase.Generate();
                 testCase.CompileAndExecute();
-            }
+            } 
         }
     }
 }
