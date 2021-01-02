@@ -145,6 +145,13 @@ namespace Antigen
         {
             List<MemberDeclarationSyntax> methods = new List<MemberDeclarationSyntax>();
 
+            methods.Add(ParseMemberDeclaration(
+@$"public static void Main(string[] args) {{
+    {ClassName} obj{ClassName} = new {ClassName}();
+    obj{ClassName}.Method0();
+}}
+"));
+
             //TODO-config: No. of methods per class
             for (int i = 0; i < 1; i++)
             {

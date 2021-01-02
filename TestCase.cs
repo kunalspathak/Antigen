@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Antigen
@@ -28,7 +29,7 @@ namespace Antigen
         #region PreComputed roslyn syntax tress
         #endregion
 
-        private const string MainMethodName = "Method0";
+        private const string MainMethodName = "Main";
 
         private SyntaxNode testCase;
 
@@ -56,6 +57,7 @@ namespace Antigen
                     Comment("// See the LICENSE file in the project root for more information."),
                     Comment("//"),
                     Comment("// This file is auto-generated."),
+                    Comment("// Seed: " + PRNG.GetSeed()),
                     Comment("//"),
                     }), SyntaxKind.UsingKeyword, TriviaList()));
 
@@ -175,28 +177,33 @@ namespace Antigen
                 Assembly asm = Assembly.Load(compileResult.Assembly);
                 Type testClassType = asm.GetType(Name);
                 MethodInfo mainMethodInfo = testClassType.GetMethod(MainMethodName);
-                MainMethodInvoke entryPoint = (MainMethodInvoke)Delegate.CreateDelegate(typeof(MainMethodInvoke), Activator.CreateInstance(testClassType), mainMethodInfo);
+                Action<string[]> entryPoint = (Action<string[]>)Delegate.CreateDelegate(typeof(Action<string[]>), mainMethodInfo);
 
                 Exception ex = null;
-                //TextWriter origOut = Console.Out;
+                TextWriter origOut = Console.Out;
 
                 MemoryStream ms = new MemoryStream();
-                //StreamWriter sw = new StreamWriter(Console.s, Encoding.UTF8);
+                StreamWriter sw = new StreamWriter(ms, Encoding.UTF8);
 
                 try
                 {
-                    //Console.SetOut(sw);
-                    entryPoint();
+                    Console.SetOut(sw);
+                    entryPoint(null);
                 }
                 catch (Exception caughtEx)
                 {
                     ex = caughtEx;
+                    Console.WriteLine(caughtEx);
                 }
                 finally
                 {
-                    //Console.SetOut(origOut);
-                    //sw.Close();
+                    Console.SetOut(origOut);
+                    sw.Close();
                 }
+
+                string stdout = Encoding.UTF8.GetString(ms.ToArray());
+                Console.WriteLine(stdout);
+                Console.ReadLine();
             }
         }
     }
