@@ -20,6 +20,7 @@ namespace Antigen.Config
         public double LiteralWeight = 0.025;
         public double VariableWeight = 0.5;
         public double BinaryOpWeight = 1;
+        public double FunctionCallWeight = 0.5;
 
         // Statement weights
         public double VariableDeclarationWeight = 0.5;

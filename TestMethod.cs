@@ -25,6 +25,7 @@ namespace Antigen
 #endif
 
         private int variablesCount = 0;
+        internal HashSet<string> callsFromThisMethod = new HashSet<string>();
 
         public AstUtils GetASTUtils()
         {

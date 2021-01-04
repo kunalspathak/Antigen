@@ -26,6 +26,58 @@ namespace Antigen
         public TestCase TC { get; private set; }
         public Stack<Scope> ScopeStack { get; private set; }
 
+        /// <summary>
+        /// Map of caller to list of callees.
+        /// </summary>
+        private Dictionary<string, HashSet<string>> _callerToCalleesMap;
+
+        internal bool CanCallRecurse(string fromMethod, string toMethod)
+        {
+
+            // if toMethod is not a caller, then there shouldn't be any recursion.
+            //if (!_callerToCalleesMap.ContainsKey(toMethod))
+            //{
+            //    return false;
+            //}
+
+            //HashSet<string> visited = new HashSet<string>() { toMethod };
+            //HashSet<string> callees = _callerToCalleesMap[toMethod];
+            //int calleeCount = callees.Count;
+            //for (int i = 0; i < calleeCount; i++)
+            //{
+            //    HashSet<string> newCallees = new HashSet<string>();
+
+            //    if (!_callerToCalleesMap.ContainsKey(toMethod))
+            //    {
+            //        return false;
+            //    }
+
+            //    var currCallees = _callerToCalleesMap[toMethod];
+            //    foreach (var callee in currCallees)
+            //    {
+            //        if (visited.Add(callee))
+            //        {
+            //            newCallees.Add(callee);
+            //        }
+            //    }
+
+            //}
+
+            //while (callees.Count > 0)
+            //{
+            //    HashSet<string> newCallees = new HashSet<string>();
+
+            //    if (!_callerToCalleesMap.ContainsKey(toMethod))
+            //    {
+            //        return false;
+            //    }
+
+            //    var callees = _callerToCalleesMap[toMethod];
+
+            //}
+            return false;
+        }
+
         public AstUtils GetASTUtils()
         {
             return TC.AstUtils;
@@ -37,6 +89,7 @@ namespace Antigen
             ClassScope = new Scope(tc);
             ClassName = className;
             TC = tc;
+            _callerToCalleesMap = new Dictionary<string, HashSet<string>>();
         }
 
         public Scope CurrentScope
@@ -158,6 +211,7 @@ namespace Antigen
             {
                 var testMethod = new TestMethod(this, "Method" + i);
                 methods.Add(testMethod.Generate());
+                _callerToCalleesMap["Method" + i] = testMethod.callsFromThisMethod;
             }
 
             return methods;

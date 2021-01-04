@@ -8,6 +8,7 @@
         ForStatement,
         DoWhileStatement,
         WhileStatement,
+        //FunctionCallStatement,
     }
 
     //public class Statements

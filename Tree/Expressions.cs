@@ -5,6 +5,7 @@
         LiteralExpression,
         VariableExpression,
         BinaryOpExpression,
+        //FunctionCallExpression,
     }
 
     //public struct Expression
