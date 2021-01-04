@@ -108,7 +108,20 @@ namespace Antigen
             }
 
             string baseline = Execute(compileResult, Rsln.BaselineEnvVars);
-            string test = Execute(compileResult, Rsln.TestEnvVars);
+
+            var selectedVars = Rsln.TestEnvVars[PRNG.Next(Rsln.TestEnvVars.Count)].Vars;
+            var testEnvVariables = new Dictionary<string, string>();
+            foreach (var commonVars in Rsln.CommonTestEnvVars)
+            {
+                testEnvVariables.Add(commonVars.Key, commonVars.Value);
+            }
+            foreach (var selectedVar in selectedVars)
+            {
+                // override the COMPlus_TieredCompilation variable
+                testEnvVariables[selectedVar.Key] = selectedVar.Value;
+            }
+
+            string test = Execute(compileResult, testEnvVariables);
 
             if (baseline == test)
             {
@@ -135,6 +148,18 @@ namespace Antigen
 
             fileContents.AppendLine(testCaseRoot.ToFullString());
             fileContents.AppendLine("/*");
+
+            fileContents.AppendLine("Baseline environment:");
+            foreach (var envVars in Rsln.BaselineEnvVars)
+            {
+                fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
+            }
+            fileContents.AppendLine("Test environment:");
+            foreach (var envVars in testEnvVariables)
+            {
+                fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
+            }
+
             if (isKnownError)
             {
                 fileContents.AppendLine($"Got known error mismatch:");
