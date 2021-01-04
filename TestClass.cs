@@ -69,7 +69,8 @@ namespace Antigen
             PopScope();
 
             return ClassDeclaration(ClassName)
-               .WithMembers(new SyntaxList<MemberDeclarationSyntax>(classMembers));
+               .WithMembers(new SyntaxList<MemberDeclarationSyntax>(classMembers))
+               .WithModifiers(new SyntaxTokenList(Token(SyntaxKind.PublicKeyword)));
         }
 
         /// <summary>

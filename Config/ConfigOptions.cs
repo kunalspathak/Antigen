@@ -1,9 +1,12 @@
 ﻿using Antigen.Tree;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Reflection;
+using System.Xml;
 
-namespace Antigen
+namespace Antigen.Config
 {
     public class OptionsBase
     {
@@ -108,6 +111,9 @@ namespace Antigen
         // Always use ContinueStatementWeight = 0 if this is true (see lessmath_no_continue.xml), otherwise there is a chance of infinite loop here.
         // This is a quick fix for now.  We need to come up with a better solution for this for IE11.
         public bool AllowLoopCondAtEnd = false;
+
+        // number of testcases to create
+        public long NumTestCases = 1;
 
 
         public double Lookup(Tree.ValueType type)

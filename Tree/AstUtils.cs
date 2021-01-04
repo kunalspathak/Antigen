@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Antigen.Config;
 using Antigen.Statements;
 
 namespace Antigen.Tree

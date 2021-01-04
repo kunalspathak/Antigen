@@ -12,9 +12,18 @@ namespace Antigen
 {
     public class Rsln
     {
-        internal static SyntaxGenerator synGen = SyntaxGenerator.GetGenerator(new AdhocWorkspace(), LanguageNames.CSharp);
-        internal static readonly CSharpCompilationOptions DebugOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, concurrentBuild: false, optimizationLevel: OptimizationLevel.Debug);
-        internal static readonly CSharpCompilationOptions ReleaseOptions = new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, concurrentBuild: false, optimizationLevel: OptimizationLevel.Release);
+        internal static readonly CSharpCompilationOptions CompileOptions = new CSharpCompilationOptions(OutputKind.ConsoleApplication, concurrentBuild: false, optimizationLevel: OptimizationLevel.Release/*, mainTypeName: "Main"*/);
 
+        internal static readonly Dictionary<string, string> BaselineEnvVars = new Dictionary<string, string>()
+        {
+            { "COMPlus_JITMinOpts", "1" },
+            { "COMPlus_TieredCompilation" , "0" }
+        };
+
+        internal static readonly Dictionary<string, string> TestEnvVars = new Dictionary<string, string>()
+        {
+            { "COMPlus_JITMinOpts", "0" },
+            { "COMPlus_TieredCompilation" , "0" }
+        };
     }
 }

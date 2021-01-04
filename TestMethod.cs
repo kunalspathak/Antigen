@@ -97,6 +97,7 @@ namespace Antigen
                         Constants.LoopInvariantName,
                         LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(10))))));
 
+            //TODO-config: Statements in a function
             for (int i = 0; i < 10; i++)
             {
                 StmtKind cur = GetASTUtils().GetRandomStatemet();
