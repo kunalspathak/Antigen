@@ -13,6 +13,8 @@ namespace Antigen
         {
             PRNG.Initialize(RunOptions.Seed);
 
+            RunOptions.CoreRun = args[0];
+
             int testId = 1;
             while (true)
             {

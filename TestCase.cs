@@ -328,7 +328,7 @@ namespace Antigen
             {
                 ProcessStartInfo info = new ProcessStartInfo
                 {
-                    FileName = /*@"C:\git\runtime\artifacts\tests\coreclr\windows.x64.Checked\Tests\Core_Root\CoreRun.exe", */@"D:\git\runtime\artifacts\tests\coreclr\windows.x64.Checked\tests\Core_Root\CoreRun.exe",
+                    FileName = RunOptions.CoreRun,
                     Arguments = compileResult.AssemblyFullPath,
                     WorkingDirectory = Environment.CurrentDirectory,
                     RedirectStandardOutput = true,

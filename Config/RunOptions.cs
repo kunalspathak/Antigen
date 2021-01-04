@@ -20,5 +20,8 @@ namespace Antigen.Config
 
         // Duration to execute tests for (overrides number specified in each XML config file)
         public ulong SecondsToRun = 0;
+
+        // Full path to CoreRun.exe
+        public string CoreRun = null;
     }
 }
