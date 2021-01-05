@@ -149,17 +149,6 @@ namespace Antigen
             fileContents.AppendLine(testCaseRoot.ToFullString());
             fileContents.AppendLine("/*");
 
-            fileContents.AppendLine("Baseline environment:");
-            foreach (var envVars in Rsln.BaselineEnvVars)
-            {
-                fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
-            }
-            fileContents.AppendLine("Test environment:");
-            foreach (var envVars in testEnvVariables)
-            {
-                fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
-            }
-
             if (isKnownError)
             {
                 fileContents.AppendLine($"Got known error mismatch:");
@@ -169,8 +158,25 @@ namespace Antigen
                 fileContents.AppendLine($"Got output diff:");
             }
             fileContents.AppendLine("--------- Baseline ---------  ");
+            fileContents.AppendLine();
+            fileContents.AppendLine("Environment:");
+            fileContents.AppendLine();
+            foreach (var envVars in Rsln.BaselineEnvVars)
+            {
+                fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
+            }
+            fileContents.AppendLine();
             fileContents.AppendLine(baseline);
+
             fileContents.AppendLine("--------- Test ---------  ");
+            fileContents.AppendLine();
+            fileContents.AppendLine("Environment:");
+            fileContents.AppendLine();
+            foreach (var envVars in testEnvVariables)
+            {
+                fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
+            }
+            fileContents.AppendLine();
             fileContents.AppendLine(test);
             fileContents.AppendLine("*/");
 
@@ -204,7 +210,7 @@ namespace Antigen
         /// </summary>
         /// <param name="expected"></param>
         /// <param name="actual"></param>
-        private void FindDiff(SyntaxNode expected, SyntaxNode actual)
+        private void FindTreeDiff(SyntaxNode expected, SyntaxNode actual)
         {
             if ((expected is LiteralExpressionSyntax) || (actual is LiteralExpressionSyntax))
             {
@@ -226,7 +232,7 @@ namespace Antigen
                 }
                 for (int ch = 0; ch < expectedCount; ch++)
                 {
-                    FindDiff(expectedChildNodes[ch], actualChildNodes[ch]);
+                    FindTreeDiff(expectedChildNodes[ch], actualChildNodes[ch]);
                 }
                 return;
             }
@@ -241,7 +247,7 @@ namespace Antigen
 #if DEBUG
             SyntaxTree syntaxTree = testCaseRoot.SyntaxTree;
             SyntaxTree expectedTree = CSharpSyntaxTree.ParseText(testCaseRoot.ToFullString());
-            FindDiff(expectedTree.GetRoot(), syntaxTree.GetRoot());
+            FindTreeDiff(expectedTree.GetRoot(), syntaxTree.GetRoot());
 #else
             // In release, make sure that we didn't end up generating wrong syntax tree,
             // hence parse the text to reconstruct the tree.

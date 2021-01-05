@@ -117,5 +117,39 @@ namespace Antigen
             return ObjectCreationExpression(objectTypeSyntax).WithArgumentList(
                                                             ArgumentList());
         }
+
+        //TODO: Reuse in GetVariableDeclaration
+        public static ParameterSyntax GetParameterSyntax(Tree.ValueType variableType, string variableName)
+        {
+            ParameterSyntax parameterSyntax = Parameter(Identifier(variableName));
+            return parameterSyntax.WithType(GetTypeSyntax(variableType));
+        }
+
+        //TODO: Reuse in GetVariableDeclaration
+        public static TypeSyntax GetTypeSyntax(Tree.ValueType variableType)
+        {
+            if (variableType.PrimitiveType == Primitive.Struct)
+            {
+                if (!variableType.TypeName.Contains("."))
+                {
+                    return IdentifierName(variableType.TypeName);
+                }
+
+                // contains nested struct
+                string[] seperatedTypes = variableType.TypeName.Split('.', StringSplitOptions.RemoveEmptyEntries);
+                NameSyntax nameSyntax = QualifiedName(
+                    IdentifierName(seperatedTypes[0]),
+                    IdentifierName(seperatedTypes[1]));
+                for (int subType = 2; subType < seperatedTypes.Length; subType++)
+                {
+                    nameSyntax = QualifiedName(nameSyntax, IdentifierName(seperatedTypes[subType]));
+                }
+                return nameSyntax;
+            }
+            else
+            {
+                return GetToken(variableType.TypeKind);
+            }
+        }
     }
 }

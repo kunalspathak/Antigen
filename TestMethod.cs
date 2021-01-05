@@ -3,6 +3,7 @@ using Antigen.Tree;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.VisualBasic.CompilerServices;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -33,6 +34,8 @@ namespace Antigen
         }
 
         private Scope MethodScope;
+        private bool takesParameters;
+        public MethodSignature MethodSignature { get; private set; }
         public Scope CurrentScope => testClass.CurrentScope;
 
         public void PushScope(Scope scope)
@@ -47,18 +50,19 @@ namespace Antigen
             return ret;
         }
 
-        public TestMethod(TestClass enclosingClass, string methodName)
+        public TestMethod(TestClass enclosingClass, string methodName, bool takesParams = true)
         {
             testClass = enclosingClass;
             Name = methodName;
             MethodScope = new Scope(enclosingClass.TC, ScopeKind.FunctionScope, enclosingClass.ClassScope);
+            takesParameters = takesParams;
         }
 
         public MethodDeclarationSyntax Generate()
         {
             PushScope(MethodScope);
 
-            MethodDeclarationSyntax methodDeclaration = MethodDeclaration(PredefinedType(Token(SyntaxKind.VoidKeyword)), Name).WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
+            MethodDeclarationSyntax methodDeclaration = GenerateMethodSignature();
             IList<StatementSyntax> methodBody = new List<StatementSyntax>();
 
             // TODO-TEMP initialize one variable of each type
@@ -113,8 +117,84 @@ namespace Antigen
 
             PopScope();
 
+            testClass.RegisterMethod(MethodSignature);
+
             // Wrap everything in unchecked so we do not see overflow compilation errors
             return methodDeclaration.WithBody(Block(CheckedStatement(SyntaxKind.UncheckedStatement, Block(methodBody))));
+        }
+
+        /// <summary>
+        ///     Generates method signature of this method.
+        /// </summary>
+        private MethodDeclarationSyntax GenerateMethodSignature()
+        {
+            MethodSignature = new MethodSignature(Name);
+            int numOfParameters = 0;
+            if (takesParameters)
+            {
+                //TODO:config - No. of parameters
+                numOfParameters = PRNG.Next(1, 10);
+                MethodSignature.ReturnType = GetRandomExprType();
+            }
+
+            List<MethodParam> parameters = new List<MethodParam>();
+            MethodSignature.Parameters = parameters;
+            List<ParameterSyntax> parameterNodes = new List<ParameterSyntax>();
+
+            for (int paramIndex = 0; paramIndex < numOfParameters; paramIndex++)
+            {
+                var paramType = GetRandomExprType();
+                var passingWay = PRNG.WeightedChoice(MethodSignature.ValuePassing);
+                string paramName = "p_" + Helpers.GetVariableName(paramType, paramIndex);
+                CurrentScope.AddLocal(paramType, paramName);
+
+                ParameterSyntax parameterNode = Helpers.GetParameterSyntax(paramType, paramName);
+                if (passingWay != ParamValuePassing.None)
+                {
+                    SyntaxToken passingWayToken = Token(SyntaxKind.None);
+                    switch (passingWay)
+                    {
+                        case ParamValuePassing.In:
+                            passingWayToken = Token(SyntaxKind.InKeyword);
+                            break;
+                        case ParamValuePassing.Out:
+                            passingWayToken = Token(SyntaxKind.OutKeyword);
+                            break;
+                        case ParamValuePassing.Ref:
+                            passingWayToken = Token(SyntaxKind.RefKeyword);
+                            break;
+                        default:
+                            Debug.Assert(false, "invalid value for passingway!");
+                            break;
+                    }
+                    parameterNode = parameterNode.WithModifiers(TokenList(passingWayToken));
+                }
+
+                parameters.Add(new MethodParam()
+                {
+                    ParamType = paramType,
+                    PassingWay = passingWay
+                });
+                parameterNodes.Add(parameterNode);
+            }
+
+
+            List<SyntaxNodeOrToken> finalPametersList = new List<SyntaxNodeOrToken>();
+
+            if (takesParameters)
+            {
+                finalPametersList.Add(parameterNodes[0]);
+            }
+
+            for (int paramIndex = 1; paramIndex < numOfParameters; paramIndex++)
+            {
+                finalPametersList.Add(Token(SyntaxKind.CommaToken));
+                finalPametersList.Add(parameterNodes[paramIndex]);
+            }
+
+            return MethodDeclaration(Helpers.GetTypeSyntax(MethodSignature.ReturnType), Name)
+                    .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)))
+                    .WithParameterList(ParameterList(SeparatedList<ParameterSyntax>(finalPametersList)));
         }
 
         public StatementSyntax StatementHelper(StmtKind stmtKind, int depth)
@@ -123,16 +203,7 @@ namespace Antigen
             {
                 case StmtKind.VariableDeclaration:
                     {
-                        Tree.ValueType variableType;
-                        //TODO:config - probability of struct variables
-                        if (PRNG.Decide(0.3) && CurrentScope.NumOfStructTypes > 0)
-                        {
-                            variableType = CurrentScope.AllStructTypes[PRNG.Next(CurrentScope.NumOfStructTypes)];
-                        }
-                        else
-                        {
-                            variableType = GetASTUtils().GetRandomExprType();
-                        }
+                        Tree.ValueType variableType = GetRandomExprType();
 
                         string variableName = Helpers.GetVariableName(variableType, variablesCount++);
 
@@ -426,6 +497,18 @@ namespace Antigen
             return null;
         }
 
+        private Tree.ValueType GetRandomExprType()
+        {
+            //TODO:config - probability of struct variables
+            if (PRNG.Decide(0.3) && CurrentScope.NumOfStructTypes > 0)
+            {
+                return CurrentScope.AllStructTypes[PRNG.Next(CurrentScope.NumOfStructTypes)];
+            }
+            else
+            {
+                return GetASTUtils().GetRandomExprType();
+            }
+        }
 
         private ExpressionSyntax Annotate(ExpressionSyntax expression, string comment)
         {
@@ -457,4 +540,75 @@ namespace Antigen
 #endif
         }
     }
+
+    public class MethodSignature
+    {
+        public string MethodName;
+        public Tree.ValueType ReturnType;
+        public List<MethodParam> Parameters;
+
+        //TODO:config
+        public static List<Weights<ParamValuePassing>> ValuePassing = new()
+        {
+            new Weights<ParamValuePassing>(ParamValuePassing.None, 50),
+            new Weights<ParamValuePassing>(ParamValuePassing.Ref, 25),
+            new Weights<ParamValuePassing>(ParamValuePassing.Out, 15),
+            new Weights<ParamValuePassing>(ParamValuePassing.In, 10),
+        };
+
+        public MethodSignature(string methodName)
+        {
+            MethodName = methodName;
+            ReturnType = Tree.ValueType.ForVoid();
+            Parameters = new List<MethodParam>();
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is not MethodSignature otherMethodSig)
+            {
+                return false;
+            }
+            return MethodName == otherMethodSig.MethodName &&
+                (ReturnType.Equals(otherMethodSig.ReturnType)) &&
+                Parameters.Count == otherMethodSig.Parameters.Count &&
+                Enumerable.Range(0, Parameters.Count)
+                    .All(pIndex => (Parameters[pIndex].ParamType.Equals(otherMethodSig.Parameters[pIndex].ParamType) &&
+                                    (Parameters[pIndex].PassingWay == otherMethodSig.Parameters[pIndex].PassingWay)));
+        }
+
+        public override int GetHashCode()
+        {
+            int hashCode = 0;
+            foreach (var p in Parameters)
+            {
+                hashCode ^= p.ParamType.GetHashCode();
+            }
+            return MethodName.GetHashCode() ^ ReturnType.GetHashCode() ^ hashCode;
+        }
+
+        public override string ToString()
+        {
+            var paramList = Parameters.Select(p => $"{(p.PassingWay == ParamValuePassing.None ? "" : Enum.GetName(typeof(ParamValuePassing), p.PassingWay))} {p.ParamType}");
+            return $"{ReturnType} {MethodName}({string.Join(", ", paramList)})";
+        }
+
+    }
+
+    public class MethodParam
+    {
+        public Tree.ValueType ParamType;
+        public ParamValuePassing PassingWay;
+
+        //public MethodParam(Tree.ValueType paramType, ParamValuePassing passingWay)
+        //{
+        //    ParamType = paramType;
+        //    PassingWay = passi
+        //}
+    }
+
+    public enum ParamValuePassing
+    {
+        None, In, Out, Ref
+    };
 }

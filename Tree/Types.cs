@@ -208,6 +208,12 @@ namespace Antigen.Tree
             return types.First(t => t.PrimitiveType == primitiveType);
         }
 
+        private static ValueType voidType = new ValueType(Primitive.Void, SpecialType.System_Void, SyntaxKind.VoidKeyword);
+        public static ValueType ForVoid()
+        {
+            return voidType;
+        }
+
         public string VariableNameHint()
         {
             if (PrimitiveType != Primitive.Struct)

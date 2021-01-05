@@ -25,58 +25,7 @@ namespace Antigen
         public string ClassName;
         public TestCase TC { get; private set; }
         public Stack<Scope> ScopeStack { get; private set; }
-
-        /// <summary>
-        /// Map of caller to list of callees.
-        /// </summary>
-        private Dictionary<string, HashSet<string>> _callerToCalleesMap;
-
-        internal bool CanCallRecurse(string fromMethod, string toMethod)
-        {
-
-            // if toMethod is not a caller, then there shouldn't be any recursion.
-            //if (!_callerToCalleesMap.ContainsKey(toMethod))
-            //{
-            //    return false;
-            //}
-
-            //HashSet<string> visited = new HashSet<string>() { toMethod };
-            //HashSet<string> callees = _callerToCalleesMap[toMethod];
-            //int calleeCount = callees.Count;
-            //for (int i = 0; i < calleeCount; i++)
-            //{
-            //    HashSet<string> newCallees = new HashSet<string>();
-
-            //    if (!_callerToCalleesMap.ContainsKey(toMethod))
-            //    {
-            //        return false;
-            //    }
-
-            //    var currCallees = _callerToCalleesMap[toMethod];
-            //    foreach (var callee in currCallees)
-            //    {
-            //        if (visited.Add(callee))
-            //        {
-            //            newCallees.Add(callee);
-            //        }
-            //    }
-
-            //}
-
-            //while (callees.Count > 0)
-            //{
-            //    HashSet<string> newCallees = new HashSet<string>();
-
-            //    if (!_callerToCalleesMap.ContainsKey(toMethod))
-            //    {
-            //        return false;
-            //    }
-
-            //    var callees = _callerToCalleesMap[toMethod];
-
-            //}
-            return false;
-        }
+        public List<MethodSignature> Methods { get; private set; }
 
         public AstUtils GetASTUtils()
         {
@@ -89,7 +38,17 @@ namespace Antigen
             ClassScope = new Scope(tc);
             ClassName = className;
             TC = tc;
-            _callerToCalleesMap = new Dictionary<string, HashSet<string>>();
+            Methods = new List<MethodSignature>();
+        }
+
+        public void RegisterMethod(MethodSignature methodSignature)
+        {
+            Methods.Add(methodSignature);
+        }
+
+        public MethodSignature GetRandomMethod()
+        {
+            return Methods[PRNG.Next(Methods.Count)];
         }
 
         public Scope CurrentScope
@@ -205,13 +164,13 @@ namespace Antigen
     obj{ClassName}.Method0();
 }}
 "));
+            methods.Add(new TestMethod(this, "Method0", false).Generate());
 
             //TODO-config: No. of methods per class
-            for (int i = 0; i < 1; i++)
+            for (int i = 1; i < 5; i++)
             {
                 var testMethod = new TestMethod(this, "Method" + i);
                 methods.Add(testMethod.Generate());
-                _callerToCalleesMap["Method" + i] = testMethod.callsFromThisMethod;
             }
 
             return methods;
