@@ -432,12 +432,17 @@ namespace Antigen
             switch (exprKind)
             {
                 case ExprKind.LiteralExpression:
+                    {
                     return Annotate(Helpers.GetLiteralExpression(exprType), "Literal");
+                    }
 
                 case ExprKind.VariableExpression:
+                    {
                     return Annotate(Helpers.GetVariableAccessExpression(CurrentScope.GetRandomVariable(exprType)), "Var");
+                    }
 
                 case ExprKind.BinaryOpExpression:
+                    {
                     Primitive returnType = exprType.PrimitiveType;
 
                     Operator op = GetASTUtils().GetRandomBinaryOperator(returnPrimitiveType: returnType);
@@ -489,6 +494,30 @@ namespace Antigen
                     }
 
                     return Annotate(Helpers.GetWrappedAndCastedExpression(lhsExprType, exprType, Helpers.GetBinaryExpression(lhs, op, rhs)), "BinOp");
+                    }
+                case ExprKind.AssignExpression:
+                    {
+                        Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator(returnPrimitiveType: exprType.PrimitiveType);
+                        Tree.ValueType lhsExprType, rhsExprType;
+                        lhsExprType = rhsExprType = exprType;
+
+                        if (assignOper.HasFlag(OpFlags.Shift))
+                        {
+                            rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
+                        }
+
+                        ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, depth);
+                        ExpressionSyntax rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType), rhsExprType, depth);
+
+                        // For division, make sure that divisor is not 0
+                        if ((assignOper.Oper == SyntaxKind.DivideAssignmentExpression) || (assignOper.Oper == SyntaxKind.ModuloAssignmentExpression))
+                        {
+                            rhs = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, ParenthesizedExpression(rhs), LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(100)))));
+                            rhs = Helpers.GetWrappedAndCastedExpression(rhsExprType, lhsExprType, rhs);
+                        }
+
+                        return Annotate(Helpers.GetWrappedAndCastedExpression(lhsExprType, exprType, AssignmentExpression(assignOper.Oper, lhs, rhs)), "Assign");
+                    }
 
                 default:
                     Debug.Assert(false, string.Format("Hit unknown expression type {0}", Enum.GetName(typeof(ExprKind), exprKind)));

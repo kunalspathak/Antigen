@@ -195,12 +195,12 @@ namespace Antigen.Tree
             return PRNG.WeightedChoice(ops);
         }
 
-        public Operator GetRandomAssignmentOperator()
+        public Operator GetRandomAssignmentOperator(Primitive returnPrimitiveType = Primitive.Any)
         {
             // Select all appropriate operators
             IEnumerable<Weights<Operator>> ops =
                                         from z in AllOperators
-                                        where z.Data.HasFlag(OpFlags.Assignment)
+                                        where z.Data.HasFlag(OpFlags.Assignment) && z.Data.HasReturnType(returnPrimitiveType)
                                         select z;
 
             // Do a weighted random choice.

@@ -5,6 +5,7 @@
         LiteralExpression,
         VariableExpression,
         BinaryOpExpression,
+        AssignExpression,
         //FunctionCallExpression,
     }
 
