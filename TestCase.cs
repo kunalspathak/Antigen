@@ -106,6 +106,11 @@ namespace Antigen
 
                 return TestResult.CompileError;
             }
+            //else
+            //{
+            //    string workingFile = Path.Combine(RunOptions.OutputDirectory, $"{Name}-working.g.cs");
+            //    File.WriteAllText(workingFile, testCaseRoot.ToFullString());
+            //}
 
             string baseline = Execute(compileResult, Rsln.BaselineEnvVars);
 

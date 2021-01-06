@@ -8,6 +8,7 @@
         ForStatement,
         DoWhileStatement,
         WhileStatement,
+        ReturnStatement,
         //FunctionCallStatement,
     }
 

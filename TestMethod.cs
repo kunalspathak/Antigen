@@ -102,8 +102,16 @@ namespace Antigen
                         Constants.LoopInvariantName,
                         LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(10))))));
 
+            // TODO-TEMP initialize out and ref method parameters
+            var paramsToInitialize = MethodSignature.Parameters.Where(p => p.PassingWay == ParamValuePassing.Out);
+            foreach (MethodParam param in paramsToInitialize)
+            {
+                methodBody.Add(VariableAssignmentHelper(param.ParamType, param.ParamName));
+                CurrentScope.AddLocal(param.ParamType, param.ParamName);
+            }
+
             //TODO-config: Statements in a function
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 5; i++)
             {
                 StmtKind cur = GetASTUtils().GetRandomStatemet();
                 methodBody.Add(StatementHelper(cur, 0));
@@ -114,6 +122,9 @@ namespace Antigen
             {
                 methodBody.Add(ParseStatement($"Console.WriteLine(\"{variableName}= \" + {variableName});"));
             }
+
+            // return statement
+            methodBody.Add(StatementHelper(StmtKind.ReturnStatement, 0));
 
             PopScope();
 
@@ -146,7 +157,13 @@ namespace Antigen
                 var paramType = GetRandomExprType();
                 var passingWay = PRNG.WeightedChoice(MethodSignature.ValuePassing);
                 string paramName = "p_" + Helpers.GetVariableName(paramType, paramIndex);
-                CurrentScope.AddLocal(paramType, paramName);
+
+                // Add parameters to the scope except the one that is marked as OUT
+                // OUT parameters will be added once they are initialized.
+                if (passingWay != ParamValuePassing.Out)
+                {
+                    CurrentScope.AddLocal(paramType, paramName);
+                }
 
                 ParameterSyntax parameterNode = Helpers.GetParameterSyntax(paramType, paramName);
                 if (passingWay != ParamValuePassing.None)
@@ -154,9 +171,9 @@ namespace Antigen
                     SyntaxToken passingWayToken = Token(SyntaxKind.None);
                     switch (passingWay)
                     {
-                        case ParamValuePassing.In:
-                            passingWayToken = Token(SyntaxKind.InKeyword);
-                            break;
+                        //case ParamValuePassing.In:
+                        //    passingWayToken = Token(SyntaxKind.InKeyword);
+                        //    break;
                         case ParamValuePassing.Out:
                             passingWayToken = Token(SyntaxKind.OutKeyword);
                             break;
@@ -172,6 +189,7 @@ namespace Antigen
 
                 parameters.Add(new MethodParam()
                 {
+                    ParamName = paramName,
                     ParamType = paramType,
                     PassingWay = passingWay
                 });
@@ -299,7 +317,20 @@ namespace Antigen
                         }
 
                         ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, depth);
-                        ExpressionSyntax rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType), rhsExprType, depth);
+                        ExpressionSyntax rhs = null;
+
+                        //TODO-config no. of attempts
+                        int noOfAttempts = 0;
+                        while (noOfAttempts++ < 5)
+                        {
+                            rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType), rhsExprType, depth);
+                            // Make sure that we do not end up with same lhs=lhs.
+                            if (lhs.ToFullString() != rhs.ToFullString())
+                            {
+                                break;
+                            }
+                        }
+                        Debug.Assert(lhs.ToFullString() != rhs.ToFullString());
 
                         // For division, make sure that divisor is not 0
                         if ((assignOper.Oper == SyntaxKind.DivideAssignmentExpression) || (assignOper.Oper == SyntaxKind.ModuloAssignmentExpression))
@@ -420,6 +451,14 @@ namespace Antigen
                         PopScope(); // pop while scope
                         return Annotate(Block(whileStmt.Generate(false)), "while-loop");
                     }
+                case StmtKind.ReturnStatement:
+                    Tree.ValueType returnType = MethodSignature.ReturnType;
+                    if (returnType.PrimitiveType == Primitive.Void)
+                    {
+                        return Annotate(ReturnStatement(), "Return");
+                    }
+                    ExpressionSyntax returnExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(returnType.PrimitiveType), returnType, depth);
+                    return Annotate(ReturnStatement(returnExpr), "Return");
                 default:
                     Debug.Assert(false, String.Format("Hit unknown statement type {0}", Enum.GetName(typeof(StmtKind), stmtKind)));
                     break;
@@ -433,67 +472,67 @@ namespace Antigen
             {
                 case ExprKind.LiteralExpression:
                     {
-                    return Annotate(Helpers.GetLiteralExpression(exprType), "Literal");
+                        return Annotate(Helpers.GetLiteralExpression(exprType), "Literal");
                     }
 
                 case ExprKind.VariableExpression:
                     {
-                    return Annotate(Helpers.GetVariableAccessExpression(CurrentScope.GetRandomVariable(exprType)), "Var");
+                        return Annotate(Helpers.GetVariableAccessExpression(CurrentScope.GetRandomVariable(exprType)), "Var");
                     }
 
                 case ExprKind.BinaryOpExpression:
                     {
-                    Primitive returnType = exprType.PrimitiveType;
+                        Primitive returnType = exprType.PrimitiveType;
 
-                    Operator op = GetASTUtils().GetRandomBinaryOperator(returnPrimitiveType: returnType);
+                        Operator op = GetASTUtils().GetRandomBinaryOperator(returnPrimitiveType: returnType);
 
-                    // If the return type is boolean, then take any ExprType that returns boolean.
-                    // However for other types, choose the same type for BinOp expression as the one used to store the result on LHS.
-                    //TODO-future: Consider doing GetRandomExprType(op.InputTypes) below. Currently, if this is done,
-                    // we end up getting code like (short)(1233342432.5M + 35435435.5M), where "short" is the exprType and
-                    // the literals are selected of different type ("decimal" in this example) and we get compilation error
-                    // because they can't be casted to short.
-                    Tree.ValueType lhsExprType = GetASTUtils().GetRandomExprType(returnType == Primitive.Boolean ? op.InputTypes : returnType);
-                    //Tree.ValueType lhsExprType = GetASTUtils().GetRandomExprType(op.InputTypes);
-                    Tree.ValueType rhsExprType = lhsExprType;
+                        // If the return type is boolean, then take any ExprType that returns boolean.
+                        // However for other types, choose the same type for BinOp expression as the one used to store the result on LHS.
+                        //TODO-future: Consider doing GetRandomExprType(op.InputTypes) below. Currently, if this is done,
+                        // we end up getting code like (short)(1233342432.5M + 35435435.5M), where "short" is the exprType and
+                        // the literals are selected of different type ("decimal" in this example) and we get compilation error
+                        // because they can't be casted to short.
+                        Tree.ValueType lhsExprType = GetASTUtils().GetRandomExprType(returnType == Primitive.Boolean ? op.InputTypes : returnType);
+                        //Tree.ValueType lhsExprType = GetASTUtils().GetRandomExprType(op.InputTypes);
+                        Tree.ValueType rhsExprType = lhsExprType;
 
-                    if (op.HasFlag(OpFlags.Shift))
-                    {
-                        rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
-                    }
+                        if (op.HasFlag(OpFlags.Shift))
+                        {
+                            rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
+                        }
 
-                    ExprKind lhsExprKind, rhsExprKind;
-                    //TODO-config: Add MaxDepth in config
-                    if (depth >= 5)
-                    {
-                        lhsExprKind = rhsExprKind = ExprKind.LiteralExpression;
-                    }
-                    else
-                    {
-                        lhsExprKind = GetASTUtils().GetRandomExpressionReturningPrimitive(lhsExprType.PrimitiveType);
-                        rhsExprKind = GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType);
-                    }
+                        ExprKind lhsExprKind, rhsExprKind;
+                        //TODO-config: Add MaxDepth in config
+                        if (depth >= 5)
+                        {
+                            lhsExprKind = rhsExprKind = ExprKind.LiteralExpression;
+                        }
+                        else
+                        {
+                            lhsExprKind = GetASTUtils().GetRandomExpressionReturningPrimitive(lhsExprType.PrimitiveType);
+                            rhsExprKind = GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType);
+                        }
 
-                    // Fold arithmetic binop expressions that has constants.
-                    // csc.exe would automatically fold that for us, but by doing it here, we eliminate generate 
-                    // errors during compiling the test case.
-                    if (op.HasFlag(OpFlags.Math) && lhsExprKind == ExprKind.LiteralExpression && rhsExprKind == ExprKind.LiteralExpression)
-                    {
-                        return Annotate(Helpers.GetWrappedAndCastedExpression(exprType, exprType, Helpers.GetLiteralExpression(exprType)), "BinOp-folded");
-                    }
+                        // Fold arithmetic binop expressions that has constants.
+                        // csc.exe would automatically fold that for us, but by doing it here, we eliminate generate 
+                        // errors during compiling the test case.
+                        if (op.HasFlag(OpFlags.Math) && lhsExprKind == ExprKind.LiteralExpression && rhsExprKind == ExprKind.LiteralExpression)
+                        {
+                            return Annotate(Helpers.GetWrappedAndCastedExpression(exprType, exprType, Helpers.GetLiteralExpression(exprType)), "BinOp-folded");
+                        }
 
-                    //TODO-config: Add MaxDepth in config
-                    ExpressionSyntax lhs = ExprHelper(lhsExprKind, lhsExprType, depth >= 5 ? 0 : depth + 1);
-                    ExpressionSyntax rhs = ExprHelper(rhsExprKind, rhsExprType, depth >= 5 ? 0 : depth + 1);
+                        //TODO-config: Add MaxDepth in config
+                        ExpressionSyntax lhs = ExprHelper(lhsExprKind, lhsExprType, depth >= 5 ? 0 : depth + 1);
+                        ExpressionSyntax rhs = ExprHelper(rhsExprKind, rhsExprType, depth >= 5 ? 0 : depth + 1);
 
-                    // For division, make sure that divisor is not 0
-                    if ((op.Oper == SyntaxKind.DivideExpression) || (op.Oper == SyntaxKind.ModuloExpression))
-                    {
-                        rhs = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, ParenthesizedExpression(rhs), LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(100)))));
-                        rhs = Helpers.GetWrappedAndCastedExpression(rhsExprType, exprType, rhs);
-                    }
+                        // For division, make sure that divisor is not 0
+                        if ((op.Oper == SyntaxKind.DivideExpression) || (op.Oper == SyntaxKind.ModuloExpression))
+                        {
+                            rhs = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, ParenthesizedExpression(rhs), LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(100)))));
+                            rhs = Helpers.GetWrappedAndCastedExpression(rhsExprType, exprType, rhs);
+                        }
 
-                    return Annotate(Helpers.GetWrappedAndCastedExpression(lhsExprType, exprType, Helpers.GetBinaryExpression(lhs, op, rhs)), "BinOp");
+                        return Annotate(Helpers.GetWrappedAndCastedExpression(lhsExprType, exprType, Helpers.GetBinaryExpression(lhs, op, rhs)), "BinOp");
                     }
                 case ExprKind.AssignExpression:
                     {
@@ -507,7 +546,20 @@ namespace Antigen
                         }
 
                         ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, depth);
-                        ExpressionSyntax rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType), rhsExprType, depth);
+                        ExpressionSyntax rhs = null;
+
+                        //TODO-config no. of attempts
+                        int noOfAttempts = 0;
+                        while (noOfAttempts++ < 5)
+                        {
+                            rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType), rhsExprType, depth);
+                            // Make sure that we do not end up with same lhs=lhs.
+                            if (lhs.ToFullString() != rhs.ToFullString())
+                            {
+                                break;
+                            }
+                        }
+                        Debug.Assert(lhs.ToFullString() != rhs.ToFullString());
 
                         // For division, make sure that divisor is not 0
                         if ((assignOper.Oper == SyntaxKind.DivideAssignmentExpression) || (assignOper.Oper == SyntaxKind.ModuloAssignmentExpression))
@@ -516,7 +568,8 @@ namespace Antigen
                             rhs = Helpers.GetWrappedAndCastedExpression(rhsExprType, lhsExprType, rhs);
                         }
 
-                        return Annotate(Helpers.GetWrappedAndCastedExpression(lhsExprType, exprType, AssignmentExpression(assignOper.Oper, lhs, rhs)), "Assign");
+                        return Annotate(Helpers.GetWrappedAndCastedExpression(lhsExprType, exprType,
+                            AssignmentExpression(assignOper.Oper, lhs, rhs)), "Assign");
                     }
 
                 default:
@@ -524,6 +577,31 @@ namespace Antigen
                     break;
             }
             return null;
+        }
+
+        /// <summary>
+        ///     Generates assignment for variable name
+        /// </summary>
+        /// <returns></returns>
+        public StatementSyntax VariableAssignmentHelper(Tree.ValueType exprType, string variableName)
+        {
+            ExpressionSyntax lhs = Annotate(Helpers.GetVariableAccessExpression(variableName), "specific-Var");
+            ExpressionSyntax rhs = null;
+
+            //TODO-config no. of attempts
+            int noOfAttempts = 0;
+            while (noOfAttempts++ < 5)
+            {
+                rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(exprType.PrimitiveType), exprType, 0);
+                // Make sure that we do not end up with same lhs=lhs.
+                if (lhs.ToFullString() != rhs.ToFullString())
+                {
+                    break;
+                }
+            }
+            Debug.Assert(lhs.ToFullString() != rhs.ToFullString());
+
+            return Annotate(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, lhs, rhs)), "specific-Assign");
         }
 
         private Tree.ValueType GetRandomExprType()
@@ -582,7 +660,7 @@ namespace Antigen
             new Weights<ParamValuePassing>(ParamValuePassing.None, 50),
             new Weights<ParamValuePassing>(ParamValuePassing.Ref, 25),
             new Weights<ParamValuePassing>(ParamValuePassing.Out, 15),
-            new Weights<ParamValuePassing>(ParamValuePassing.In, 10),
+            //new Weights<ParamValuePassing>(ParamValuePassing.In, 10),
         };
 
         public MethodSignature(string methodName)
@@ -626,8 +704,14 @@ namespace Antigen
 
     public class MethodParam
     {
+        public string ParamName;
         public Tree.ValueType ParamType;
         public ParamValuePassing PassingWay;
+
+        public override string ToString()
+        {
+            return $"{Enum.GetName(typeof(ParamValuePassing), PassingWay)} {ParamType} {ParamName}";
+        }
 
         //public MethodParam(Tree.ValueType paramType, ParamValuePassing passingWay)
         //{
@@ -638,6 +722,10 @@ namespace Antigen
 
     public enum ParamValuePassing
     {
-        None, In, Out, Ref
+        None,
+        //TODO-future: need to add ability of marking variables readonly
+        //In,
+        Out,
+        Ref
     };
 }

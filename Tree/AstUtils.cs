@@ -38,6 +38,11 @@ namespace Antigen.Tree
             // Initialize statements
             foreach (StmtKind stmt in (StmtKind[])Enum.GetValues(typeof(StmtKind)))
             {
+                if (stmt == StmtKind.ReturnStatement)
+                {
+                    // skip adding return as it will be added as the last statement of function
+                    continue;
+                }
                 AllStatements.Add(new Weights<StmtKind>(stmt, Options.Lookup(stmt)));
             }
 
