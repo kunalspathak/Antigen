@@ -6,7 +6,7 @@
         VariableExpression,
         BinaryOpExpression,
         AssignExpression,
-        //FunctionCallExpression,
+        MethodCallExpression,
     }
 
     //public struct Expression

@@ -13,3 +13,4 @@ C# test generator and RyuJIT tester - Named after Covid-19 antigen test.
 9. struct
 10. Assignment expression
 11. Initialize out, return statement
+12. Method call

@@ -17,15 +17,21 @@ namespace Antigen
     /// </summary>
     public class TestMethod
     {
-        private TestClass testClass;
-        private TestCase TC => testClass.TC;
-        private string Name;
+        private readonly TestClass _testClass;
+        private TestCase TC => _testClass.TC;
+        protected readonly string Name;
+        protected readonly int _stmtCount;
+
+        //TODO-config: Move this to ConfigOptions
+        private static readonly int s_maxStatements = 4;
+
 #if DEBUG
         private Dictionary<string, int> expressionsCount = new Dictionary<string, int>();
         private Dictionary<string, int> statementsCount = new Dictionary<string, int>();
 #endif
 
-        private int variablesCount = 0;
+        private int _variablesCount = 0;
+
         internal HashSet<string> callsFromThisMethod = new HashSet<string>();
 
         public AstUtils GetASTUtils()
@@ -33,32 +39,52 @@ namespace Antigen
             return TC.AstUtils;
         }
 
-        private Scope MethodScope;
-        private bool takesParameters;
-        public MethodSignature MethodSignature { get; private set; }
-        public Scope CurrentScope => testClass.CurrentScope;
+        protected Scope MethodScope;
+        private readonly bool _takesParameters;
+        protected MethodSignature MethodSignature { get; set; }
+        public Scope CurrentScope => _testClass.CurrentScope;
 
-        public void PushScope(Scope scope)
+        protected void PushScope(Scope scope)
         {
-            testClass.PushScope(scope);
+            _testClass.PushScope(scope);
         }
 
-        public Scope PopScope()
+        protected Scope PopScope()
         {
-            Scope ret = testClass.PopScope();
+            Scope ret = _testClass.PopScope();
             //Debug.Assert(ret.Parent == ScopeStack.Peek());
             return ret;
         }
 
-        public TestMethod(TestClass enclosingClass, string methodName, bool takesParams = true)
+        /// <summary>
+        ///     Creates leaf method that does not take parameters and has a single return statement.
+        /// </summary>
+        protected TestMethod(TestClass enclosingClass, string methodName, int stmtCount)
         {
-            testClass = enclosingClass;
+            _testClass = enclosingClass;
             Name = methodName;
             MethodScope = new Scope(enclosingClass.TC, ScopeKind.FunctionScope, enclosingClass.ClassScope);
-            takesParameters = takesParams;
+            _stmtCount = stmtCount;
         }
 
-        public MethodDeclarationSyntax Generate()
+        /// <summary>
+        ///     Creates test method.
+        /// </summary>
+        /// <param name="enclosingClass"></param>
+        /// <param name="methodName"></param>
+        /// <param name="takesParams"></param>
+        public TestMethod(TestClass enclosingClass, string methodName, bool takesParams = true)
+        {
+            _testClass = enclosingClass;
+            Name = methodName;
+            MethodScope = new Scope(enclosingClass.TC, ScopeKind.FunctionScope, enclosingClass.ClassScope);
+            _takesParameters = takesParams;
+
+            //TODO-config: Statements in a function
+            _stmtCount = PRNG.Next(1, s_maxStatements);
+        }
+
+        public virtual MethodDeclarationSyntax Generate()
         {
             PushScope(MethodScope);
 
@@ -68,7 +94,7 @@ namespace Antigen
             // TODO-TEMP initialize one variable of each type
             foreach (Tree.ValueType variableType in Tree.ValueType.GetTypes())
             {
-                string variableName = Helpers.GetVariableName(variableType, variablesCount++);
+                string variableName = Helpers.GetVariableName(variableType, _variablesCount++);
 
                 ExpressionSyntax rhs = ExprHelper(ExprKind.LiteralExpression, variableType, 0);
                 CurrentScope.AddLocal(variableType, variableName);
@@ -79,7 +105,7 @@ namespace Antigen
             // TODO-TEMP initialize one variable of each struct type
             foreach (Tree.ValueType structType in CurrentScope.AllStructTypes)
             {
-                string variableName = Helpers.GetVariableName(structType, variablesCount++);
+                string variableName = Helpers.GetVariableName(structType, _variablesCount++);
 
                 ExpressionSyntax rhs = Annotate(Helpers.GetObjectCreationExpression(structType.TypeName), "struct-init");
                 CurrentScope.AddLocal(structType, variableName);
@@ -110,17 +136,21 @@ namespace Antigen
                 CurrentScope.AddLocal(param.ParamType, param.ParamName);
             }
 
-            //TODO-config: Statements in a function
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < _stmtCount; i++)
             {
                 StmtKind cur = GetASTUtils().GetRandomStatemet();
                 methodBody.Add(StatementHelper(cur, 0));
             }
 
-            // print all variables
-            foreach (string variableName in CurrentScope.AllVariables)
+            // If only statement in method is a return statement,
+            // do not print the variables we generated above.
+            if (_stmtCount > 0)
             {
-                methodBody.Add(ParseStatement($"Console.WriteLine(\"{variableName}= \" + {variableName});"));
+                // print all variables
+                foreach (string variableName in CurrentScope.AllVariables)
+                {
+                    methodBody.Add(ParseStatement($"Console.WriteLine(\"{variableName}= \" + {variableName});"));
+                }
             }
 
             // return statement
@@ -128,7 +158,7 @@ namespace Antigen
 
             PopScope();
 
-            testClass.RegisterMethod(MethodSignature);
+            _testClass.RegisterMethod(MethodSignature);
 
             // Wrap everything in unchecked so we do not see overflow compilation errors
             return methodDeclaration.WithBody(Block(CheckedStatement(SyntaxKind.UncheckedStatement, Block(methodBody))));
@@ -137,11 +167,11 @@ namespace Antigen
         /// <summary>
         ///     Generates method signature of this method.
         /// </summary>
-        private MethodDeclarationSyntax GenerateMethodSignature()
+        protected virtual MethodDeclarationSyntax GenerateMethodSignature()
         {
             MethodSignature = new MethodSignature(Name);
             int numOfParameters = 0;
-            if (takesParameters)
+            if (_takesParameters)
             {
                 //TODO:config - No. of parameters
                 numOfParameters = PRNG.Next(1, 10);
@@ -150,7 +180,7 @@ namespace Antigen
 
             List<MethodParam> parameters = new List<MethodParam>();
             MethodSignature.Parameters = parameters;
-            List<ParameterSyntax> parameterNodes = new List<ParameterSyntax>();
+            List<SyntaxNodeOrToken> parameterNodes = new List<SyntaxNodeOrToken>();
 
             for (int paramIndex = 0; paramIndex < numOfParameters; paramIndex++)
             {
@@ -194,25 +224,16 @@ namespace Antigen
                     PassingWay = passingWay
                 });
                 parameterNodes.Add(parameterNode);
-            }
 
-
-            List<SyntaxNodeOrToken> finalPametersList = new List<SyntaxNodeOrToken>();
-
-            if (takesParameters)
-            {
-                finalPametersList.Add(parameterNodes[0]);
-            }
-
-            for (int paramIndex = 1; paramIndex < numOfParameters; paramIndex++)
-            {
-                finalPametersList.Add(Token(SyntaxKind.CommaToken));
-                finalPametersList.Add(parameterNodes[paramIndex]);
+                if (paramIndex + 1 < numOfParameters)
+                {
+                    parameterNodes.Add(Token(SyntaxKind.CommaToken));
+                }
             }
 
             return MethodDeclaration(Helpers.GetTypeSyntax(MethodSignature.ReturnType), Name)
                     .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)))
-                    .WithParameterList(ParameterList(SeparatedList<ParameterSyntax>(finalPametersList)));
+                    .WithParameterList(ParameterList(SeparatedList<ParameterSyntax>(parameterNodes)));
         }
 
         public StatementSyntax StatementHelper(StmtKind stmtKind, int depth)
@@ -223,7 +244,7 @@ namespace Antigen
                     {
                         Tree.ValueType variableType = GetRandomExprType();
 
-                        string variableName = Helpers.GetVariableName(variableType, variablesCount++);
+                        string variableName = Helpers.GetVariableName(variableType, _variablesCount++);
 
                         ExpressionSyntax rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(variableType.PrimitiveType), variableType, 0);
                         CurrentScope.AddLocal(variableType, variableName);
@@ -249,7 +270,7 @@ namespace Antigen
                         Scope elseBranchScope = new Scope(TC, ScopeKind.ConditionalScope, CurrentScope);
 
                         //TODO-config: Add MaxDepth in config
-                        int ifcount = 3;
+                        int ifcount = PRNG.Next(1, s_maxStatements);
                         IList<StatementSyntax> ifBody = new List<StatementSyntax>();
 
                         PushScope(ifBranchScope);
@@ -269,7 +290,7 @@ namespace Antigen
                         }
                         PopScope(); // pop 'if' body scope
 
-                        int elsecount = 3;
+                        int elsecount = PRNG.Next(1, s_maxStatements);
                         IList<StatementSyntax> elseBody = new List<StatementSyntax>();
 
                         PushScope(elseBranchScope);
@@ -346,7 +367,7 @@ namespace Antigen
                         Scope forLoopScope = new Scope(TC, ScopeKind.LoopScope, CurrentScope);
                         ForStatement forStmt = new ForStatement(TC);
                         //TODO:config
-                        int n = 3; // max statements
+                        int n = PRNG.Next(1, s_maxStatements);
                         forStmt.LoopVar = CurrentScope.GetRandomVariable(Tree.ValueType.ForPrimitive(Primitive.Int));
                         forStmt.NestNum = depth;
                         forStmt.NumOfSecondaryInductionVariables = PRNG.Next(/*GetOptions().MaxNumberOfSecondaryInductionVariable*/ 1 + 1);
@@ -390,7 +411,7 @@ namespace Antigen
                         Scope doWhileScope = new Scope(TC, ScopeKind.LoopScope, CurrentScope);
                         DoWhileStatement doStmt = new DoWhileStatement(TC);
                         //TODO:config
-                        int n = 3; // max statements
+                        int n = PRNG.Next(1, s_maxStatements);
                         doStmt.NestNum = depth;
                         doStmt.NumOfSecondaryInductionVariables = PRNG.Next(/*GetOptions().MaxNumberOfSecondaryInductionVariable*/ 1 + 1);
 
@@ -423,7 +444,7 @@ namespace Antigen
                         Scope whileScope = new Scope(TC, ScopeKind.LoopScope, CurrentScope);
                         WhileStatement whileStmt = new WhileStatement(TC);
                         //TODO:config
-                        int n = 3; // max statements
+                        int n = PRNG.Next(1, s_maxStatements);
                         whileStmt.NestNum = depth;
                         whileStmt.NumOfSecondaryInductionVariables = PRNG.Next(/*GetOptions().MaxNumberOfSecondaryInductionVariable*/ 1 + 1);
 
@@ -452,13 +473,16 @@ namespace Antigen
                         return Annotate(Block(whileStmt.Generate(false)), "while-loop");
                     }
                 case StmtKind.ReturnStatement:
-                    Tree.ValueType returnType = MethodSignature.ReturnType;
-                    if (returnType.PrimitiveType == Primitive.Void)
                     {
-                        return Annotate(ReturnStatement(), "Return");
+                        Tree.ValueType returnType = MethodSignature.ReturnType;
+                        if (returnType.PrimitiveType == Primitive.Void)
+                        {
+                            return Annotate(ReturnStatement(), "Return");
+                        }
+
+                        ExpressionSyntax returnExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(returnType.PrimitiveType), returnType, depth);
+                        return Annotate(ReturnStatement(returnExpr), "Return");
                     }
-                    ExpressionSyntax returnExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(returnType.PrimitiveType), returnType, depth);
-                    return Annotate(ReturnStatement(returnExpr), "Return");
                 default:
                     Debug.Assert(false, String.Format("Hit unknown statement type {0}", Enum.GetName(typeof(StmtKind), stmtKind)));
                     break;
@@ -570,6 +594,41 @@ namespace Antigen
 
                         return Annotate(Helpers.GetWrappedAndCastedExpression(lhsExprType, exprType,
                             AssignmentExpression(assignOper.Oper, lhs, rhs)), "Assign");
+                    }
+                case ExprKind.MethodCallExpression:
+                    {
+                        MethodSignature methodSig = _testClass.GetRandomMethod(exprType);
+                        List<SyntaxNodeOrToken> argumentNodes = new List<SyntaxNodeOrToken>();
+                        int paramsCount = methodSig.Parameters.Count;
+
+                        for (int paramId = 0; paramId < paramsCount; paramId++)
+                        {
+                            MethodParam parameter = methodSig.Parameters[paramId];
+
+                            Tree.ValueType argType = parameter.ParamType;
+                            ExprKind argExprKind = parameter.PassingWay == ParamValuePassing.None ? GetASTUtils().GetRandomExpressionReturningPrimitive(argType.PrimitiveType) : ExprKind.VariableExpression;
+
+                            ExpressionSyntax argExpr = ExprHelper(argExprKind, argType, depth);
+                            ArgumentSyntax argSyntax = Argument(argExpr);
+
+                            if (parameter.PassingWay == ParamValuePassing.Ref)
+                            {
+                                argSyntax = argSyntax.WithRefKindKeyword(Token(SyntaxKind.RefKeyword));
+                            }
+                            else if (parameter.PassingWay == ParamValuePassing.Out)
+                            {
+                                argSyntax = argSyntax.WithRefKindKeyword(Token(SyntaxKind.OutKeyword));
+                            }
+
+                            argumentNodes.Add(argSyntax);
+                            if (paramId + 1 < paramsCount)
+                            {
+                                argumentNodes.Add(Token(SyntaxKind.CommaToken));
+                            }
+                        }
+
+                        return InvocationExpression(IdentifierName(methodSig.MethodName))
+                            .WithArgumentList(ArgumentList(SeparatedList<ArgumentSyntax>(argumentNodes)));
                     }
 
                 default:
@@ -728,4 +787,32 @@ namespace Antigen
         Out,
         Ref
     };
+
+    public class TestLeafMethod : TestMethod
+    {
+        private Tree.ValueType ReturnType;
+        public TestLeafMethod(TestClass enclosingClass, string methodName, Tree.ValueType returnType)
+            : base(enclosingClass, methodName, 0)
+        {
+            ReturnType = returnType;
+        }
+
+        protected override MethodDeclarationSyntax GenerateMethodSignature()
+        {
+            MethodSignature = new MethodSignature(Name);
+            MethodSignature.Parameters = new List<MethodParam>();
+            MethodSignature.ReturnType = ReturnType;
+
+            return MethodDeclaration(Helpers.GetTypeSyntax(ReturnType), Name)
+                .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
+        }
+
+        public override MethodDeclarationSyntax Generate()
+        {
+            GetASTUtils().EnterLeafMethod();
+            var result = base.Generate();
+            GetASTUtils().LeaveLeafMethod();
+            return result;
+        }
+    }
 }

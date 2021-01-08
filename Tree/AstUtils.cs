@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Antigen.Config;
 using Antigen.Statements;
@@ -22,6 +23,7 @@ namespace Antigen.Tree
         private ConfigOptions Options;
         private RunOptions RunOptions;
         private TestCase TestCase;
+        private Weights<ExprKind> MethodCallWeight;
 
         public AstUtils(TestCase tc, ConfigOptions configOptions, RunOptions runOptions)
         {
@@ -49,17 +51,23 @@ namespace Antigen.Tree
             // Initialize expressions
             foreach (ExprKind expr in (ExprKind[])Enum.GetValues(typeof(ExprKind)))
             {
-                AllExpressions.Add(new Weights<ExprKind>(expr, Options.Lookup(expr)));
+                var weight = new Weights<ExprKind>(expr, Options.Lookup(expr)); ;
+                if (expr == ExprKind.MethodCallExpression)
+                {
+                    MethodCallWeight = weight;
+                }
+
+                AllExpressions.Add(weight);
                 // For binary operation, there is no operator that don't have assign flag and that returns char or string
                 // Hence do not choose binary expression if return is expected to be string
                 if (expr != ExprKind.BinaryOpExpression)
                 {
-                    AllNonNumericExpressions.Add(new Weights<ExprKind>(expr, Options.Lookup(expr)));
+                    AllNonNumericExpressions.Add(weight);
                 }
 
                 if (expr == ExprKind.VariableExpression)
                 {
-                    AllStructExpressions.Add(new Weights<ExprKind>(expr, Options.Lookup(expr)));
+                    AllStructExpressions.Add(weight);
                 }
             }
 
@@ -68,6 +76,19 @@ namespace Antigen.Tree
             {
                 AllOperators.Add(new Weights<Operator>(oper, Options.Lookup(oper)));
             }
+        }
+
+        public void EnterLeafMethod()
+        {
+            bool removed = AllExpressions.Remove(MethodCallWeight);
+            removed &= AllNonNumericExpressions.Remove(MethodCallWeight);
+            Debug.Assert(removed);
+        }
+
+        public void LeaveLeafMethod()
+        {
+            AllExpressions.Add(MethodCallWeight);
+            AllNonNumericExpressions.Add(MethodCallWeight);
         }
 
         #region Random type methods

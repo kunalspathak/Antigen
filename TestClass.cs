@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -46,9 +47,18 @@ namespace Antigen
             Methods.Add(methodSignature);
         }
 
-        public MethodSignature GetRandomMethod()
+        /// <summary>
+        ///     Get random method that returns specfic returnType. Null if no such
+        ///     method is generated yet.
+        /// </summary>
+        public MethodSignature GetRandomMethod(Tree.ValueType returnType)
         {
-            return Methods[PRNG.Next(Methods.Count)];
+            var matchingMethods = Methods.Where(m => m.ReturnType.Equals(returnType)).ToList();
+            if (matchingMethods.Count == 0)
+            {
+                return null;
+            }
+            return matchingMethods[PRNG.Next(matchingMethods.Count())];
         }
 
         public Scope CurrentScope
@@ -75,6 +85,7 @@ namespace Antigen
 
             List<MemberDeclarationSyntax> classMembers = new List<MemberDeclarationSyntax>();
             classMembers.AddRange(GenerateStructs());
+            classMembers.AddRange(GenerateLeafMethods());
             classMembers.AddRange(GenerateMethods());
 
             // pop class scope
@@ -174,6 +185,24 @@ namespace Antigen
             }
 
             return methods;
+        }
+
+        private IList<MemberDeclarationSyntax> GenerateLeafMethods()
+        {
+            List<MemberDeclarationSyntax> leafMethods = new List<MemberDeclarationSyntax>();
+            int leafMethodId = 0;
+            foreach (Tree.ValueType variableType in Tree.ValueType.GetTypes())
+            {
+                var testMethod = new TestLeafMethod(this, "LeafMethod" + leafMethodId++, variableType);
+                leafMethods.Add(testMethod.Generate());
+            }
+
+            foreach (Tree.ValueType structType in CurrentScope.AllStructTypes)
+            {
+                var testMethod = new TestLeafMethod(this, "LeafMethod" + leafMethodId++, structType);
+                leafMethods.Add(testMethod.Generate());
+            }
+            return leafMethods;
         }
     }
 }
