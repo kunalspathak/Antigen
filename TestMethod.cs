@@ -40,7 +40,7 @@ namespace Antigen
         }
 
         protected Scope MethodScope;
-        private readonly bool _takesParameters;
+        private readonly bool _isMainInvocation;
         protected MethodSignature MethodSignature { get; set; }
         public Scope CurrentScope => _testClass.CurrentScope;
 
@@ -72,13 +72,13 @@ namespace Antigen
         /// </summary>
         /// <param name="enclosingClass"></param>
         /// <param name="methodName"></param>
-        /// <param name="takesParams"></param>
-        public TestMethod(TestClass enclosingClass, string methodName, bool takesParams = true)
+        /// <param name="isMainInvocation"></param>
+        public TestMethod(TestClass enclosingClass, string methodName, bool isMainInvocation = false)
         {
             _testClass = enclosingClass;
             Name = methodName;
             MethodScope = new Scope(enclosingClass.TC, ScopeKind.FunctionScope, enclosingClass.ClassScope);
-            _takesParameters = takesParams;
+            _isMainInvocation = isMainInvocation;
 
             //TODO-config: Statements in a function
             _stmtCount = PRNG.Next(1, s_maxStatements);
@@ -142,6 +142,21 @@ namespace Antigen
                 methodBody.Add(StatementHelper(cur, 0));
             }
 
+            // For main invocation method, invoke all the other methods once
+            if (_isMainInvocation)
+            {
+                foreach (var nonLeafMethod in _testClass.AllNonLeafMethods)
+                {
+                    //TODO-future: Select any assignOper
+                    //Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator();
+
+                    ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, nonLeafMethod.ReturnType, 0);
+                    ExpressionSyntax rhs = MethodCallHelper(nonLeafMethod, 0);
+
+                    methodBody.Add(Annotate(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, lhs, rhs)), "MethodCall-Assign"));
+                }
+            }
+
             // If only statement in method is a return statement,
             // do not print the variables we generated above.
             if (_stmtCount > 0)
@@ -171,11 +186,11 @@ namespace Antigen
         {
             MethodSignature = new MethodSignature(Name);
             int numOfParameters = 0;
-            if (_takesParameters)
+            if (!_isMainInvocation)
             {
                 //TODO:config - No. of parameters
                 numOfParameters = PRNG.Next(1, 10);
-                MethodSignature.ReturnType = GetRandomExprType();
+                MethodSignature.ReturnType = GetRandomExprType(structProbability: 0.7);
             }
 
             List<MethodParam> parameters = new List<MethodParam>();
@@ -184,7 +199,7 @@ namespace Antigen
 
             for (int paramIndex = 0; paramIndex < numOfParameters; paramIndex++)
             {
-                var paramType = GetRandomExprType();
+                var paramType = GetRandomExprType(structProbability: 0.7);
                 var passingWay = PRNG.WeightedChoice(MethodSignature.ValuePassing);
                 string paramName = "p_" + Helpers.GetVariableName(paramType, paramIndex);
 
@@ -242,7 +257,7 @@ namespace Antigen
             {
                 case StmtKind.VariableDeclaration:
                     {
-                        Tree.ValueType variableType = GetRandomExprType();
+                        Tree.ValueType variableType = GetRandomExprType(structProbability: 0.3);
 
                         string variableName = Helpers.GetVariableName(variableType, _variablesCount++);
 
@@ -597,38 +612,7 @@ namespace Antigen
                     }
                 case ExprKind.MethodCallExpression:
                     {
-                        MethodSignature methodSig = _testClass.GetRandomMethod(exprType);
-                        List<SyntaxNodeOrToken> argumentNodes = new List<SyntaxNodeOrToken>();
-                        int paramsCount = methodSig.Parameters.Count;
-
-                        for (int paramId = 0; paramId < paramsCount; paramId++)
-                        {
-                            MethodParam parameter = methodSig.Parameters[paramId];
-
-                            Tree.ValueType argType = parameter.ParamType;
-                            ExprKind argExprKind = parameter.PassingWay == ParamValuePassing.None ? GetASTUtils().GetRandomExpressionReturningPrimitive(argType.PrimitiveType) : ExprKind.VariableExpression;
-
-                            ExpressionSyntax argExpr = ExprHelper(argExprKind, argType, depth);
-                            ArgumentSyntax argSyntax = Argument(argExpr);
-
-                            if (parameter.PassingWay == ParamValuePassing.Ref)
-                            {
-                                argSyntax = argSyntax.WithRefKindKeyword(Token(SyntaxKind.RefKeyword));
-                            }
-                            else if (parameter.PassingWay == ParamValuePassing.Out)
-                            {
-                                argSyntax = argSyntax.WithRefKindKeyword(Token(SyntaxKind.OutKeyword));
-                            }
-
-                            argumentNodes.Add(argSyntax);
-                            if (paramId + 1 < paramsCount)
-                            {
-                                argumentNodes.Add(Token(SyntaxKind.CommaToken));
-                            }
-                        }
-
-                        return InvocationExpression(IdentifierName(methodSig.MethodName))
-                            .WithArgumentList(ArgumentList(SeparatedList<ArgumentSyntax>(argumentNodes)));
+                        return MethodCallHelper(_testClass.GetRandomMethod(exprType), depth);
                     }
 
                 default:
@@ -663,10 +647,46 @@ namespace Antigen
             return Annotate(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, lhs, rhs)), "specific-Assign");
         }
 
-        private Tree.ValueType GetRandomExprType()
+        private ExpressionSyntax MethodCallHelper(MethodSignature methodSig, int depth)
+        {
+            //MethodSignature methodSig = _testClass.GetRandomMethod(exprType);
+            List<SyntaxNodeOrToken> argumentNodes = new List<SyntaxNodeOrToken>();
+            int paramsCount = methodSig.Parameters.Count;
+
+            for (int paramId = 0; paramId < paramsCount; paramId++)
+            {
+                MethodParam parameter = methodSig.Parameters[paramId];
+
+                Tree.ValueType argType = parameter.ParamType;
+                ExprKind argExprKind = parameter.PassingWay == ParamValuePassing.None ? GetASTUtils().GetRandomExpressionReturningPrimitive(argType.PrimitiveType) : ExprKind.VariableExpression;
+
+                ExpressionSyntax argExpr = ExprHelper(argExprKind, argType, depth);
+                ArgumentSyntax argSyntax = Argument(argExpr);
+
+                if (parameter.PassingWay == ParamValuePassing.Ref)
+                {
+                    argSyntax = argSyntax.WithRefKindKeyword(Token(SyntaxKind.RefKeyword));
+                }
+                else if (parameter.PassingWay == ParamValuePassing.Out)
+                {
+                    argSyntax = argSyntax.WithRefKindKeyword(Token(SyntaxKind.OutKeyword));
+                }
+
+                argumentNodes.Add(argSyntax);
+                if (paramId + 1 < paramsCount)
+                {
+                    argumentNodes.Add(Token(SyntaxKind.CommaToken));
+                }
+            }
+
+            return InvocationExpression(IdentifierName(methodSig.MethodName))
+                .WithArgumentList(ArgumentList(SeparatedList<ArgumentSyntax>(argumentNodes)));
+        }
+
+        private Tree.ValueType GetRandomExprType(double structProbability)
         {
             //TODO:config - probability of struct variables
-            if (PRNG.Decide(0.3) && CurrentScope.NumOfStructTypes > 0)
+            if (PRNG.Decide(structProbability) && CurrentScope.NumOfStructTypes > 0)
             {
                 return CurrentScope.AllStructTypes[PRNG.Next(CurrentScope.NumOfStructTypes)];
             }
@@ -712,6 +732,7 @@ namespace Antigen
         public string MethodName;
         public Tree.ValueType ReturnType;
         public List<MethodParam> Parameters;
+        public bool IsLeaf;
 
         //TODO:config
         public static List<Weights<ParamValuePassing>> ValuePassing = new()
@@ -722,11 +743,12 @@ namespace Antigen
             //new Weights<ParamValuePassing>(ParamValuePassing.In, 10),
         };
 
-        public MethodSignature(string methodName)
+        public MethodSignature(string methodName, bool isLeaf = false)
         {
             MethodName = methodName;
             ReturnType = Tree.ValueType.ForVoid();
             Parameters = new List<MethodParam>();
+            IsLeaf = isLeaf;
         }
 
         public override bool Equals(object obj)
@@ -799,7 +821,7 @@ namespace Antigen
 
         protected override MethodDeclarationSyntax GenerateMethodSignature()
         {
-            MethodSignature = new MethodSignature(Name);
+            MethodSignature = new MethodSignature(Name, isLeaf: true);
             MethodSignature.Parameters = new List<MethodParam>();
             MethodSignature.ReturnType = ReturnType;
 

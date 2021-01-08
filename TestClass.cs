@@ -26,7 +26,7 @@ namespace Antigen
         public string ClassName;
         public TestCase TC { get; private set; }
         public Stack<Scope> ScopeStack { get; private set; }
-        public List<MethodSignature> Methods { get; private set; }
+        private List<Weights<MethodSignature>> _methods { get; set; }
 
         public AstUtils GetASTUtils()
         {
@@ -39,13 +39,25 @@ namespace Antigen
             ClassScope = new Scope(tc);
             ClassName = className;
             TC = tc;
-            Methods = new List<MethodSignature>();
+            _methods = new List<Weights<MethodSignature>>();
         }
 
         public void RegisterMethod(MethodSignature methodSignature)
         {
-            Methods.Add(methodSignature);
+            double weight = 0.5;
+            if (methodSignature.MethodName.StartsWith("Leaf"))
+            {
+                // left methods have lower weight. try calling actual
+                // methods first.
+                weight = 0.20;
+            }
+            _methods.Add(new Weights<MethodSignature>(methodSignature, weight));
         }
+
+        /// <summary>
+        ///     Returns all non-leaf methods
+        /// </summary>
+        public List<MethodSignature> AllNonLeafMethods => _methods.Where(m => !m.Data.IsLeaf).Select(m => m.Data).ToList();
 
         /// <summary>
         ///     Get random method that returns specfic returnType. Null if no such
@@ -53,12 +65,12 @@ namespace Antigen
         /// </summary>
         public MethodSignature GetRandomMethod(Tree.ValueType returnType)
         {
-            var matchingMethods = Methods.Where(m => m.ReturnType.Equals(returnType)).ToList();
+            var matchingMethods = _methods.Where(m => m.Data.ReturnType.Equals(returnType)).ToList();
             if (matchingMethods.Count == 0)
             {
                 return null;
             }
-            return matchingMethods[PRNG.Next(matchingMethods.Count())];
+            return PRNG.WeightedChoice(matchingMethods);
         }
 
         public Scope CurrentScope
@@ -169,20 +181,19 @@ namespace Antigen
         {
             List<MemberDeclarationSyntax> methods = new List<MemberDeclarationSyntax>();
 
-            methods.Add(ParseMemberDeclaration(
-@$"public static void Main(string[] args) {{
-    {ClassName} obj{ClassName} = new {ClassName}();
-    obj{ClassName}.Method0();
-}}
-"));
-            methods.Add(new TestMethod(this, "Method0", false).Generate());
-
             //TODO-config: No. of methods per class
             for (int i = 1; i < 5; i++)
             {
                 var testMethod = new TestMethod(this, "Method" + i);
                 methods.Add(testMethod.Generate());
             }
+            methods.Add(new TestMethod(this, "Method0", true).Generate());
+            methods.Add(ParseMemberDeclaration(
+@$"public static void Main(string[] args) {{
+    {ClassName} obj{ClassName} = new {ClassName}();
+    obj{ClassName}.Method0();
+}}
+"));
 
             return methods;
         }
