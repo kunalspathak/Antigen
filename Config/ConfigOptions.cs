@@ -18,18 +18,18 @@ namespace Antigen.Config
 
         // Expression weights
         public double LiteralWeight = 0.025;
-        public double VariableWeight = 0.5;
+        public double VariableWeight = 0.3;
         public double BinaryOpWeight = 1;
-        public double FunctionCallWeight = 0.5;
-        public double AssignWeight = 0.1;
+        public double MethodCallWeight = 0.23;
+        public double AssignWeight = 0.4;
 
         // Statement weights
-        public double VariableDeclarationWeight = 0.5;
+        public double VariableDeclarationWeight = 0.3;
         public double IfElseStatementWeight = 0.4;
         public double AssignStatementWeight = 0.5;
-        public double ForStatementWeight = 0.5;
+        public double ForStatementWeight = 0.4;
         public double DoWhileStatementWeight = 0.2;
-        public double WhileStatementWeight = 0.5;
+        public double WhileStatementWeight = 0.3;
 
         // Type weights
         public double BooleanWeight = 1;
@@ -117,6 +117,8 @@ namespace Antigen.Config
         // number of testcases to create
         public long NumTestCases = 1;
 
+        // max number of statements in a block
+        public int MaxStatements = 5;
 
         public double Lookup(Tree.ValueType type)
         {
