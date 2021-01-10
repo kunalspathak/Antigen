@@ -67,9 +67,11 @@ namespace Antigen
 
         public void Generate()
         {
-            UsingDirectiveSyntax usingDirective =
-                UsingDirective(IdentifierName("System"))
-                .WithUsingKeyword(Token(TriviaList(new[]{
+            List<UsingDirectiveSyntax> usingDirective =
+                new List<UsingDirectiveSyntax>()
+                {
+                    UsingDirective(IdentifierName("System"))
+                    .WithUsingKeyword(Token(TriviaList(new[]{
                     Comment("// Licensed to the .NET Foundation under one or more agreements."),
                     Comment("// The .NET Foundation licenses this file to you under the MIT license."),
                     Comment("// See the LICENSE file in the project root for more information."),
@@ -77,12 +79,19 @@ namespace Antigen
                     Comment("// This file is auto-generated."),
                     Comment("// Seed: " + PRNG.GetSeed()),
                     Comment("//"),
-                    }), SyntaxKind.UsingKeyword, TriviaList()));
+                    }), SyntaxKind.UsingKeyword, TriviaList())),
+                    UsingDirective(
+                        QualifiedName(
+                            QualifiedName(
+                                IdentifierName("System"),
+                                IdentifierName("Runtime")),
+                            IdentifierName("CompilerServices")))
+                };
 
             ClassDeclarationSyntax klass = new TestClass(this, Name).Generate();
 
             testCaseRoot = CompilationUnit()
-                            .WithUsings(SingletonList(usingDirective))
+                            .WithUsings(new SyntaxList<UsingDirectiveSyntax>(usingDirective))
                             .WithMembers(new SyntaxList<MemberDeclarationSyntax>(klass)).NormalizeWhitespace();
         }
 

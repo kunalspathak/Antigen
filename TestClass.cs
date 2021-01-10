@@ -97,6 +97,7 @@ namespace Antigen
 
             List<MemberDeclarationSyntax> classMembers = new List<MemberDeclarationSyntax>();
             classMembers.AddRange(GenerateStructs());
+            classMembers.AddRange(GenerateStaticFields());
             classMembers.AddRange(GenerateLeafMethods());
             classMembers.AddRange(GenerateMethods());
 
@@ -198,6 +199,9 @@ namespace Antigen
             return methods;
         }
 
+        /// <summary>
+        ///     Generate leaf methods in this class.
+        /// </summary>
         private IList<MemberDeclarationSyntax> GenerateLeafMethods()
         {
             List<MemberDeclarationSyntax> leafMethods = new List<MemberDeclarationSyntax>();
@@ -214,6 +218,57 @@ namespace Antigen
                 leafMethods.Add(testMethod.Generate());
             }
             return leafMethods;
+        }
+
+        /// <summary>
+        ///     Generate static fields in this class.
+        /// </summary>
+        private IList<MemberDeclarationSyntax> GenerateStaticFields()
+        {
+            List<MemberDeclarationSyntax> fields = new List<MemberDeclarationSyntax>();
+
+            // TODO-TEMP initialize one variable of each type
+            int _variablesCount = 0;
+            foreach (Tree.ValueType variableType in Tree.ValueType.GetTypes())
+            {
+                string variableName = "s_" + Helpers.GetVariableName(variableType, _variablesCount++);
+
+                ExpressionSyntax rhs = Helpers.GetLiteralExpression(variableType);
+                CurrentScope.AddLocal(variableType, variableName);
+
+                fields.Add(FieldDeclaration(Helpers.GetVariableDeclaration(variableType, variableName, rhs))
+                    .WithModifiers(TokenList(Token(SyntaxKind.StaticKeyword))));
+            }
+
+            // TODO-TEMP initialize one variable of each struct type
+            foreach (Tree.ValueType structType in CurrentScope.AllStructTypes)
+            {
+                string variableName = "s_" + Helpers.GetVariableName(structType, _variablesCount++);
+
+                ExpressionSyntax rhs = Helpers.GetObjectCreationExpression(structType.TypeName);
+                CurrentScope.AddLocal(structType, variableName);
+
+                // Add all the fields to the scope
+                var listOfStructFields = CurrentScope.GetStructFields(structType);
+                foreach (var structField in listOfStructFields)
+                {
+                    CurrentScope.AddLocal(structField.FieldType, $"{variableName}.{structField.FieldName}");
+                }
+
+                fields.Add(FieldDeclaration(Helpers.GetVariableDeclaration(structType, variableName, rhs))
+                    .WithModifiers(TokenList(Token(SyntaxKind.StaticKeyword))));
+            }
+
+            //TODO: Define some more constants
+            fields.Add(
+                FieldDeclaration(
+                    Helpers.GetVariableDeclaration(
+                        Tree.ValueType.ForPrimitive(Primitive.Int),
+                        Constants.LoopInvariantName,
+                        LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(10)))))
+                .WithModifiers(TokenList(Token(SyntaxKind.StaticKeyword))));
+
+            return fields;
         }
     }
 }

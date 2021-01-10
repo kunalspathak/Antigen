@@ -57,6 +57,14 @@ namespace Antigen
         }
 
         /// <summary>
+        ///     Register the method in enclosing class.
+        /// </summary>
+        protected void RegisterMethod(MethodSignature methodSignature)
+        {
+            _testClass.RegisterMethod(methodSignature);
+        }
+
+        /// <summary>
         ///     Creates leaf method that does not take parameters and has a single return statement.
         /// </summary>
         protected TestMethod(TestClass enclosingClass, string methodName, int stmtCount)
@@ -94,20 +102,31 @@ namespace Antigen
             // TODO-TEMP initialize one variable of each type
             foreach (Tree.ValueType variableType in Tree.ValueType.GetTypes())
             {
+                //TODO-config: Only declare again 20% of variables
+                if (PRNG.Decide(0.8))
+                {
+                    continue;
+                }
+
                 string variableName = Helpers.GetVariableName(variableType, _variablesCount++);
 
                 ExpressionSyntax rhs = ExprHelper(ExprKind.LiteralExpression, variableType, 0);
                 CurrentScope.AddLocal(variableType, variableName);
 
-                methodBody.Add(LocalDeclarationStatement(Helpers.GetVariableDeclaration(variableType, variableName, rhs)));
+                methodBody.Add(Annotate(LocalDeclarationStatement(Helpers.GetVariableDeclaration(variableType, variableName, rhs)), "var-init"));
             }
 
             // TODO-TEMP initialize one variable of each struct type
             foreach (Tree.ValueType structType in CurrentScope.AllStructTypes)
             {
+                //TODO-config: Only declare again 20% of variables
+                if (PRNG.Decide(0.8))
+                {
+                    continue;
+                }
+
                 string variableName = Helpers.GetVariableName(structType, _variablesCount++);
 
-                ExpressionSyntax rhs = Annotate(Helpers.GetObjectCreationExpression(structType.TypeName), "struct-init");
                 CurrentScope.AddLocal(structType, variableName);
 
                 // Add all the fields to the scope
@@ -117,16 +136,10 @@ namespace Antigen
                     CurrentScope.AddLocal(structField.FieldType, $"{variableName}.{structField.FieldName}");
                 }
 
-                methodBody.Add(LocalDeclarationStatement(Helpers.GetVariableDeclaration(structType, variableName, rhs)));
+                methodBody.Add(Annotate(LocalDeclarationStatement(
+                    Helpers.GetVariableDeclaration(structType, variableName,
+                    Helpers.GetObjectCreationExpression(structType.TypeName))), "struct-init"));
             }
-
-            //TODO: Define some more constants
-            methodBody.Add(
-                LocalDeclarationStatement(
-                    Helpers.GetVariableDeclaration(
-                        Tree.ValueType.ForPrimitive(Primitive.Int),
-                        Constants.LoopInvariantName,
-                        LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(10))))));
 
             // TODO-TEMP initialize out and ref method parameters
             var paramsToInitialize = MethodSignature.Parameters.Where(p => p.PassingWay == ParamValuePassing.Out);
@@ -155,6 +168,12 @@ namespace Antigen
 
                     methodBody.Add(Annotate(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, lhs, rhs)), "MethodCall-Assign"));
                 }
+
+                // print all static variables
+                foreach (string variableName in _testClass.ClassScope.AllVariables)
+                {
+                    methodBody.Add(ParseStatement($"Console.WriteLine(\"{variableName}= \" + {variableName});"));
+                }
             }
 
             // If only statement in method is a return statement,
@@ -173,7 +192,7 @@ namespace Antigen
 
             PopScope();
 
-            _testClass.RegisterMethod(MethodSignature);
+            RegisterMethod(MethodSignature);
 
             // Wrap everything in unchecked so we do not see overflow compilation errors
             return methodDeclaration.WithBody(Block(CheckedStatement(SyntaxKind.UncheckedStatement, Block(methodBody))));
@@ -793,12 +812,6 @@ namespace Antigen
         {
             return $"{Enum.GetName(typeof(ParamValuePassing), PassingWay)} {ParamType} {ParamName}";
         }
-
-        //public MethodParam(Tree.ValueType paramType, ParamValuePassing passingWay)
-        //{
-        //    ParamType = paramType;
-        //    PassingWay = passi
-        //}
     }
 
     public enum ParamValuePassing
@@ -812,29 +825,49 @@ namespace Antigen
 
     public class TestLeafMethod : TestMethod
     {
-        private Tree.ValueType ReturnType;
+        private Tree.ValueType _returnType;
         public TestLeafMethod(TestClass enclosingClass, string methodName, Tree.ValueType returnType)
             : base(enclosingClass, methodName, 0)
         {
-            ReturnType = returnType;
+            _returnType = returnType;
         }
 
         protected override MethodDeclarationSyntax GenerateMethodSignature()
         {
-            MethodSignature = new MethodSignature(Name, isLeaf: true);
-            MethodSignature.Parameters = new List<MethodParam>();
-            MethodSignature.ReturnType = ReturnType;
+            MethodSignature = new MethodSignature(Name, isLeaf: true)
+            {
+                Parameters = new List<MethodParam>(),
+                ReturnType = _returnType
+            };
 
-            return MethodDeclaration(Helpers.GetTypeSyntax(ReturnType), Name)
+            var methodDecl = MethodDeclaration(Helpers.GetTypeSyntax(_returnType), Name)
                 .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
+
+            //TODO-config: 50% of time, add attribute of NoInline
+            if (PRNG.Decide(0.5))
+            {
+                methodDecl = methodDecl.WithAttributeLists(Helpers.NoInlineAttr);
+            }
+
+            return methodDecl;
         }
 
         public override MethodDeclarationSyntax Generate()
         {
             GetASTUtils().EnterLeafMethod();
-            var result = base.Generate();
+
+            // return statement
+            MethodDeclarationSyntax methodDeclaration = GenerateMethodSignature();
+            IList<StatementSyntax> methodBody = new List<StatementSyntax>();
+
+            methodBody.Add(StatementHelper(StmtKind.ReturnStatement, 0));
+
+            RegisterMethod(MethodSignature);
+
+            // Wrap everything in unchecked so we do not see overflow compilation errors
+            var leafMethod = methodDeclaration.WithBody(Block(CheckedStatement(SyntaxKind.UncheckedStatement, Block(methodBody))));
             GetASTUtils().LeaveLeafMethod();
-            return result;
+            return leafMethod;
         }
     }
 }

@@ -12,6 +12,6 @@ namespace Antigen
 {
     public static class Constants
     {
-        public static string LoopInvariantName = "loopInvariant";
+        public static string LoopInvariantName = "s_loopInvariant";
     }
 }

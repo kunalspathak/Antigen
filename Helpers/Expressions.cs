@@ -1,4 +1,6 @@
 ﻿using Antigen.Tree;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
@@ -35,5 +37,20 @@ namespace Antigen
 
             return parenExpr;
         }
+
+        public static SyntaxList<AttributeListSyntax> NoInlineAttr =>
+            SingletonList<AttributeListSyntax>(
+                AttributeList(
+                    SingletonSeparatedList<AttributeSyntax>(
+                        Attribute(
+                            IdentifierName("MethodImpl"))
+                        .WithArgumentList(
+                            AttributeArgumentList(
+                                SingletonSeparatedList<AttributeArgumentSyntax>(
+                                    AttributeArgument(
+                                        MemberAccessExpression(
+                                            SyntaxKind.SimpleMemberAccessExpression,
+                                            IdentifierName("MethodImplOptions"),
+                                            IdentifierName("NoInlining")))))))));
     }
 }
