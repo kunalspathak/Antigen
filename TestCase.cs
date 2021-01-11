@@ -40,7 +40,6 @@ namespace Antigen
         #region PreComputed roslyn syntax tress
         #endregion
 
-        private const string MainMethodName = "Main";
         private List<string> knownDiffs = new List<string>()
         {
             "System.OverflowException: Value was either too large or too small for a Decimal.",
@@ -54,6 +53,7 @@ namespace Antigen
         //private List<SyntaxNode> propertiesList;
         //private List<SyntaxNode> fieldsList;
 
+        private static TestRunner TestRunner;
         private static RunOptions RunOptions;
         public string Name { get; private set; }
         public AstUtils AstUtils { get; private set; }
@@ -63,6 +63,7 @@ namespace Antigen
             RunOptions = runOptions;
             AstUtils = new AstUtils(this, new ConfigOptions(), null);
             Name = "TestClass" + testId;
+            TestRunner = TestRunner.GetInstance(RunOptions);
         }
 
         public void Generate()
@@ -97,8 +98,19 @@ namespace Antigen
 
         public TestResult Verify()
         {
+#if DEBUG
+            SyntaxTree syntaxTree = testCaseRoot.SyntaxTree;
+            SyntaxTree expectedTree = CSharpSyntaxTree.ParseText(testCaseRoot.ToFullString());
+            FindTreeDiff(expectedTree.GetRoot(), syntaxTree.GetRoot());
+#else
+            // In release, make sure that we didn't end up generating wrong syntax tree,
+            // hence parse the text to reconstruct the tree.
+
+            SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(testCaseRoot.ToFullString());
+#endif
+
             StringBuilder fileContents = new StringBuilder();
-            CompileResult compileResult = Compile();
+            CompileResult compileResult = TestRunner.Compile(syntaxTree, Name);
             if (compileResult.AssemblyFullPath == null)
             {
                 fileContents.AppendLine(testCaseRoot.ToFullString());
@@ -121,7 +133,7 @@ namespace Antigen
             //    File.WriteAllText(workingFile, testCaseRoot.ToFullString());
             //}
 
-            string baseline = Execute(compileResult, Rsln.BaselineEnvVars);
+            string baseline = TestRunner.Execute(compileResult, Rsln.BaselineEnvVars);
 
             var selectedVars = Rsln.TestEnvVars[PRNG.Next(Rsln.TestEnvVars.Count)].Vars;
             var testEnvVariables = new Dictionary<string, string>();
@@ -135,7 +147,7 @@ namespace Antigen
                 testEnvVariables[selectedVar.Key] = selectedVar.Value;
             }
 
-            string test = Execute(compileResult, testEnvVariables);
+            string test = TestRunner.Execute(compileResult, testEnvVariables);
 
             if (baseline == test)
             {
@@ -251,155 +263,5 @@ namespace Antigen
                 return;
             }
         }
-
-        /// <summary>
-        ///     Compiles the generated <see cref="testCaseRoot"/>.
-        /// </summary>
-        /// <returns></returns>
-        private CompileResult Compile()
-        {
-#if DEBUG
-            SyntaxTree syntaxTree = testCaseRoot.SyntaxTree;
-            SyntaxTree expectedTree = CSharpSyntaxTree.ParseText(testCaseRoot.ToFullString());
-            FindTreeDiff(expectedTree.GetRoot(), syntaxTree.GetRoot());
-#else
-            // In release, make sure that we didn't end up generating wrong syntax tree,
-            // hence parse the text to reconstruct the tree.
-
-            SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(testCaseRoot.ToFullString());
-#endif
-
-            string corelibPath = typeof(object).Assembly.Location;
-            string otherAssembliesPath = Path.GetDirectoryName(corelibPath);
-            MetadataReference systemPrivateCorelib = MetadataReference.CreateFromFile(corelibPath);
-            MetadataReference systemConsole = MetadataReference.CreateFromFile(Path.Combine(otherAssembliesPath, "System.Console.dll"));
-            MetadataReference systemRuntime = MetadataReference.CreateFromFile(Path.Combine(otherAssembliesPath, "System.Runtime.dll"));
-            MetadataReference codeAnalysis = MetadataReference.CreateFromFile(typeof(SyntaxTree).Assembly.Location);
-            MetadataReference csharpCodeAnalysis = MetadataReference.CreateFromFile(typeof(CSharpSyntaxTree).Assembly.Location);
-
-            MetadataReference[] references = { systemPrivateCorelib, systemConsole, systemRuntime, codeAnalysis, csharpCodeAnalysis };
-
-            var cc = CSharpCompilation.Create($"{Name}.exe", new SyntaxTree[] { syntaxTree }, references, Rsln.CompileOptions);
-            string assemblyFullPath = Path.Combine(RunOptions.OutputDirectory, $"{Name}.exe");
-
-            using (var ms = new MemoryStream())
-            {
-                EmitResult result;
-                try
-                {
-                    result = cc.Emit(ms);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex.Message);
-                    return new CompileResult(ex, ImmutableArray<Diagnostic>.Empty, null);
-                }
-
-                if (!result.Success)
-                    return new CompileResult(null, result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToImmutableArray(), null);
-
-                ms.Seek(0, SeekOrigin.Begin);
-                File.WriteAllBytes(assemblyFullPath, ms.ToArray());
-
-                return new CompileResult(null, ImmutableArray<Diagnostic>.Empty, assemblyFullPath);
-            }
-        }
-
-        /// <summary>
-        ///     Execute the compiled assembly in an environment that has <paramref name="environmentVariables"/>.
-        /// </summary>
-        /// <returns></returns>
-        private string Execute(CompileResult compileResult, Dictionary<string, string> environmentVariables)
-        {
-            Debug.Assert(compileResult.AssemblyFullPath != null);
-            if (false)
-            {
-                //TODO: if execute in debug vs. release dotnet.exe
-                Assembly asm = Assembly.LoadFrom(compileResult.AssemblyFullPath);
-                Type testClassType = asm.GetType(Name);
-                MethodInfo mainMethodInfo = testClassType.GetMethod(MainMethodName);
-                Action<string[]> entryPoint = (Action<string[]>)Delegate.CreateDelegate(typeof(Action<string[]>), mainMethodInfo);
-
-                Exception ex = null;
-                TextWriter origOut = Console.Out;
-
-                MemoryStream ms = new MemoryStream();
-                StreamWriter sw = new StreamWriter(ms, Encoding.UTF8);
-
-                try
-                {
-                    Console.SetOut(sw);
-                    entryPoint(null);
-                }
-                catch (Exception caughtEx)
-                {
-                    ex = caughtEx;
-                    Console.WriteLine(caughtEx);
-                }
-                finally
-                {
-                    Console.SetOut(origOut);
-                    sw.Close();
-                }
-
-                return Encoding.UTF8.GetString(ms.ToArray());
-            }
-            else
-            {
-                ProcessStartInfo info = new ProcessStartInfo
-                {
-                    FileName = RunOptions.CoreRun,
-                    Arguments = compileResult.AssemblyFullPath,
-                    WorkingDirectory = Environment.CurrentDirectory,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    RedirectStandardInput = true,
-                    UseShellExecute = false,
-                };
-
-                foreach (var envVar in environmentVariables)
-                {
-                    info.EnvironmentVariables[envVar.Key] = envVar.Value;
-                }
-
-                using (Process proc = Process.Start(info))
-                {
-                    string results = proc.StandardOutput.ReadToEnd();
-                    results += proc.StandardError.ReadToEnd();
-                    proc.WaitForExit(1 * 60 * 1000); // 1 minute
-
-                    return results;
-                }
-            }
-        }
-    }
-
-    internal class CompileResult
-    {
-        public CompileResult(Exception roslynException, ImmutableArray<Diagnostic> diagnostics, string assemblyFullPath)
-        {
-            RoslynException = roslynException;
-            List<Diagnostic> errors = new List<Diagnostic>();
-            List<Diagnostic> warnings = new List<Diagnostic>();
-            foreach (var diag in diagnostics)
-            {
-                if (diag.Severity == DiagnosticSeverity.Error)
-                {
-                    errors.Add(diag);
-                }
-                else if (diag.Severity == DiagnosticSeverity.Warning)
-                {
-                    errors.Add(diag);
-                }
-            }
-            CompileErrors = errors.ToImmutableArray();
-            CompileWarnings = warnings.ToImmutableArray();
-            AssemblyFullPath = assemblyFullPath;
-        }
-
-        public Exception RoslynException { get; }
-        public ImmutableArray<Diagnostic> CompileErrors { get; }
-        public ImmutableArray<Diagnostic> CompileWarnings { get; }
-        public string AssemblyFullPath { get; }
     }
 }

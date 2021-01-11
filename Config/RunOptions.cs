@@ -23,5 +23,7 @@ namespace Antigen.Config
 
         // Full path to CoreRun.exe
         public string CoreRun = null;
+
+        public readonly string MainMethodName = "Main";
     }
 }

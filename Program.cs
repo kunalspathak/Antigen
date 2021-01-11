@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using Antigen.Config;
+using Antigen.Trimmer;
 
 namespace Antigen
 {
     class Program
     {
-
         public static RunOptions RunOptions = new RunOptions();
 
         static void Main(string[] args)
@@ -15,6 +15,15 @@ namespace Antigen
             PRNG.Initialize(RunOptions.Seed);
 
             RunOptions.CoreRun = args[0];
+
+            // trimmer
+            if (args.Length > 1)
+            {
+                string testCaseToTrim = args[1];
+                TestTrimmer testTrimmer = new TestTrimmer(testCaseToTrim, RunOptions);
+                testTrimmer.Trim();
+                return;
+            }
 
             int testId = 1;
             Dictionary<TestResult, int> stats = new Dictionary<TestResult, int>()
