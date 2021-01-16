@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -40,6 +41,17 @@ namespace Antigen.Trimmer.Rewriters
         public void UpdateId(int newId)
         {
             id = newId;
+        }
+
+        public override SyntaxTrivia VisitTrivia(SyntaxTrivia trivia)
+        {
+            if (trivia.Kind() == SyntaxKind.SingleLineCommentTrivia ||
+                trivia.Kind() == SyntaxKind.MultiLineCommentTrivia)
+            {
+                return default(SyntaxTrivia);
+            }
+
+            return base.VisitTrivia(trivia);
         }
     }
 }

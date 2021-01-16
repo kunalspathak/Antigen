@@ -4,24 +4,24 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Antigen.Trimmer.Rewriters
 {
-    public class IfElseStmtRemoval : SyntaxRewriter
+    public class IdentityNameExprRemoval : SyntaxRewriter
     {
-        public override SyntaxNode VisitIfStatement(IfStatementSyntax node)
+        public override SyntaxNode VisitIdentifierName(IdentifierNameSyntax node)
         {
-            if (node.ToFullString().Contains("loopInvariant"))
+            if (currId++ == id || removeAll)
             {
-                // do not count them
-                return base.VisitIfStatement(node);
+                return null;
             }
 
-            return base.VisitIfStatement(node);
+            return base.VisitIdentifierName(node);
         }
     }
 }

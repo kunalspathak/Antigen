@@ -14,3 +14,4 @@ C# test generator and RyuJIT tester - Named after Covid-19 antigen test.
 10. Assignment expression
 11. Initialize out, return statement
 12. Method call
+13. Trimmer: works for statement

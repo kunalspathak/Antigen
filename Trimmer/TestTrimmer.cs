@@ -4,12 +4,16 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Antigen.Config;
 using Antigen.Trimmer.Rewriters;
+using Antigen.Trimmer.Rewriters.Expressions;
+using Antigen.Trimmer.Rewriters.Statements;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -30,99 +34,122 @@ namespace Antigen.Trimmer
 
         public void Trim()
         {
-            var treeRoot = CSharpSyntaxTree.ParseText(File.ReadAllText(_testFileToTrim)).GetRoot();
+            var trimTask = Task.Run(TrimTree);
+            trimTask.Wait(TimeSpan.FromMinutes(20));
+        }
 
+        /// <summary>
+        /// Trim the test case.
+        /// </summary>
+        private void TrimTree()
+        {
+            SyntaxNode recentTree = CSharpSyntaxTree.ParseText(File.ReadAllText(_testFileToTrim)).GetRoot();
+            bool trimmedAtleastOne;
+            int iterId = 1;
 
-            //TODO: populate baseline and test envvars:
-            Dictionary<string, string> baselineEnvVars = Rsln.BaselineEnvVars;
-            Dictionary<string, string> testEnvVars = new Dictionary<string, string>()
+            do
             {
-                {"COMPlus_JitStress", "2" },
-                {"COMPlus_JitStressRegs", "0x10000" },
-                {"COMPlus_TieredCompilation", "0" }
-            };
-            TestResult reproTestResult = TestResult.Fail;
+                trimmedAtleastOne = false;
 
-            //IfElseStmtRemoval ifElse = new IfElseStmtRemoval();
-            //ifElse.UpdateId(0);
-            //var newRoot = ifElse.Visit(treeRoot);
-            //File.WriteAllText(@"E:\temp\antigen-trimmer\1.trim.g.cs", newRoot.ToFullString());
-
-            List<SyntaxRewriter> trimmerList = new List<SyntaxRewriter>()
-            {
-                new DoWhileStmtRemoval(),
-                new ForStmtRemoval(),
-                new WhileStmtRemoval(),
-                new IfElseStmtRemoval(),
-                new AssignStmtRemoval(),
-                new LocalDeclStmtRemoval(),
-            };
-
-            // pick category
-            SyntaxNode recentTree = treeRoot;
-            int iterId = 0;
-            foreach (var trimmer in trimmerList)
-            {
-                SyntaxNode treeBeforeTrim = recentTree;
-
-                // remove all
-                Console.Write($"{iterId}. {trimmer.GetType()}");
-
-                trimmer.RemoveAll();
-                SyntaxNode treeAfterTrim = trimmer.Visit(recentTree);
-
-                //repros = Verify(treeAfterTrim, baselineEnvVars, testEnvVars) == reproTestResult;
-
-                // compile, execute and repro
-                if (Verify($"trim{iterId++}", treeAfterTrim, baselineEnvVars, testEnvVars) == reproTestResult)
+                //TODO: populate baseline and test envvars:
+                Dictionary<string, string> baselineEnvVars = Rsln.BaselineEnvVars;
+                Dictionary<string, string> testEnvVars = new Dictionary<string, string>()
                 {
-                    // move to next trimmer
-                    recentTree = treeAfterTrim;
-                    Console.WriteLine(" - Success");
-                    continue;
-                }
-                else
+                    {"COMPlus_JitStress", "2" },
+                    {"COMPlus_JitStressRegs", "0x80" },
+                    {"COMPlus_TieredCompilation", "0" }
+                };
+                TestResult reproTestResult = TestResult.Fail;
+
+                List<SyntaxRewriter> trimmerList = new List<SyntaxRewriter>()
                 {
-                    recentTree = treeBeforeTrim;
-                    Console.WriteLine(" - Revert");
-                }
+                    // From high to low
 
-                int noOfNodes = trimmer.TotalVisited;
+                    // statements/blocks
+                    new MethodDeclStmtRemoval(),
+                    new BlockRemoval(),
+                    new DoWhileStmtRemoval(),
+                    new ForStmtRemoval(),
+                    new WhileStmtRemoval(),
+                    new IfElseStmtRemoval(),
+                    new AssignStmtRemoval(),
+                    new LocalDeclStmtRemoval(),
 
-                trimmer.Reset();
-                trimmer.RemoveOneByOne();
+                    // expressions
+                    //new ParenExprRemoval(),
+                    //new BinaryExpRemoval(),
+                    //new MemberAccessExprRemoval(),
+                    //new LiteralExprRemoval(),
+                    //new IdentityNameExprRemoval(),
+                    //new CastExprRemoval(),
+                };
 
-                int nodeId = 0;
-                while (nodeId < noOfNodes)
+                // pick category
+                foreach (var trimmer in trimmerList)
                 {
-                    Console.Write($"{iterId}. {trimmer.GetType()}, nodeId = {nodeId}");
-                    trimmer.Reset();
-                    trimmer.UpdateId(nodeId);
-                    treeAfterTrim = trimmer.Visit(recentTree);
+                    SyntaxNode treeBeforeTrim = recentTree;
+
+                    // remove all
+                    Console.Write($"{iterId}. {trimmer.GetType()}");
+
+                    trimmer.RemoveAll();
+                    SyntaxNode treeAfterTrim = trimmer.Visit(recentTree);
 
                     // compile, execute and repro
-                    if (Verify($"trim{iterId++}", treeAfterTrim, baselineEnvVars, testEnvVars) == reproTestResult)
+                    if (trimmer.TotalVisited > 0 && Verify($"trim{iterId++}", treeAfterTrim, baselineEnvVars, testEnvVars) == reproTestResult)
                     {
                         // move to next trimmer
                         recentTree = treeAfterTrim;
-
-                        // We have just removed a node, so decrease nodes count
-                        noOfNodes--;
-
                         Console.WriteLine(" - Success");
-
+                        trimmedAtleastOne = true;
+                        continue;
                     }
                     else
                     {
                         recentTree = treeBeforeTrim;
-
-                        // Go to next nodeId
-                        nodeId++;
-
                         Console.WriteLine(" - Revert");
                     }
+
+                    int noOfNodes = trimmer.TotalVisited;
+
+                    trimmer.Reset();
+                    trimmer.RemoveOneByOne();
+
+                    int nodeId = 0;
+                    int localIterId = 0;
+                    while (nodeId < noOfNodes)
+                    {
+                        Console.Write($"{iterId}. {trimmer.GetType()}, localIterId = {localIterId++}");
+                        trimmer.Reset();
+                        trimmer.UpdateId(nodeId);
+
+                        treeBeforeTrim = recentTree;
+                        treeAfterTrim = trimmer.Visit(recentTree);
+
+                        // compile, execute and repro
+                        if (Verify($"trim{iterId++}", treeAfterTrim, baselineEnvVars, testEnvVars) == reproTestResult)
+                        {
+                            // move to next trimmer
+                            recentTree = treeAfterTrim;
+
+                            // We have just removed a node, so decrease nodes count
+                            noOfNodes--;
+
+                            Console.WriteLine(" - Success");
+                            trimmedAtleastOne = true;
+                        }
+                        else
+                        {
+                            recentTree = treeBeforeTrim;
+
+                            // Go to next nodeId
+                            nodeId++;
+
+                            Console.WriteLine(" - Revert");
+                        }
+                    }
                 }
-            }
+            } while (trimmedAtleastOne);
         }
 
         private List<string> knownDiffs = new List<string>()
@@ -170,7 +197,9 @@ namespace Antigen.Trimmer
                 }
             }
 
-            fileContents.AppendLine(programRootNode.ToFullString());
+            string programContents = programRootNode.ToFullString();
+            programContents = Regex.Replace(programContents, @"[\r\n]*$", string.Empty, RegexOptions.Multiline);
+            fileContents.AppendLine(programContents);
             fileContents.AppendLine("/*");
             fileContents.AppendLine($"Got output diff:");
 
@@ -197,8 +226,11 @@ namespace Antigen.Trimmer
             fileContents.AppendLine(test);
             fileContents.AppendLine("*/");
 
+            //TODO: Only if something was visited
+
             string failedFileName = $"{iterId}-lkg";
-            string failFile = Path.Combine(RunOptions.OutputDirectory, $"{failedFileName}.g.cs");
+            string failFile = Path.Combine(@"E:\temp\antigen-trimmer\test2\round3", $"{ failedFileName}.g.cs");
+            //string failFile = Path.Combine(RunOptions.OutputDirectory, $"{failedFileName}.g.cs");
             File.WriteAllText(failFile, fileContents.ToString());
 
             File.Move(compileResult.AssemblyFullPath, Path.Combine(RunOptions.OutputDirectory, $"{failedFileName}.exe"), overwrite: true);
