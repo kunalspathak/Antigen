@@ -18,7 +18,9 @@ namespace Antigen.Trimmer.Rewriters.Expressions
         {
             if (currId++ == id || removeAll)
             {
-                return null;
+                isAnyNodeVisited = true;
+
+                return Visit(node.ChildNodes().ToList()[0]);
             }
 
             return base.VisitParenthesizedExpression(node);

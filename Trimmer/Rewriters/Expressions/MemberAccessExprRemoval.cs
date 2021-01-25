@@ -18,6 +18,8 @@ namespace Antigen.Trimmer.Rewriters.Expressions
         {
             if (currId++ == id || removeAll)
             {
+                isAnyNodeVisited = true;
+
                 return null;
             }
 

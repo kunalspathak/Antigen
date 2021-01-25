@@ -8,19 +8,35 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 
 namespace Antigen.Trimmer.Rewriters.Expressions
 {
+
     public class BinaryExpRemoval : SyntaxRewriter
     {
+        private static HashSet<string> s_trimmedExpr = new HashSet<string>();
+
+        //TODO: Try replacing LHS <op> RHS, just LHS, just RHS.
         public override SyntaxNode VisitBinaryExpression(BinaryExpressionSyntax node)
         {
+            if (s_trimmedExpr.Contains(node.ToFullString()))
+            {
+                return node;
+            }
+
             if (currId++ == id || removeAll)
             {
-                return ParseExpression("1+2").SyntaxTree.GetRoot();
+                isAnyNodeVisited = true;
+
+                var left = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(15));
+                var right = LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(4));
+                var trimmedExpr = BinaryExpression(node.Kind(), left, right);
+                s_trimmedExpr.Add(trimmedExpr.ToFullString());
+                return trimmedExpr;
             }
 
             return base.VisitBinaryExpression(node);

@@ -16,7 +16,8 @@ namespace Antigen.Trimmer.Rewriters
     {
         protected int id = -1;
         protected int currId = 0;
-        protected bool removeAll = true;
+        protected bool removeAll = false;
+        protected bool isAnyNodeVisited = false;
 
         public void RemoveAll()
         {
@@ -33,8 +34,11 @@ namespace Antigen.Trimmer.Rewriters
         /// </summary>
         public int TotalVisited => currId;
 
+        public bool IsAnyNodeVisited => isAnyNodeVisited;
+
         public void Reset()
         {
+            isAnyNodeVisited = false;
             currId = 0;
         }
 

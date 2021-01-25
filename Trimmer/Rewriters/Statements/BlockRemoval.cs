@@ -17,8 +17,15 @@ namespace Antigen.Trimmer.Rewriters.Statements
     {
         public override SyntaxNode VisitBlock(BlockSyntax node)
         {
+            if (node.Statements.Count == 0)
+            {
+                return node;
+            }
+
             if (currId++ == id || removeAll)
             {
+                isAnyNodeVisited = true;
+
                 return Block();
             }
 
