@@ -9,6 +9,7 @@
         DoWhileStatement,
         WhileStatement,
         ReturnStatement,
+        TryCatchFinallyStatement,
         //FunctionCallStatement,
     }
 

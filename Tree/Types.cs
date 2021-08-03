@@ -226,6 +226,12 @@ namespace Antigen.Tree
             }
         }
 
+        public static List<Type> AllExceptions =>
+            typeof(Exception).Assembly.GetTypes()
+                .Where(x => x.IsSubclassOf(typeof(Exception)))
+                .Where(n => n.FullName.StartsWith("System.") && n.FullName.LastIndexOf(".") == 6)
+                .ToList();
+
         public override string ToString()
         {
             if (PrimitiveType != Primitive.Struct)

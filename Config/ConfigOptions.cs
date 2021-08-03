@@ -30,6 +30,7 @@ namespace Antigen.Config
         public double ForStatementWeight = 0.4;
         public double DoWhileStatementWeight = 0.2;
         public double WhileStatementWeight = 0.3;
+        public double TryCatchFinallyStatementWeight = 0.4;
 
         // Type weights
         public double BooleanWeight = 1;

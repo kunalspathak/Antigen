@@ -517,6 +517,105 @@ namespace Antigen
                         ExpressionSyntax returnExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(returnType.PrimitiveType), returnType, depth);
                         return Annotate(ReturnStatement(returnExpr), "Return");
                     }
+                case StmtKind.TryCatchFinallyStatement:
+
+                    //TODO-config: Add MaxDepth in config
+                    int catchCounts = PRNG.Next(0, 3);
+
+                    //TODO-config: Add finally weight in config
+                    // If there are no catch, then definitely add finally, otherwise skip it.
+                    bool hasFinally = catchCounts == 0 || PRNG.Decide(0.5);
+                    IList<StatementSyntax> tryBody = new List<StatementSyntax>();
+                    IList<CatchClauseSyntax> catchClauses = new List<CatchClauseSyntax>();
+                    IList<StatementSyntax> finallyBody = new List<StatementSyntax>();
+
+                    Scope tryScope = new Scope(TC, ScopeKind.BracesScope, CurrentScope);
+                    PushScope(tryScope);
+
+                    //TODO-config: Add MaxDepth in config
+                    int tryStmtCount = PRNG.Next(1, s_maxStatements);
+                    for (int i = 0; i < tryStmtCount; i++)
+                    {
+                        StmtKind cur;
+                        //TODO-config: Add MaxDepth in config
+                        if (depth >= 2)
+                        {
+                            cur = StmtKind.VariableDeclaration;
+                        }
+                        else
+                        {
+                            cur = GetASTUtils().GetRandomStatemet();
+                        }
+                        tryBody.Add(StatementHelper(cur, depth + 1));
+                    }
+                    PopScope(); // pop 'try' body scope
+
+                    var allExceptions = Tree.ValueType.AllExceptions;
+                    var caughtExceptions = new List<Type>();
+                    for (int catchId = 0; catchId < catchCounts; catchId++)
+                    {
+                        var exceptionToCatch = allExceptions[PRNG.Next(allExceptions.Count)];
+                        allExceptions.Remove(exceptionToCatch);
+
+                        // If we already generated a catch-clause of superclass, skip remaining catch clauses.
+                        if (caughtExceptions.Any(x => exceptionToCatch.IsSubclassOf(x)))
+                        {
+                            break;
+                        }
+                        caughtExceptions.Add(exceptionToCatch);
+
+                        //TODO-config: Add MaxDepth in config
+                        int catchStmtCount = PRNG.Next(1, s_maxStatements / 2);
+                        IList<StatementSyntax> catchBody = new List<StatementSyntax>();
+
+                        Scope catchScope = new Scope(TC, ScopeKind.BracesScope, CurrentScope);
+                        PushScope(catchScope);
+
+                        //TODO-config: Add MaxDepth in config
+                        for (int i = 0; i < catchStmtCount; i++)
+                        {
+                            StmtKind cur;
+                            //TODO-config: Add MaxDepth in config
+                            if (depth >= 2)
+                            {
+                                cur = StmtKind.VariableDeclaration;
+                            }
+                            else
+                            {
+                                cur = GetASTUtils().GetRandomStatemet();
+                            }
+                            catchBody.Add(StatementHelper(cur, depth + 1));
+                        }
+                        PopScope(); // pop 'catch' body scope
+
+                        catchClauses.Add(CatchClause(CatchDeclaration(IdentifierName(exceptionToCatch.Name)), null, Block(catchBody)));
+                    }
+
+                    if (hasFinally)
+                    {
+                        Scope finallyScope = new Scope(TC, ScopeKind.BracesScope, CurrentScope);
+                        PushScope(finallyScope);
+
+                        //TODO-config: Add MaxDepth in config
+                        int finallyStmtCount = PRNG.Next(1, s_maxStatements);
+                        for (int i = 0; i < finallyStmtCount; i++)
+                        {
+                            StmtKind cur;
+                            //TODO-config: Add MaxDepth in config
+                            if (depth >= 2)
+                            {
+                                cur = StmtKind.VariableDeclaration;
+                            }
+                            else
+                            {
+                                cur = GetASTUtils().GetRandomStatemet();
+                            }
+                            finallyBody.Add(StatementHelper(cur, depth + 1));
+                        }
+                        PopScope(); // pop 'finally' body scope
+                    }
+
+                    return Annotate(TryStatement(Block(tryBody), new SyntaxList<CatchClauseSyntax>(catchClauses), FinallyClause(Block(finallyBody))), "TryCatchFinally");
                 default:
                     Debug.Assert(false, String.Format("Hit unknown statement type {0}", Enum.GetName(typeof(StmtKind), stmtKind)));
                     break;

@@ -69,6 +69,7 @@ namespace Antigen.Trimmer
 
                 // statements/blocks
                 new MethodDeclStmtRemoval(),
+                new StructDeclStmtRemoval(),
                 new BlockRemoval(),
                 new DoWhileStmtRemoval(),
                 new ForStmtRemoval(),
@@ -319,7 +320,7 @@ namespace Antigen.Trimmer
             //TODO: Only if something was visited
 
             string failedFileName = $"{iterId}-lkg";
-            string failFile = Path.Combine(@"E:\temp\antigen-trimmer\test2\round8", $"{ failedFileName}.g.cs");
+            string failFile = Path.Combine(@"E:\temp\antigen-trimmer\test2\round9", $"{ failedFileName}.g.cs");
             //string failFile = Path.Combine(RunOptions.OutputDirectory, $"{failedFileName}.g.cs");
             File.WriteAllText(failFile, fileContents.ToString());
 

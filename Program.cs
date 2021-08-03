@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using Antigen.Config;
 using Antigen.Trimmer;
 
@@ -12,43 +13,59 @@ namespace Antigen
 
         static void Main(string[] args)
         {
-            PRNG.Initialize(RunOptions.Seed);
-
-            RunOptions.CoreRun = args[0];
-
-            // trimmer
-            if (args.Length > 1)
+            try
             {
-                string testCaseToTrim = args[1];
-                TestTrimmer testTrimmer = new TestTrimmer(testCaseToTrim, RunOptions);
-                testTrimmer.Trim();
-                return;
-            }
+                PRNG.Initialize(RunOptions.Seed);
 
-            int testId = 1;
-            Dictionary<TestResult, int> stats = new Dictionary<TestResult, int>()
+                RunOptions.CoreRun = args[0];
+
+                // trimmer
+                if (args.Length > 1)
+                {
+                    string testCaseToTrim = args[1];
+                    TestTrimmer testTrimmer = new TestTrimmer(testCaseToTrim, RunOptions);
+                    testTrimmer.Trim();
+                    return;
+                }
+
+                int testId = 1;
+                Dictionary<TestResult, int> stats = new Dictionary<TestResult, int>()
             {
                 { TestResult.CompileError, 0 },
                 { TestResult.Fail, 0 },
                 {TestResult.OutputMismatch, 0 },
                 {TestResult.Pass, 0 },
             };
-            while (true)
-            {
-                TestCase testCase = new TestCase(testId, RunOptions);
-                testCase.Generate();
-                TestResult result = testCase.Verify();
-                stats[result]++;
-                Console.Write($"Test# {testId} - {Enum.GetName(typeof(TestResult), result)}. ");
-                if ((testId % 100) == 0)
+                while (true)
                 {
-                    foreach (var st in stats)
+                    TestCase testCase = new TestCase(testId, RunOptions);
+                    testCase.Generate();
+                    TestResult result = testCase.Verify();
+                    stats[result]++;
+                    Console.Write($"Test# {testId} - {Enum.GetName(typeof(TestResult), result)}. ");
+                    if ((testId % 100) == 0)
                     {
-                        Console.Write($"{Enum.GetName(typeof(TestResult), st.Key)}={st.Value}, ");
+                        foreach (var st in stats)
+                        {
+                            Console.Write($"{Enum.GetName(typeof(TestResult), st.Key)}={st.Value}, ");
+                        }
                     }
+                    Console.WriteLine();
+                    testId++;
+                    GC.Collect();
                 }
-                Console.WriteLine();
-                testId++;
+            } catch (OutOfMemoryException oom)
+            {
+                Console.WriteLine(oom.Message);
+                var myProcess = System.Diagnostics.Process.GetCurrentProcess();
+                Console.WriteLine($"  Physical memory usage     : {myProcess.WorkingSet64}");
+                Console.WriteLine($"  Base priority             : {myProcess.BasePriority}");
+                Console.WriteLine($"  Priority class            : {myProcess.PriorityClass}");
+                Console.WriteLine($"  User processor time       : {myProcess.UserProcessorTime}");
+                Console.WriteLine($"  Privileged processor time : {myProcess.PrivilegedProcessorTime}");
+                Console.WriteLine($"  Total processor time      : {myProcess.TotalProcessorTime}");
+                Console.WriteLine($"  Paged system memory size  : {myProcess.PagedSystemMemorySize64}");
+                Console.WriteLine($"  Paged memory size         : {myProcess.PagedMemorySize64}");
             }
         }
     }

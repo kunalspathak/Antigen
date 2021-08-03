@@ -17,7 +17,7 @@ namespace Antigen
         internal static readonly Dictionary<string, string> BaselineEnvVars = new Dictionary<string, string>()
         {
             { "COMPlus_JITMinOpts", "1" },
-            { "COMPlus_TieredCompilation" , "0" }
+            //{ "COMPlus_TieredCompilation" , "0" }
         };
 
         internal static readonly Dictionary<string, string> CommonTestEnvVars = new Dictionary<string, string>()
@@ -26,10 +26,21 @@ namespace Antigen
             { "COMPlus_TieredCompilation" , "0" }
         };
 
+        // Also other flags like turning off certain feature like FinallyCloning=0, etc.
         // Use other combination from https://github.com/dotnet/runtime/blob/5a6c21cb6285a3c110f0048d9bf657042ea4ca10/src/tests/Common/testenvironment.proj
         // groups / arch: https://github.com/dotnet/runtime/blob/f8a83c898f18e3ebcd7c0ddd2e1773d8a771b346/eng/pipelines/common/templates/runtimes/run-test-job.yml
         internal static readonly List<ComplusVariableGroup> TestEnvVars = new List<ComplusVariableGroup>()
         {
+            //new ComplusVariableGroup("jitstress", new(){
+            //    { "JitStress", "1"},
+            //    { "JitStress", "2"},
+            //}),
+
+            //new ComplusVariableGroup("jitstressregs", new(){
+            //    { "JitStress", "1"},
+            //    { "JitStress", "2"},
+            //}),
+
             new ComplusVariableGroup("jitstress1", new ()
             {
                 {  "COMPlus_JitStress", "1" },
