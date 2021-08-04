@@ -92,7 +92,7 @@ namespace Antigen
             ClassDeclarationSyntax klass = new TestClass(this, Name).Generate();
 
             testCaseRoot = CompilationUnit()
-                            .WithUsings(new SyntaxList<UsingDirectiveSyntax>(usingDirective))
+                            .WithUsings(usingDirective.ToSyntaxList())
                             .WithMembers(new SyntaxList<MemberDeclarationSyntax>(klass)).NormalizeWhitespace();
         }
 

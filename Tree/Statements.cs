@@ -10,6 +10,7 @@
         WhileStatement,
         ReturnStatement,
         TryCatchFinallyStatement,
+        SwitchStatement,
         //FunctionCallStatement,
     }
 

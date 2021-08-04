@@ -52,5 +52,16 @@ namespace Antigen
                                             SyntaxKind.SimpleMemberAccessExpression,
                                             IdentifierName("MethodImplOptions"),
                                             IdentifierName("NoInlining")))))))));
+
+        /// <summary>
+        ///     Converts a <see cref="List{TNode}"/> to <see cref="SyntaxList{TNode}"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="list"></param>
+        /// <returns></returns>
+        public static SyntaxList<T> ToSyntaxList<T>(this IList<T> list) where T : SyntaxNode
+        {
+            return new SyntaxList<T>(list);
+        }
     }
 }

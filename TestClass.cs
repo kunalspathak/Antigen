@@ -105,7 +105,7 @@ namespace Antigen
             PopScope();
 
             return ClassDeclaration(ClassName)
-               .WithMembers(new SyntaxList<MemberDeclarationSyntax>(classMembers))
+               .WithMembers(classMembers.ToSyntaxList())
                .WithModifiers(new SyntaxTokenList(Token(SyntaxKind.PublicKeyword)));
         }
 
@@ -168,7 +168,7 @@ namespace Antigen
                     fieldsMetadata.Add(new StructField(fieldType, fieldName));
                 }
 
-                return (structDeclaration.WithMembers(new SyntaxList<MemberDeclarationSyntax>(fieldsTree)), fieldsMetadata);
+                return (structDeclaration.WithMembers(fieldsTree.ToSyntaxList()), fieldsMetadata);
             }
 
             return structs;
