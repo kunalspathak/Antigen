@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -20,16 +21,60 @@ namespace Antigen.Trimmer
 {
     public class TestTrimmer
     {
-        RunOptions RunOptions;
+        RunOptions _runOptions;
         private string _testFileToTrim;
         private static TestRunner _testRunner;
+        private Dictionary<string, string> _baselineVariables;
+        private Dictionary<string, string> _testVariables;
+        private string _originalTestAssertion;
         static int s_iterId = 1;
+
+        private static readonly Regex s_jitAssertionRegEx = new Regex("Assertion failed '(.*)' in '(.*)' during '(.*)'");
+        private static readonly Regex s_coreclrAssertionRegEx = new Regex(@"Assert failure\(PID \d+ \[0x[0-9a-f]+], Thread: \d+ \[0x[0-9a-f]+]\):(.*)");
 
         public TestTrimmer(string testFileToTrim, RunOptions runOptions)
         {
-            RunOptions = runOptions;
+            if (!File.Exists(testFileToTrim))
+            {
+                throw new Exception($"{testFileToTrim} doesn't exist.");
+            }
+            _runOptions = runOptions;
             _testFileToTrim = testFileToTrim;
-            _testRunner = TestRunner.GetInstance(RunOptions);
+            _testRunner = TestRunner.GetInstance(_runOptions);
+
+            ParseEnvironment();
+        }
+
+        /// <summary>
+        ///     Returns a tuple of Baseline, Test environment variables
+        /// </summary>
+        /// <returns></returns>
+        private void ParseEnvironment()
+        {
+            var fileContents = File.ReadAllText(_testFileToTrim);
+            string[] fileContentLines = fileContents.Split(Environment.NewLine);
+            _originalTestAssertion = ParseAssertionError(fileContents);
+
+            foreach (var line in fileContentLines)
+            {
+                if (line.StartsWith("// BaselineVars: "))
+                {
+                    var baselineContents = line.Replace("// BaselineVars: ", string.Empty);
+                    _baselineVariables = baselineContents.Split("|").ToList().ToDictionary(x => x.Split("=")[0], x => x.Split("=")[1]);
+                    continue;
+                }
+
+                else if (line.StartsWith("// TestVars: "))
+                {
+                    var testContents = line.Replace("// TestVars: ", string.Empty);
+                    _testVariables = testContents.Split("|").ToList().ToDictionary(x => x.Split("=")[0], x => x.Split("=")[1]);
+                    return;
+                }
+
+                throw new Exception("Baseline/TestVars not present.");
+            }
+            //throw new Exception("Baseline/TestVars not present.");
+            //return null;
         }
 
         public void Trim()
@@ -45,11 +90,13 @@ namespace Antigen.Trimmer
         /// </summary>
         public void TrimTree()
         {
-            bool trimmedAtleastOne = false;
+            bool trimmedAtleastOne;
             do
             {
+                trimmedAtleastOne = false;
                 trimmedAtleastOne |= TrimStatements();
                 trimmedAtleastOne |= TrimExpressions();
+                trimmedAtleastOne |= TrimEnvVars();
 
             } while (trimmedAtleastOne);
 
@@ -69,13 +116,16 @@ namespace Antigen.Trimmer
 
                 // statements/blocks
                 new MethodDeclStmtRemoval(),
+                new ConsoleLogStmtRemoval(),
                 new StructDeclStmtRemoval(),
                 new BlockRemoval(),
                 new DoWhileStmtRemoval(),
                 new ForStmtRemoval(),
                 new WhileStmtRemoval(),
+                new TryCatchFinallyStmtRemoval(),
+                new SwitchStmtRemoval(),
                 new IfElseStmtRemoval(),
-                new AssignStmtRemoval(),
+                new ExprStmtRemoval(),
                 new LocalDeclStmtRemoval(),
             };
 
@@ -85,7 +135,7 @@ namespace Antigen.Trimmer
             do
             {
                 trimmedInCurrIter = false;
-                trimmedInCurrIter |= TrimWithTrimmer(trimmerList);
+                trimmedInCurrIter |= Trim(trimmerList);
                 trimmedAtleastOne |= trimmedInCurrIter;
             } while (trimmedInCurrIter);
 
@@ -105,12 +155,15 @@ namespace Antigen.Trimmer
                 // From high to low
 
                 // expressions
+                new InvocationExprRemoval(),
+                new FieldExprRemoval(),
                 new CastExprRemoval(),
                 new ParenExprRemoval(),
                 new BinaryExpRemoval(),
-                //new MemberAccessExprRemoval(),
-                //new LiteralExprRemoval(),
-                //new IdentityNameExprRemoval(),
+                new AssignExprRemoval(),
+                new MemberAccessExprRemoval(),
+                new LiteralExprRemoval(),
+                new IdentityNameExprRemoval(),
             };
 
             bool trimmedAtleastOne = false;
@@ -119,9 +172,33 @@ namespace Antigen.Trimmer
             do
             {
                 trimmedInCurrIter = false;
-                trimmedInCurrIter |= TrimWithTrimmer(trimmerList);
+                trimmedInCurrIter |= Trim(trimmerList);
                 trimmedAtleastOne |= trimmedInCurrIter;
             } while (trimmedInCurrIter);
+
+            return trimmedAtleastOne;
+        }
+
+        public bool TrimEnvVars()
+        {
+            bool trimmedAtleastOne = false;
+            SyntaxNode recentTree = CSharpSyntaxTree.ParseText(File.ReadAllText(_testFileToTrim)).GetRoot();
+            var keys = _testVariables.Keys.ToList();
+
+            foreach(var envVar in keys)
+            {
+                string value = _testVariables[envVar];
+
+                _testVariables.Remove(envVar);
+                if (Verify($"trim{s_iterId++}", recentTree, _baselineVariables, _testVariables) == TestResult.Pass)
+                {
+                    _testVariables[envVar] = value;
+                }
+                else
+                {
+                    trimmedAtleastOne = true;
+                }
+            }
 
             return trimmedAtleastOne;
         }
@@ -129,9 +206,15 @@ namespace Antigen.Trimmer
         /// <summary>
         /// Trim the test case.
         /// </summary>
-        private bool TrimWithTrimmer(List<SyntaxRewriter> trimmerList)
+        private bool Trim(List<SyntaxRewriter> trimmerList)
         {
             SyntaxNode recentTree = CSharpSyntaxTree.ParseText(File.ReadAllText(_testFileToTrim)).GetRoot();
+            CompileResult compileResult = _testRunner.Compile(recentTree.SyntaxTree, "base");
+            if (compileResult.AssemblyName == null)
+            {
+                return false;
+            }
+
             bool trimmedAtleastOne = false;
             bool trimmedInCurrIter;
 
@@ -139,46 +222,52 @@ namespace Antigen.Trimmer
             {
                 trimmedInCurrIter = false;
 
-                //TODO: populate baseline and test envvars:
-                Dictionary<string, string> baselineEnvVars = Rsln.BaselineEnvVars;
-                Dictionary<string, string> testEnvVars = new Dictionary<string, string>()
-                {
-                    {"COMPlus_JitStress", "2" },
-                    {"COMPlus_JitStressRegs", "0x80" },
-                    {"COMPlus_TieredCompilation", "0" }
-                };
-                TestResult reproTestResult = TestResult.Fail;
-
                 // pick category
                 foreach (var trimmer in trimmerList)
                 {
-                    SyntaxNode treeBeforeTrim = recentTree, treeAfterTrim;
+                    SyntaxNode treeBeforeTrim = recentTree, treeAfterTrim = null;
 
                     // remove all
                     Console.Write($"{s_iterId}. {trimmer.GetType()}");
 
-                    int noOfNodes;
-
-                    // For expression, it can be nested, so first count
-                    // total expressions present.
-                    if (trimmer is BinaryExpRemoval)
+                    int noOfNodes = 0;
+                    bool gotException = false;
+                    try
                     {
-                        treeAfterTrim = trimmer.Visit(recentTree);
-                        noOfNodes = trimmer.TotalVisited;
-                        trimmer.RemoveAll();
-                        treeAfterTrim = trimmer.Visit(recentTree);
+                        // For expression, it can be nested, so first count
+                        // total expressions present.
+                        if (trimmer is BinaryExpRemoval)
+                        {
+                            treeAfterTrim = trimmer.Visit(recentTree);
+                            noOfNodes = trimmer.TotalVisited;
+                            trimmer.RemoveAll();
+                            treeAfterTrim = trimmer.Visit(recentTree);
+                        }
+                        // for statements, count while removing them all.
+                        else
+                        {
+                            trimmer.RemoveAll();
+                            treeAfterTrim = trimmer.Visit(recentTree);
+                            noOfNodes = trimmer.TotalVisited;
+                        }
                     }
-                    // for statements, count while removing them all.
-                    else
+                    catch (ArgumentNullException ae)
                     {
-                        trimmer.RemoveAll();
+                        gotException = true;
+                    }
 
-                        treeAfterTrim = trimmer.Visit(recentTree);
-                        noOfNodes = trimmer.TotalVisited;
+                    bool isSameTree = false;
+                    if (!gotException)
+                    {
+                        treeAfterTrim = RslnUtilities.GetValidSyntaxTree(treeAfterTrim, doValidation: false).GetRoot();
+                        isSameTree = treeBeforeTrim.ToFullString() == treeAfterTrim.ToFullString();
                     }
 
                     // compile, execute and repro
-                    if (trimmer.IsAnyNodeVisited && Verify($"trim{s_iterId++}", treeAfterTrim, baselineEnvVars, testEnvVars) == reproTestResult)
+                    if (!gotException &&
+                        !isSameTree &&      // If they are same tree
+                        trimmer.IsAnyNodeVisited && // We have visited and removed at least one node
+                        Verify($"trim{s_iterId++}", treeAfterTrim, _baselineVariables, _testVariables) == TestResult.Fail)
                     {
                         // move to next trimmer
                         recentTree = treeAfterTrim;
@@ -191,7 +280,6 @@ namespace Antigen.Trimmer
                         recentTree = treeBeforeTrim;
                         Console.WriteLine(" - Revert");
                     }
-
 
                     trimmer.Reset();
                     trimmer.RemoveOneByOne();
@@ -207,8 +295,18 @@ namespace Antigen.Trimmer
                         treeBeforeTrim = recentTree;
                         treeAfterTrim = trimmer.Visit(recentTree);
 
+                        isSameTree = false;
+                        if (!gotException)
+                        {
+                            treeAfterTrim = RslnUtilities.GetValidSyntaxTree(treeAfterTrim, doValidation: false).GetRoot();
+                            isSameTree = treeBeforeTrim.ToFullString() == treeAfterTrim.ToFullString();
+                        }
+
                         // compile, execute and repro
-                        if (trimmer.IsAnyNodeVisited && Verify($"trim{s_iterId++}", treeAfterTrim, baselineEnvVars, testEnvVars) == reproTestResult)
+                        if (!gotException &&
+                            !isSameTree &&
+                            trimmer.IsAnyNodeVisited &&
+                            Verify($"trim{s_iterId++}", treeAfterTrim, _baselineVariables, _testVariables) == TestResult.Fail)
                         {
                             // move to next trimmer
                             recentTree = treeAfterTrim;
@@ -252,7 +350,7 @@ namespace Antigen.Trimmer
         //TODO: refactor and merge with TestCase's Verify
         private TestResult Verify(string iterId, SyntaxNode programRootNode, Dictionary<string, string> baselineEnvVars, Dictionary<string, string> testEnvVars/*, bool skipBaseline*/)
         {
-            StringBuilder fileContents = new StringBuilder();
+            bool hasAssertion = !string.IsNullOrEmpty(_originalTestAssertion);
             CompileResult compileResult = _testRunner.Compile(programRootNode.SyntaxTree, iterId);
             if (compileResult.AssemblyFullPath == null)
             {
@@ -264,10 +362,37 @@ namespace Antigen.Trimmer
             //    File.WriteAllText(workingFile, testCaseRoot.ToFullString());
             //}
 
-            string baseline = _testRunner.Execute(compileResult, Rsln.BaselineEnvVars);
-            string test = _testRunner.Execute(compileResult, testEnvVars);
+            string currRunBaselineOutput = hasAssertion ? string.Empty :_testRunner.Execute(compileResult, Switches.BaseLineVars());
+            string currRunTestOutput = _testRunner.Execute(compileResult, testEnvVars);
 
-            if (baseline == test)
+            TestResult verificationResult = TestResult.Fail;
+
+            if (currRunBaselineOutput == currRunTestOutput)
+            {
+                // If output matches, then the test passes
+                verificationResult = TestResult.Pass;
+            }
+            else if (hasAssertion)
+            {
+                // Otherwise, if there was an assertion, verify that it is the same assertion
+                var currRunTestAssertion = ParseAssertionError(currRunTestOutput);
+                if (_originalTestAssertion != currRunTestAssertion)
+                {
+                    // The assertion doesn't match. Consider this as PASS
+                    verificationResult = TestResult.Pass;
+                }
+            }
+
+            foreach (string knownError in knownDiffs)
+            {
+                if (currRunBaselineOutput.Contains(knownError) && currRunTestOutput.Contains(knownError))
+                {
+                    verificationResult = TestResult.Pass;
+                    break;
+                }
+            }
+
+            if (verificationResult == TestResult.Pass)
             {
                 try
                 {
@@ -280,16 +405,10 @@ namespace Antigen.Trimmer
                 return TestResult.Pass;
             }
 
-            foreach (string knownError in knownDiffs)
-            {
-                if (baseline.Contains(knownError) && test.Contains(knownError))
-                {
-                    return TestResult.Pass;
-                }
-            }
-
             string programContents = programRootNode.ToFullString();
             programContents = Regex.Replace(programContents, @"[\r\n]*$", string.Empty, RegexOptions.Multiline);
+
+            StringBuilder fileContents = new StringBuilder();
             fileContents.AppendLine(programContents);
             fileContents.AppendLine("/*");
             fileContents.AppendLine($"Got output diff:");
@@ -303,7 +422,7 @@ namespace Antigen.Trimmer
                 fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
             }
             fileContents.AppendLine();
-            fileContents.AppendLine(baseline);
+            fileContents.AppendLine(currRunBaselineOutput);
 
             fileContents.AppendLine("--------- Test ---------  ");
             fileContents.AppendLine();
@@ -314,18 +433,41 @@ namespace Antigen.Trimmer
                 fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
             }
             fileContents.AppendLine();
-            fileContents.AppendLine(test);
+            fileContents.AppendLine(currRunTestOutput);
             fileContents.AppendLine("*/");
 
             //TODO: Only if something was visited
 
             string failedFileName = $"{iterId}-lkg";
-            string failFile = Path.Combine(@"E:\temp\antigen-trimmer\test2\round9", $"{ failedFileName}.g.cs");
+            string failFile = Path.Combine(Path.GetDirectoryName(_testFileToTrim), $"{ failedFileName}.g.cs");
             //string failFile = Path.Combine(RunOptions.OutputDirectory, $"{failedFileName}.g.cs");
             File.WriteAllText(failFile, fileContents.ToString());
+            _testFileToTrim = failFile;
 
-            File.Move(compileResult.AssemblyFullPath, Path.Combine(RunOptions.OutputDirectory, $"{failedFileName}.exe"), overwrite: true);
+            File.Move(compileResult.AssemblyFullPath, Path.Combine(_runOptions.OutputDirectory, $"{failedFileName}.exe"), overwrite: true);
             return TestResult.Fail;
+        }
+
+        /// <summary>
+        ///     Parse assertion errors in output
+        /// </summary>
+        /// <param name="output"></param>
+        /// <returns></returns>
+        private static string ParseAssertionError(string output)
+        {
+            Match assertionMatch;
+            assertionMatch = s_jitAssertionRegEx.Match(output);
+            if (assertionMatch.Success)
+            {
+                return assertionMatch.Value;
+            }
+
+            assertionMatch = s_coreclrAssertionRegEx.Match(output);
+            if (assertionMatch.Success)
+            {
+                return assertionMatch.Value;
+            }
+            return null;
         }
     }
 }

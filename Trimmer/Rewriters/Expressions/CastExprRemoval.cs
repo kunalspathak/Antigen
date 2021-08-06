@@ -20,8 +20,15 @@ namespace Antigen.Trimmer.Rewriters.Expressions
             {
                 isAnyNodeVisited = true;
 
-                var expr = (ParenthesizedExpressionSyntax)node.ChildNodes().ToList()[1];
-                return VisitParenthesizedExpression(expr);
+                var expr = node.ChildNodes().ToList()[1];
+                if (expr is ParenthesizedExpressionSyntax parenExpr)
+                {
+                    return VisitParenthesizedExpression(parenExpr);
+                }
+                else if (expr is LiteralExpressionSyntax literalExpr)
+                {
+                    return VisitLiteralExpression(literalExpr);
+                }
             }
 
             return base.VisitCastExpression(node);

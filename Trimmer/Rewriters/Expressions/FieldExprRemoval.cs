@@ -12,16 +12,16 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Antigen.Trimmer.Rewriters
 {
-    public class AssignStmtRemoval : SyntaxRewriter
+    public class FieldExprRemoval : SyntaxRewriter
     {
-        public override SyntaxNode VisitExpressionStatement(ExpressionStatementSyntax node)
+        public override SyntaxNode VisitFieldDeclaration(FieldDeclarationSyntax node)
         {
             string assignmentExpr = node.ToFullString();
             if (assignmentExpr.Contains("loopvar", StringComparison.InvariantCultureIgnoreCase) ||
                 assignmentExpr.Contains("loopInvariant", StringComparison.InvariantCultureIgnoreCase) ||
                 assignmentExpr.Contains("loopSecondaryVar", StringComparison.InvariantCultureIgnoreCase))
             {
-                return base.VisitExpressionStatement(node);
+                return base.VisitFieldDeclaration(node);
             }
 
             if (currId++ == id || removeAll)
@@ -31,7 +31,7 @@ namespace Antigen.Trimmer.Rewriters
                 return null;
             }
 
-            return base.VisitExpressionStatement(node);
+            return base.VisitFieldDeclaration(node);
         }
     }
 }

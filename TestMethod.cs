@@ -627,6 +627,7 @@ namespace Antigen
                         ExprKind switchExprKind = GetASTUtils().GetRandomExpressionReturningPrimitive(switchType);
                         ExpressionSyntax switchExpr = ExprHelper(switchExprKind, switchExprType, 0);
                         IList<SwitchSectionSyntax> listOfCases = new List<SwitchSectionSyntax>();
+                        HashSet<string> usedCaseLabels = new HashSet<string>();
 
                         // Generate each cases
                         for (int i = 0; i < caseCount; i++)
@@ -655,11 +656,15 @@ namespace Antigen
                             caseBody.Add(BreakStatement());
                             PopScope(); // pop 'case' body scope
 
+
+                            LiteralExpressionSyntax caseLiteralExpression;
+                            do
+                            {
+                                caseLiteralExpression = ExprHelper(ExprKind.LiteralExpression, switchExprType, 0) as LiteralExpressionSyntax;
+                            } while (!usedCaseLabels.Add(caseLiteralExpression.Token.ValueText));
+
                             listOfCases.Add(SwitchSection()
-                                .WithLabels(
-                                SingletonList<SwitchLabelSyntax>(
-                                    CaseSwitchLabel(
-                                        ExprHelper(ExprKind.LiteralExpression, switchExprType, 0))))
+                                .WithLabels(SingletonList<SwitchLabelSyntax>(CaseSwitchLabel(caseLiteralExpression)))
                                 .WithStatements(caseBody.ToSyntaxList()));
                         }
 
