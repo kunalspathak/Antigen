@@ -13,6 +13,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Metadata;
+using System.Runtime.CompilerServices;
 using System.Text;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
@@ -98,21 +99,13 @@ namespace Antigen
 
         public TestResult Verify()
         {
-#if DEBUG
-            SyntaxTree syntaxTree = testCaseRoot.SyntaxTree;
-            SyntaxTree expectedTree = CSharpSyntaxTree.ParseText(testCaseRoot.ToFullString());
-            FindTreeDiff(expectedTree.GetRoot(), syntaxTree.GetRoot());
-#else
-            // In release, make sure that we didn't end up generating wrong syntax tree,
-            // hence parse the text to reconstruct the tree.
+            SyntaxTree syntaxTree = RslnUtilities.GetValidSyntaxTree(testCaseRoot);
 
-            SyntaxTree syntaxTree = CSharpSyntaxTree.ParseText(testCaseRoot.ToFullString());
-#endif
-
-            StringBuilder fileContents = new StringBuilder();
             CompileResult compileResult = TestRunner.Compile(syntaxTree, Name);
             if (compileResult.AssemblyFullPath == null)
             {
+                StringBuilder fileContents = new StringBuilder();
+
                 fileContents.AppendLine(testCaseRoot.ToFullString());
                 fileContents.AppendLine("/*");
                 fileContents.AppendLine($"Got {compileResult.CompileErrors.Length} compiler error(s):");
@@ -133,21 +126,11 @@ namespace Antigen
             //    File.WriteAllText(workingFile, testCaseRoot.ToFullString());
             //}
 
-            string baseline = TestRunner.Execute(compileResult, Rsln.BaselineEnvVars);
+            var baselineVariables = Switches.BaseLineVars();
+            var testVariables = Switches.TestVars();
 
-            var selectedVars = Rsln.TestEnvVars[PRNG.Next(Rsln.TestEnvVars.Count)].Vars;
-            var testEnvVariables = new Dictionary<string, string>();
-            foreach (var commonVars in Rsln.CommonTestEnvVars)
-            {
-                testEnvVariables.Add(commonVars.Key, commonVars.Value);
-            }
-            foreach (var selectedVar in selectedVars)
-            {
-                // override the COMPlus_TieredCompilation variable
-                testEnvVariables[selectedVar.Key] = selectedVar.Value;
-            }
-
-            string test = TestRunner.Execute(compileResult, testEnvVariables);
+            string baseline = TestRunner.Execute(compileResult, baselineVariables);
+            string test = TestRunner.Execute(compileResult, testVariables);
 
             if (baseline == test)
             {
@@ -172,43 +155,47 @@ namespace Antigen
                 }
             }
 
-            fileContents.AppendLine(testCaseRoot.ToFullString());
-            fileContents.AppendLine("/*");
-
-            if (isKnownError)
-            {
-                fileContents.AppendLine($"Got known error mismatch:");
-            }
-            else
-            {
-                fileContents.AppendLine($"Got output diff:");
-            }
-            fileContents.AppendLine("--------- Baseline ---------  ");
-            fileContents.AppendLine();
-            fileContents.AppendLine("Environment:");
-            fileContents.AppendLine();
-            foreach (var envVars in Rsln.BaselineEnvVars)
-            {
-                fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
-            }
-            fileContents.AppendLine();
-            fileContents.AppendLine(baseline);
-
-            fileContents.AppendLine("--------- Test ---------  ");
-            fileContents.AppendLine();
-            fileContents.AppendLine("Environment:");
-            fileContents.AppendLine();
-            foreach (var envVars in testEnvVariables)
-            {
-                fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
-            }
-            fileContents.AppendLine();
-            fileContents.AppendLine(test);
-            fileContents.AppendLine("*/");
-
             //TODO- for now, delete known error files
             if (!isKnownError)
             {
+                StringBuilder fileContents = new StringBuilder();
+                fileContents.AppendLine($"// BaselineVars: {string.Join("|", baselineVariables.ToList().Select(x => $"{x.Key}={x.Value}"))}");
+                fileContents.AppendLine($"// TestVars: {string.Join("|", testVariables.ToList().Select(x => $"{x.Key}={x.Value}"))}");
+                fileContents.AppendLine("//");
+                fileContents.AppendLine(testCaseRoot.ToFullString());
+                fileContents.AppendLine("/*");
+
+                if (isKnownError)
+                {
+                    fileContents.AppendLine($"Got known error mismatch:");
+                }
+                else
+                {
+                    fileContents.AppendLine($"Got output diff:");
+                }
+                fileContents.AppendLine("--------- Baseline ---------");
+                fileContents.AppendLine();
+                fileContents.AppendLine("Environment:");
+                fileContents.AppendLine();
+                foreach (var envVars in baselineVariables)
+                {
+                    fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
+                }
+                fileContents.AppendLine();
+                fileContents.AppendLine(baseline);
+
+                fileContents.AppendLine("--------- Test ---------");
+                fileContents.AppendLine();
+                fileContents.AppendLine("Environment:");
+                fileContents.AppendLine();
+                foreach (var envVars in testVariables)
+                {
+                    fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
+                }
+                fileContents.AppendLine();
+                fileContents.AppendLine(test);
+                fileContents.AppendLine("*/");
+
                 string failedFileName = $"{Name}-{(isKnownError ? "known-error" : "fail")}";
                 string failFile = Path.Combine(RunOptions.OutputDirectory, $"{failedFileName}.g.cs");
                 File.WriteAllText(failFile, fileContents.ToString());
@@ -230,38 +217,6 @@ namespace Antigen
             }
         }
 
-        /// <summary>
-        ///     Method to find diff of generated tree vs. roslyn generated tree by parsing the
-        ///     generated code.
-        /// </summary>
-        /// <param name="expected"></param>
-        /// <param name="actual"></param>
-        private void FindTreeDiff(SyntaxNode expected, SyntaxNode actual)
-        {
-            if ((expected is LiteralExpressionSyntax) || (actual is LiteralExpressionSyntax))
-            {
-                // ignore
-                return;
-            }
 
-            if (!expected.IsEquivalentTo(actual))
-            {
-                var expectedChildNodes = expected.ChildNodes().ToArray();
-                var actualChildNodes = actual.ChildNodes().ToArray();
-
-                int expectedCount = expectedChildNodes.Length;
-                int actualCount = actualChildNodes.Length;
-                if (expectedCount != actualCount)
-                {
-                    Debug.Assert(false, $"Child nodes mismatch. Expected= {expected}, Actual= {actual}");
-                    return;
-                }
-                for (int ch = 0; ch < expectedCount; ch++)
-                {
-                    FindTreeDiff(expectedChildNodes[ch], actualChildNodes[ch]);
-                }
-                return;
-            }
-        }
     }
 }

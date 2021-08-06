@@ -53,7 +53,7 @@ namespace Antigen
 
             MetadataReference[] references = { systemPrivateCorelib, systemConsole, systemRuntime, codeAnalysis, csharpCodeAnalysis };
 
-            var cc = CSharpCompilation.Create($"{assemblyName}.exe", new SyntaxTree[] { programTree }, references, Rsln.CompileOptions);
+            var cc = CSharpCompilation.Create($"{assemblyName}.exe", new SyntaxTree[] { programTree }, references, Switches.CompileOptions);
             string assemblyFullPath = Path.Combine(RunOptions.OutputDirectory, $"{assemblyName}.exe");
 
             using (var ms = new MemoryStream())

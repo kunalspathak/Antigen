@@ -16,7 +16,7 @@ namespace Antigen
             try
             {
                 PRNG.Initialize(RunOptions.Seed);
-
+                Switches.Initialize();
                 RunOptions.CoreRun = args[0];
 
                 // trimmer
@@ -30,12 +30,12 @@ namespace Antigen
 
                 int testId = 1;
                 Dictionary<TestResult, int> stats = new Dictionary<TestResult, int>()
-            {
-                { TestResult.CompileError, 0 },
-                { TestResult.Fail, 0 },
-                {TestResult.OutputMismatch, 0 },
-                {TestResult.Pass, 0 },
-            };
+                {
+                    { TestResult.CompileError, 0 },
+                    { TestResult.Fail, 0 },
+                    {TestResult.OutputMismatch, 0 },
+                    {TestResult.Pass, 0 },
+                };
                 while (true)
                 {
                     TestCase testCase = new TestCase(testId, RunOptions);

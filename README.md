@@ -17,3 +17,4 @@ C# test generator and RyuJIT tester - Named after Covid-19 antigen test.
 13. Trimmer: works for statement
 14. try-catch-finally
 15. switch-case
+16. Environment variables list
