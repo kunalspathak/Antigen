@@ -19,7 +19,7 @@ namespace Antigen.Trimmer.Rewriters.Statements
         {
             if (node.Statements.Count == 0)
             {
-                return node;
+                return null;
             }
 
             if (currId++ == id || removeAll)

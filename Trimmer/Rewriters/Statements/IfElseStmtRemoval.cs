@@ -24,6 +24,7 @@ namespace Antigen.Trimmer.Rewriters
             if (currId++ == id || removeAll)
             {
                 isAnyNodeVisited = true;
+                //TODO: Also - return node.WithElse(null);
 
                 return null;
             }

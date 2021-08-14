@@ -16,15 +16,6 @@ namespace Antigen.Trimmer.Rewriters
     {
         public override SyntaxNode VisitLocalDeclarationStatement(LocalDeclarationStatementSyntax node)
         {
-            string assignmentExpr = node.ToFullString();
-            if (assignmentExpr.Contains("loopvar", StringComparison.InvariantCultureIgnoreCase) || 
-                assignmentExpr.Contains("loopInvariant", StringComparison.InvariantCultureIgnoreCase) ||
-                assignmentExpr.Contains("loopSecondaryVar", StringComparison.InvariantCultureIgnoreCase))
-            {
-                return base.VisitLocalDeclarationStatement(node);
-            }
-
-
             if (currId++ == id || removeAll)
             {
                 isAnyNodeVisited = true;

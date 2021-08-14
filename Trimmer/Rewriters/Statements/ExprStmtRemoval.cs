@@ -17,12 +17,6 @@ namespace Antigen.Trimmer.Rewriters
         public override SyntaxNode VisitExpressionStatement(ExpressionStatementSyntax node)
         {
             string assignmentExpr = node.ToFullString();
-            if (assignmentExpr.Contains("loopvar", StringComparison.InvariantCultureIgnoreCase) ||
-                assignmentExpr.Contains("loopInvariant", StringComparison.InvariantCultureIgnoreCase) ||
-                assignmentExpr.Contains("loopSecondaryVar", StringComparison.InvariantCultureIgnoreCase))
-            {
-                return base.VisitExpressionStatement(node);
-            }
 
             if (currId++ == id || removeAll)
             {

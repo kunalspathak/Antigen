@@ -29,9 +29,6 @@ namespace Antigen.Trimmer
         private string _originalTestAssertion;
         static int s_iterId = 1;
 
-        private static readonly Regex s_jitAssertionRegEx = new Regex("Assertion failed '(.*)' in '(.*)' during '(.*)'");
-        private static readonly Regex s_coreclrAssertionRegEx = new Regex(@"Assert failure\(PID \d+ \[0x[0-9a-f]+], Thread: \d+ \[0x[0-9a-f]+]\):(.*)");
-
         public TestTrimmer(string testFileToTrim, RunOptions runOptions)
         {
             if (!File.Exists(testFileToTrim))
@@ -53,7 +50,7 @@ namespace Antigen.Trimmer
         {
             var fileContents = File.ReadAllText(_testFileToTrim);
             string[] fileContentLines = fileContents.Split(Environment.NewLine);
-            _originalTestAssertion = ParseAssertionError(fileContents);
+            _originalTestAssertion = RslnUtilities.ParseAssertionError(fileContents);
 
             foreach (var line in fileContentLines)
             {
@@ -157,13 +154,14 @@ namespace Antigen.Trimmer
                 // expressions
                 new InvocationExprRemoval(),
                 new FieldExprRemoval(),
-                new CastExprRemoval(),
-                new ParenExprRemoval(),
                 new BinaryExpRemoval(),
                 new AssignExprRemoval(),
                 new MemberAccessExprRemoval(),
                 new LiteralExprRemoval(),
                 new IdentityNameExprRemoval(),
+                new CastExprRemoval(),
+                new ParenExprRemoval(),
+
             };
 
             bool trimmedAtleastOne = false;
@@ -217,6 +215,7 @@ namespace Antigen.Trimmer
 
             bool trimmedAtleastOne = false;
             bool trimmedInCurrIter;
+            TestResult expectedResult = string.IsNullOrEmpty(_originalTestAssertion) ? TestResult.OutputMismatch : TestResult.Assertion;
 
             do
             {
@@ -251,7 +250,7 @@ namespace Antigen.Trimmer
                             noOfNodes = trimmer.TotalVisited;
                         }
                     }
-                    catch (ArgumentNullException ae)
+                    catch (ArgumentNullException)
                     {
                         gotException = true;
                     }
@@ -267,7 +266,7 @@ namespace Antigen.Trimmer
                     if (!gotException &&
                         !isSameTree &&      // If they are same tree
                         trimmer.IsAnyNodeVisited && // We have visited and removed at least one node
-                        Verify($"trim{s_iterId++}", treeAfterTrim, _baselineVariables, _testVariables) == TestResult.Fail)
+                        Verify($"trim{s_iterId++}", treeAfterTrim, _baselineVariables, _testVariables) == expectedResult)
                     {
                         // move to next trimmer
                         recentTree = treeAfterTrim;
@@ -293,7 +292,15 @@ namespace Antigen.Trimmer
                         trimmer.UpdateId(nodeId);
 
                         treeBeforeTrim = recentTree;
-                        treeAfterTrim = trimmer.Visit(recentTree);
+                        treeAfterTrim = null;
+
+                        try
+                        {
+                            treeAfterTrim = trimmer.Visit(recentTree);
+                        } catch (ArgumentNullException)
+                        {
+                            gotException = true;
+                        }
 
                         isSameTree = false;
                         if (!gotException)
@@ -306,7 +313,7 @@ namespace Antigen.Trimmer
                         if (!gotException &&
                             !isSameTree &&
                             trimmer.IsAnyNodeVisited &&
-                            Verify($"trim{s_iterId++}", treeAfterTrim, _baselineVariables, _testVariables) == TestResult.Fail)
+                            Verify($"trim{s_iterId++}", treeAfterTrim, _baselineVariables, _testVariables) == expectedResult)
                         {
                             // move to next trimmer
                             recentTree = treeAfterTrim;
@@ -365,9 +372,10 @@ namespace Antigen.Trimmer
             string currRunBaselineOutput = hasAssertion ? string.Empty :_testRunner.Execute(compileResult, Switches.BaseLineVars());
             string currRunTestOutput = _testRunner.Execute(compileResult, testEnvVars);
 
-            TestResult verificationResult = TestResult.Fail;
+            TestResult verificationResult = string.IsNullOrEmpty(_originalTestAssertion) ? TestResult.OutputMismatch : TestResult.Assertion;
 
-            if (currRunBaselineOutput == currRunTestOutput)
+            if (((currRunBaselineOutput == "TIMEOUT") && (currRunTestOutput == "TIMEOUT")) ||
+                (currRunBaselineOutput == currRunTestOutput))
             {
                 // If output matches, then the test passes
                 verificationResult = TestResult.Pass;
@@ -375,7 +383,7 @@ namespace Antigen.Trimmer
             else if (hasAssertion)
             {
                 // Otherwise, if there was an assertion, verify that it is the same assertion
-                var currRunTestAssertion = ParseAssertionError(currRunTestOutput);
+                var currRunTestAssertion = RslnUtilities.ParseAssertionError(currRunTestOutput);
                 if (_originalTestAssertion != currRunTestAssertion)
                 {
                     // The assertion doesn't match. Consider this as PASS
@@ -417,9 +425,12 @@ namespace Antigen.Trimmer
             fileContents.AppendLine();
             fileContents.AppendLine("Environment:");
             fileContents.AppendLine();
-            foreach (var envVars in baselineEnvVars)
+            if (baselineEnvVars != null)
             {
-                fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
+                foreach (var envVars in baselineEnvVars)
+                {
+                    fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
+                }
             }
             fileContents.AppendLine();
             fileContents.AppendLine(currRunBaselineOutput);
@@ -445,29 +456,7 @@ namespace Antigen.Trimmer
             _testFileToTrim = failFile;
 
             File.Move(compileResult.AssemblyFullPath, Path.Combine(_runOptions.OutputDirectory, $"{failedFileName}.exe"), overwrite: true);
-            return TestResult.Fail;
-        }
-
-        /// <summary>
-        ///     Parse assertion errors in output
-        /// </summary>
-        /// <param name="output"></param>
-        /// <returns></returns>
-        private static string ParseAssertionError(string output)
-        {
-            Match assertionMatch;
-            assertionMatch = s_jitAssertionRegEx.Match(output);
-            if (assertionMatch.Success)
-            {
-                return assertionMatch.Value;
-            }
-
-            assertionMatch = s_coreclrAssertionRegEx.Match(output);
-            if (assertionMatch.Success)
-            {
-                return assertionMatch.Value;
-            }
-            return null;
-        }
+            return verificationResult;
+         }
     }
 }

@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -16,6 +17,9 @@ namespace Antigen
 {
     public class RslnUtilities
     {
+        private static readonly Regex s_jitAssertionRegEx = new Regex("Assertion failed '(.*)' in '(.*)' during '(.*)'");
+        private static readonly Regex s_coreclrAssertionRegEx = new Regex(@"Assert failure\(PID \d+ \[0x[0-9a-f]+], Thread: \d+ \[0x[0-9a-f]+]\):(.*)");
+
 
         public static SyntaxTree GetValidSyntaxTree(SyntaxNode treeRoot, bool doValidation = true)
         {
@@ -66,6 +70,41 @@ namespace Antigen
                 }
                 return;
             }
+        }
+
+        /// <summary>
+        ///     Parse assertion errors in output
+        /// </summary>
+        /// <param name="output"></param>
+        /// <returns></returns>
+        internal static string ParseAssertionError(string output)
+        {
+            if (string.IsNullOrEmpty(output))
+            {
+                return null;
+            }
+
+            // If Fatal error, return text as it is.
+            if (output.Contains("Fatal error."))
+            {
+                return output;
+            }
+
+
+            // Otherwise, try to match for JIT asserts
+            Match assertionMatch;
+            assertionMatch = s_jitAssertionRegEx.Match(output);
+            if (assertionMatch.Success)
+            {
+                return assertionMatch.Value;
+            }
+
+            assertionMatch = s_coreclrAssertionRegEx.Match(output);
+            if (assertionMatch.Success)
+            {
+                return assertionMatch.Value;
+            }
+            return null;
         }
     }
 }
