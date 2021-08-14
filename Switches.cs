@@ -1,12 +1,8 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Editing;
-using Microsoft.VisualBasic.CompilerServices;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Antigen
 {
@@ -85,6 +81,7 @@ namespace Antigen
         private static ComplusEnvVarGroup s_defaultGroup;
         private static ComplusEnvVarGroup s_jitStressGroup;
         private static ComplusEnvVarGroup s_jitStressRegsGroup;
+        private static ComplusEnvVarGroup s_gcStressGroup;
         private static ComplusEnvVarGroup s_hardwareGroup;
         private static ComplusEnvVarGroup s_commonVarGroup;
 
@@ -123,7 +120,7 @@ namespace Antigen
             s_defaultGroup.AddVariable(new ComplusEnvVar("JitNoStructPromotion", new string[] { "0", "1", "2" }, 0.02));
             s_defaultGroup.AddVariable(new ComplusEnvVar("JitNoUnroll", s_onOffSwitch, 0.02));
             s_defaultGroup.AddVariable(new ComplusEnvVar("JitStackAllocToLocalSize", new string[] { "0", "1", "2", "4", "10", "16", "100"}, 0.01));
-            s_defaultGroup.AddVariable(new ComplusEnvVar("JitSkipArrayBoundCheck", s_onOffSwitch, 0.02));
+            s_defaultGroup.AddVariable(new ComplusEnvVar("JitSkipArrayBoundCheck", s_onOffSwitch, 0.0002));
             s_defaultGroup.AddVariable(new ComplusEnvVar("JitSlowDebugChecksEnabled", s_onOffSwitch, 0.02));
             s_defaultGroup.AddVariable(new ComplusEnvVar("JitSplitFunctionSize", new string[] { "0", "1", "2", "4", "10", "16", "100" }, 0.01));
             s_defaultGroup.AddVariable(new ComplusEnvVar("JitStackChecks", s_onOffSwitch, 0.01));
@@ -141,8 +138,8 @@ namespace Antigen
             s_defaultGroup.AddVariable(new ComplusEnvVar("JitDoRedundantBranchOpts", s_onOffSwitch, 0.05));
             s_defaultGroup.AddVariable(new ComplusEnvVar("JitDoSsa", s_onOffSwitch, 0.05));
             s_defaultGroup.AddVariable(new ComplusEnvVar("JitDoValueNumber", s_onOffSwitch, 0.05));
-            s_defaultGroup.AddVariable(new ComplusEnvVar("JitOptRepeat", new string[] { "*" }, 0.05));
-            s_defaultGroup.AddVariable(new ComplusEnvVar("JitOptRepeatCount", new string[] { "1", "2", "5" }, 0.03));
+            s_defaultGroup.AddVariable(new ComplusEnvVar("JitOptRepeat", new string[] { "*" }, 0.0005));
+            s_defaultGroup.AddVariable(new ComplusEnvVar("JitOptRepeatCount", new string[] { "1", "2", "5" }, 0.0003));
             s_defaultGroup.AddVariable(new ComplusEnvVar("TailCallLoopOpt", s_onOffSwitch, 0.03));
             s_defaultGroup.AddVariable(new ComplusEnvVar("FastTailCalls", s_onOffSwitch, 0.03));
             s_defaultGroup.AddVariable(new ComplusEnvVar("JitEnableFinallyCloning", s_onOffSwitch, 0.03));
@@ -158,6 +155,10 @@ namespace Antigen
             // JitStressRegs
             s_jitStressRegsGroup = new ComplusEnvVarGroup("JitStressRegs");
             s_jitStressRegsGroup.AddVariable(new ComplusEnvVar("JitStressRegs", new string[] { "0", "1", "2", "3", "4", "8", "0x10", "0x80", "0x1000" }, 0.04));
+
+            // GCStress
+            s_gcStressGroup = new ComplusEnvVarGroup("GCStress");
+            s_gcStressGroup.AddVariable(new ComplusEnvVar("GCStress", new string[] { "0x3", "0xC", "0xF" }, 0.04));
 
             // Hardware
             s_hardwareGroup = new ComplusEnvVarGroup("Hardware");
@@ -260,6 +261,13 @@ namespace Antigen
 
                     envVars[$"COMPlus_{envVar.Name}"] = envVar.Values[PRNG.Next(envVar.Values.Length)];
                 }
+            }
+
+            // 30% of time add GCStress
+            if (PRNG.Decide(0.3))
+            {
+                var envVar = s_gcStressGroup.GetRandomVariable();
+                envVars[$"COMPlus_{envVar.Name}"] = envVar.Values[PRNG.Next(envVar.Values.Length)];
             }
 
             return envVars;
