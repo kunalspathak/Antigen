@@ -23,7 +23,7 @@ namespace Antigen
         protected readonly int _stmtCount;
 
         //TODO-config: Move this to ConfigOptions
-        private static readonly int s_maxStatements = 4;
+        private static readonly int s_maxStatements = 8;
 
 #if DEBUG
         private Dictionary<string, int> expressionsCount = new Dictionary<string, int>();
@@ -745,7 +745,7 @@ namespace Antigen
 
                         ExprKind lhsExprKind, rhsExprKind;
                         //TODO-config: Add MaxDepth in config
-                        if (depth >= 5)
+                        if (depth >= 3)
                         {
                             lhsExprKind = rhsExprKind = ExprKind.LiteralExpression;
                         }

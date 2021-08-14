@@ -24,30 +24,30 @@ namespace Antigen.Config
         public double AssignWeight = 0.4;
 
         // Statement weights
-        public double VariableDeclarationWeight = 0.3;
-        public double IfElseStatementWeight = 0.4;
-        public double AssignStatementWeight = 0.5;
-        public double ForStatementWeight = 0.4;
+        public double VariableDeclarationWeight = 0.03; //TODO: Reduce this and add aliases when we see this.
+        public double IfElseStatementWeight = 0.2;
+        public double AssignStatementWeight = 0.6;
+        public double ForStatementWeight = 0.3;
         public double DoWhileStatementWeight = 0.2;
         public double WhileStatementWeight = 0.3;
         public double TryCatchFinallyStatementWeight = 0.4;
         public double SwitchStatementWeight = 0.1;
 
         // Type weights
-        public double BooleanWeight = 1;
-        public double ByteWeight = 1;
-        public double CharWeight = 1;
-        public double DecimalWeight = 1;
-        public double DoubleWeight = 1;
-        public double Int16Weight = 1;
-        public double Int32Weight = 1;
-        public double Int64Weight = 1;
-        public double SByteWeight = 1;
-        public double SingleWeight = 1;
-        public double StringWeight = 1;
-        public double UInt16Weight = 1;
-        public double UInt32Weight = 1;
-        public double UInt64Weight = 1;
+        public double BooleanWeight = 0.3;
+        public double ByteWeight = 0.4;
+        public double CharWeight = 0.03;
+        public double DecimalWeight = 0.5;
+        public double DoubleWeight = 0.4;
+        public double Int16Weight = 0.4;
+        public double Int32Weight = 0.45;
+        public double Int64Weight = 0.48;
+        public double SByteWeight = 0.3;
+        public double SingleWeight = 0.6;
+        public double StringWeight = 0.03;
+        public double UInt16Weight = 0.4;
+        public double UInt32Weight = 0.45;
+        public double UInt64Weight = 0.6;
 
         // Operator weights
         public double UnaryPlusWeight = 1;
@@ -60,40 +60,40 @@ namespace Antigen.Config
         public double BitwiseNotWeight = 1;
         public double TypeOfWeight = 1;
 
-        public double AddWeight = 1;
-        public double SubtractWeight = 1;
-        public double MultiplyWeight = 1;
-        public double DivideWeight = 1;
-        public double ModuloWeight = 1;
-        public double LeftShiftWeight = 1;
-        public double RightShiftWeight = 1;
+        public double AddWeight = 0.9;
+        public double SubtractWeight = 0.5;
+        public double MultiplyWeight = 0.5;
+        public double DivideWeight = 0.4;
+        public double ModuloWeight = 0.5;
+        public double LeftShiftWeight = 0.6;
+        public double RightShiftWeight = 0.4;
 
-        public double SimpleAssignmentWeight = 1;
-        public double AddAssignmentWeight = 1;
-        public double SubtractAssignmentWeight = 1;
-        public double MultiplyAssignmentWeight = 1;
-        public double DivideAssignmentWeight = 1;
-        public double ModuloAssignmentWeight = 1;
-        public double LeftShiftAssignmentWeight = 1;
-        public double RightShiftAssignmentWeight = 1;
+        public double SimpleAssignmentWeight = 0.9;
+        public double AddAssignmentWeight = 0.5;
+        public double SubtractAssignmentWeight = 0.6;
+        public double MultiplyAssignmentWeight = 0.5;
+        public double DivideAssignmentWeight = 0.5;
+        public double ModuloAssignmentWeight = 0.3;
+        public double LeftShiftAssignmentWeight = 0.5;
+        public double RightShiftAssignmentWeight = 0.6;
 
-        public double LogicalAndWeight = 1;
-        public double LogicalOrWeight = 1;
+        public double LogicalAndWeight = 0.5;
+        public double LogicalOrWeight = 0.4;
 
-        public double BitwiseAndWeight = 1;
-        public double BitwiseOrWeight = 1;
-        public double ExclusiveOrWeight = 1;
+        public double BitwiseAndWeight = 0.45;
+        public double BitwiseOrWeight = 0.35;
+        public double ExclusiveOrWeight = 0.45;
 
-        public double AndAssignmentWeight = 1;
-        public double OrAssignmentWeight = 1;
-        public double ExclusiveOrAssignmentWeight = 1;
+        public double AndAssignmentWeight = 0.54;
+        public double OrAssignmentWeight = 0.59;
+        public double ExclusiveOrAssignmentWeight = 0.68;
 
-        public double LessThanWeight = 1;
-        public double LessThanOrEqualWeight = 1;
-        public double GreaterThanWeight = 1;
-        public double GreaterThanOrEqualWeight = 1;
-        public double EqualsWeight = 1;
-        public double NotEqualsWeight = 1;
+        public double LessThanWeight = 0.6;
+        public double LessThanOrEqualWeight = 0.6;
+        public double GreaterThanWeight = 0.51;
+        public double GreaterThanOrEqualWeight = 0.51;
+        public double EqualsWeight = 0.8;
+        public double NotEqualsWeight = 0.8;
 
         // Config options
         // Probablity of removing loop parameters -- see comments on BoundParameters in ForStatement 

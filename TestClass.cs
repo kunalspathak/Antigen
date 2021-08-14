@@ -183,7 +183,7 @@ namespace Antigen
             List<MemberDeclarationSyntax> methods = new List<MemberDeclarationSyntax>();
 
             //TODO-config: No. of methods per class
-            for (int i = 1; i < 5; i++)
+            for (int i = 1; i < 2; i++)
             {
                 var testMethod = new TestMethod(this, "Method" + i);
                 methods.Add(testMethod.Generate());
