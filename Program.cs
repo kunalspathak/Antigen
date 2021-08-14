@@ -32,9 +32,11 @@ namespace Antigen
                 Dictionary<TestResult, int> stats = new Dictionary<TestResult, int>()
                 {
                     { TestResult.CompileError, 0 },
-                    { TestResult.Fail, 0 },
+                    { TestResult.Assertion, 0 },
+                    { TestResult.KnownErrors, 0 },
                     {TestResult.OutputMismatch, 0 },
                     {TestResult.Pass, 0 },
+                    {TestResult.OOM, 0 },
                 };
                 while (true)
                 {
@@ -42,8 +44,8 @@ namespace Antigen
                     testCase.Generate();
                     TestResult result = testCase.Verify();
                     stats[result]++;
-                    Console.Write($"Test# {testId} - {Enum.GetName(typeof(TestResult), result)}. ");
-                    if ((testId % 100) == 0)
+                    Console.Write($"Test# {testId} - {Enum.GetName(typeof(TestResult), result)}. {(double)Process.GetCurrentProcess().WorkingSet64 / 1000000} MB ");
+                    if ((testId % 10) == 0)
                     {
                         foreach (var st in stats)
                         {
@@ -52,12 +54,11 @@ namespace Antigen
                     }
                     Console.WriteLine();
                     testId++;
-                    GC.Collect();
                 }
             } catch (OutOfMemoryException oom)
             {
                 Console.WriteLine(oom.Message);
-                var myProcess = System.Diagnostics.Process.GetCurrentProcess();
+                var myProcess = Process.GetCurrentProcess();
                 Console.WriteLine($"  Physical memory usage     : {myProcess.WorkingSet64}");
                 Console.WriteLine($"  Base priority             : {myProcess.BasePriority}");
                 Console.WriteLine($"  Priority class            : {myProcess.PriorityClass}");
