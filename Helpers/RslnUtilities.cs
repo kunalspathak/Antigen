@@ -18,7 +18,7 @@ namespace Antigen
     public class RslnUtilities
     {
         private static readonly Regex s_jitAssertionRegEx = new Regex("Assertion failed '(.*)' in '(.*)' during '(.*)'");
-        private static readonly Regex s_coreclrAssertionRegEx = new Regex(@"Assert failure\(PID \d+ \[0x[0-9a-f]+], Thread: \d+ \[0x[0-9a-f]+]\):(.*)");
+        private static readonly Regex s_coreclrAssertionRegEx = new Regex(@"Assert failure(\(PID \d+ \[0x[0-9a-f]+], Thread: \d+ \[0x[0-9a-f]+]\)):(.*)");
 
 
         public static SyntaxTree GetValidSyntaxTree(SyntaxNode treeRoot, bool doValidation = true)
@@ -96,13 +96,15 @@ namespace Antigen
             assertionMatch = s_jitAssertionRegEx.Match(output);
             if (assertionMatch.Success)
             {
-                return assertionMatch.Value;
+                Debug.Assert(assertionMatch.Groups.Count == 4);
+                return assertionMatch.Groups[1].Value + ":" + assertionMatch.Groups[3].Value;
             }
 
             assertionMatch = s_coreclrAssertionRegEx.Match(output);
             if (assertionMatch.Success)
             {
-                return assertionMatch.Value;
+                Debug.Assert(assertionMatch.Groups.Count == 3);
+                return assertionMatch.Groups[2].Value;
             }
             return null;
         }
