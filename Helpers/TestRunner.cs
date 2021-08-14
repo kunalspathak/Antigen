@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -15,13 +16,26 @@ using Antigen.Config;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
+using Microsoft.CSharp;
+using Newtonsoft.Json;
 
 namespace Antigen
 {
     public class TestRunner
     {
         private static TestRunner _testRunner;
+        private static readonly bool s_useDotnet = false;
         private RunOptions RunOptions;
+
+        private static readonly string s_corelibPath = typeof(object).Assembly.Location;
+        private static readonly MetadataReference[] s_references =
+        {
+             MetadataReference.CreateFromFile(s_corelibPath),
+             MetadataReference.CreateFromFile(Path.Combine(Path.GetDirectoryName(s_corelibPath), "System.Console.dll")),
+             MetadataReference.CreateFromFile(Path.Combine(Path.GetDirectoryName(s_corelibPath), "System.Runtime.dll")),
+             MetadataReference.CreateFromFile(typeof(SyntaxTree).Assembly.Location),
+             MetadataReference.CreateFromFile(typeof(CSharpSyntaxTree).Assembly.Location),
+    };
 
         private TestRunner(RunOptions runOptions)
         {
@@ -43,18 +57,9 @@ namespace Antigen
         /// <returns></returns>
         internal CompileResult Compile(SyntaxTree programTree, string assemblyName)
         {
-            string corelibPath = typeof(object).Assembly.Location;
-            string otherAssembliesPath = Path.GetDirectoryName(corelibPath);
-            MetadataReference systemPrivateCorelib = MetadataReference.CreateFromFile(corelibPath);
-            MetadataReference systemConsole = MetadataReference.CreateFromFile(Path.Combine(otherAssembliesPath, "System.Console.dll"));
-            MetadataReference systemRuntime = MetadataReference.CreateFromFile(Path.Combine(otherAssembliesPath, "System.Runtime.dll"));
-            MetadataReference codeAnalysis = MetadataReference.CreateFromFile(typeof(SyntaxTree).Assembly.Location);
-            MetadataReference csharpCodeAnalysis = MetadataReference.CreateFromFile(typeof(CSharpSyntaxTree).Assembly.Location);
-
-            MetadataReference[] references = { systemPrivateCorelib, systemConsole, systemRuntime, codeAnalysis, csharpCodeAnalysis };
-
-            var cc = CSharpCompilation.Create($"{assemblyName}.exe", new SyntaxTree[] { programTree }, references, Switches.CompileOptions);
             string assemblyFullPath = Path.Combine(RunOptions.OutputDirectory, $"{assemblyName}.exe");
+
+            var cc = CSharpCompilation.Create($"{assemblyName}.exe", new SyntaxTree[] { programTree }, s_references, Switches.CompileOptions);
 
             using (var ms = new MemoryStream())
             {
@@ -86,8 +91,14 @@ namespace Antigen
         internal string Execute(CompileResult compileResult, Dictionary<string, string> environmentVariables)
         {
             Debug.Assert(compileResult.AssemblyFullPath != null);
-            if (false)
+
+            if (s_useDotnet)
             {
+                foreach (var envVar in environmentVariables)
+                {
+                    Environment.SetEnvironmentVariable(envVar.Key, envVar.Value, EnvironmentVariableTarget.Process);
+                }
+
                 //TODO: if execute in debug vs. release dotnet.exe
                 Assembly asm = Assembly.LoadFrom(compileResult.AssemblyFullPath);
                 Type testClassType = asm.GetType(compileResult.AssemblyName);
@@ -116,6 +127,11 @@ namespace Antigen
                     sw.Close();
                 }
 
+                foreach (var envVar in environmentVariables)
+                {
+                    Environment.SetEnvironmentVariable(envVar.Key, null, EnvironmentVariableTarget.Process);
+                }
+
                 return Encoding.UTF8.GetString(ms.ToArray());
             }
             else
@@ -127,7 +143,6 @@ namespace Antigen
                     WorkingDirectory = Environment.CurrentDirectory,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
-                    RedirectStandardInput = true,
                     UseShellExecute = false,
                 };
 
@@ -136,13 +151,25 @@ namespace Antigen
                     info.EnvironmentVariables[envVar.Key] = envVar.Value;
                 }
 
-                using (Process proc = Process.Start(info))
+                using (Process proc = new Process())
                 {
-                    string results = proc.StandardOutput.ReadToEnd();
-                    results += proc.StandardError.ReadToEnd();
-                    proc.WaitForExit(1 * 60 * 1000); // 1 minute
+                    proc.StartInfo = info;
 
-                    return results;
+                    bool started = proc.Start();
+                    if (!started)
+                    {
+                        throw new Exception("Process not started");
+                    }
+
+                    // proc.StandardInput.Write(JsonConvert.SerializeObject(compileResult.Assembly));
+                    // proc.StandardInput.BaseStream.Write(compileResult.Assembly, 0, compileResult.Assembly.Length);
+                    // proc.StandardInput.Close();
+
+                    string output = proc.StandardOutput.ReadToEnd();
+                    string error = proc.StandardError.ReadToEnd();
+
+                    bool exited = proc.WaitForExit(30 * 1000); // 10 seconds
+                    return exited ? output + error : "TIMEOUT";
                 }
             }
         }
