@@ -336,13 +336,13 @@ namespace Antigen
                         {
                             StmtKind cur;
                             //TODO-config: Add MaxDepth in config
-                            if (depth >= 2)
+                            if (depth >= ConfigOptions.MaxStmtDepth)
                             {
                                 cur = StmtKind.VariableDeclaration;
                             }
                             else
                             {
-                                cur = GetASTUtils().GetRandomStatemet();
+                                cur = GetASTUtils().GetRandomStatement();
                             }
                             ifBody.Add(StatementHelper(cur, depth + 1));
                         }
@@ -356,13 +356,13 @@ namespace Antigen
                         {
                             StmtKind cur;
                             //TODO-config: Add MaxDepth in config
-                            if (depth >= 2)
+                            if (depth >= ConfigOptions.MaxStmtDepth)
                             {
                                 cur = StmtKind.VariableDeclaration;
                             }
                             else
                             {
-                                cur = GetASTUtils().GetRandomStatemet();
+                                cur = GetASTUtils().GetRandomStatement();
                             }
                             elseBody.Add(StatementHelper(cur, depth + 1));
                         }
@@ -449,13 +449,13 @@ namespace Antigen
                         for (int i = 0; i < n; ++i)
                         {
                             StmtKind cur;
-                            if (depth >= 2)
+                            if (depth >= ConfigOptions.MaxStmtDepth)
                             {
                                 cur = StmtKind.VariableDeclaration;
                             }
                             else
                             {
-                                cur = GetASTUtils().GetRandomStatemet();
+                                cur = GetASTUtils().GetRandomStatement();
                             }
                             forStmt.AddToBody(StatementHelper(cur, depth + 1));
                         }
@@ -483,13 +483,13 @@ namespace Antigen
                         for (int i = 0; i < n; ++i)
                         {
                             StmtKind cur;
-                            if (depth >= 2)
+                            if (depth >= ConfigOptions.MaxStmtDepth)
                             {
                                 cur = StmtKind.VariableDeclaration;
                             }
                             else
                             {
-                                cur = GetASTUtils().GetRandomStatemet();
+                                cur = GetASTUtils().GetRandomStatement();
                             }
                             doStmt.AddToBody(StatementHelper(cur, depth + 1));
                         }
@@ -516,13 +516,13 @@ namespace Antigen
                         for (int i = 0; i < n; ++i)
                         {
                             StmtKind cur;
-                            if (depth >= 2)
+                            if (depth >= ConfigOptions.MaxStmtDepth)
                             {
                                 cur = StmtKind.VariableDeclaration;
                             }
                             else
                             {
-                                cur = GetASTUtils().GetRandomStatemet();
+                                cur = GetASTUtils().GetRandomStatement();
                             }
                             whileStmt.AddToBody(StatementHelper(cur, depth + 1));
                         }
@@ -560,13 +560,13 @@ namespace Antigen
                         {
                             StmtKind cur;
                             //TODO-config: Add MaxDepth in config
-                            if (depth >= 2)
+                            if (depth >= ConfigOptions.MaxStmtDepth)
                             {
                                 cur = StmtKind.VariableDeclaration;
                             }
                             else
                             {
-                                cur = GetASTUtils().GetRandomStatemet();
+                                cur = GetASTUtils().GetRandomStatement();
                             }
                             tryBody.Add(StatementHelper(cur, depth + 1));
                         }
@@ -599,13 +599,13 @@ namespace Antigen
                             {
                                 StmtKind cur;
                                 //TODO-config: Add MaxDepth in config
-                                if (depth >= 2)
+                                if (depth >= ConfigOptions.MaxStmtDepth)
                                 {
                                     cur = StmtKind.VariableDeclaration;
                                 }
                                 else
                                 {
-                                    cur = GetASTUtils().GetRandomStatemet();
+                                    cur = GetASTUtils().GetRandomStatement();
                                 }
                                 catchBody.Add(StatementHelper(cur, depth + 1));
                             }
@@ -626,13 +626,13 @@ namespace Antigen
                             {
                                 StmtKind cur;
                                 //TODO-config: Add MaxDepth in config
-                                if (depth >= 2)
+                                if (depth >= ConfigOptions.MaxStmtDepth)
                                 {
                                     cur = StmtKind.VariableDeclaration;
                                 }
                                 else
                                 {
-                                    cur = GetASTUtils().GetRandomStatemet();
+                                    cur = GetASTUtils().GetRandomStatement();
                                 }
                                 finallyBody.Add(StatementHelper(cur, depth + 1));
                             }
@@ -667,13 +667,13 @@ namespace Antigen
                             {
                                 StmtKind cur;
                                 //TODO-config: Add MaxDepth in config
-                                if (depth >= 2)
+                                if (depth >= ConfigOptions.MaxStmtDepth)
                                 {
                                     cur = StmtKind.VariableDeclaration;
                                 }
                                 else
                                 {
-                                    cur = GetASTUtils().GetRandomStatemet();
+                                    cur = GetASTUtils().GetRandomStatement();
                                 }
                                 caseBody.Add(StatementHelper(cur, depth + 1));
                             }
@@ -703,13 +703,13 @@ namespace Antigen
                         {
                             StmtKind cur;
                             //TODO-config: Add MaxDepth in config
-                            if (depth >= 2)
+                            if (depth >= ConfigOptions.MaxStmtDepth)
                             {
                                 cur = StmtKind.VariableDeclaration;
                             }
                             else
                             {
-                                cur = GetASTUtils().GetRandomStatemet();
+                                cur = GetASTUtils().GetRandomStatement();
                             }
                             defaultBody.Add(StatementHelper(cur, depth + 1));
                         }
@@ -751,7 +751,7 @@ namespace Antigen
             {
                 case ExprKind.LiteralExpression:
                     {
-                        return Annotate(Helpers.GetLiteralExpression(exprType), "Literal");
+                        return Annotate(Helpers.GetLiteralExpression(exprType, TC._numerals), "Literal");
                     }
 
                 case ExprKind.VariableExpression:
@@ -797,7 +797,7 @@ namespace Antigen
                         // errors during compiling the test case.
                         if (op.HasFlag(OpFlags.Math) && lhsExprKind == ExprKind.LiteralExpression && rhsExprKind == ExprKind.LiteralExpression)
                         {
-                            return Annotate(Helpers.GetWrappedAndCastedExpression(exprType, exprType, Helpers.GetLiteralExpression(exprType)), "BinOp-folded");
+                            return Annotate(Helpers.GetWrappedAndCastedExpression(exprType, exprType, Helpers.GetLiteralExpression(exprType, TC._numerals)), "BinOp-folded");
                         }
 
                         //TODO-config: Add MaxDepth in config

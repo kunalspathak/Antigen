@@ -246,7 +246,7 @@ namespace Antigen
             {
                 string variableName = "s_" + Helpers.GetVariableName(variableType, _variablesCount++);
 
-                ExpressionSyntax rhs = Helpers.GetLiteralExpression(variableType);
+                ExpressionSyntax rhs = Helpers.GetLiteralExpression(variableType, TC._numerals);
                 CurrentScope.AddLocal(variableType, variableName);
 
                 fields.Add(FieldDeclaration(Helpers.GetVariableDeclaration(variableType, variableName, rhs))

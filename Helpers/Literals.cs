@@ -1,4 +1,5 @@
-﻿using Antigen.Tree;
+﻿using Antigen.Config;
+using Antigen.Tree;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -14,24 +15,7 @@ namespace Antigen
 {
     public static partial class Helpers
     {
-        private static char[] Alphabet = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
-
-        private static IList<Weights<int>> Numerals = new List<Weights<int>>()
-        {
-            new Weights<int>(int.MinValue, (double) PRNG.Next(1, 10) / 10000 ),
-            new Weights<int>(int.MinValue + 1, (double)PRNG.Next(1, 10) / 10000 ),
-            new Weights<int>(PRNG.Next(-100, -6), (double) PRNG.Next(1, 10) / 1000 ),
-            new Weights<int>(-5, (double) PRNG.Next(1, 10) / 1000 ),
-            new Weights<int>(-2, (double) PRNG.Next(1, 10) / 1000 ),
-            new Weights<int>(-1, (double) PRNG.Next(1, 10) / 1000 ),
-            new Weights<int>(0, (double) PRNG.Next(1, 10) / 1000 ),
-            new Weights<int>(1, (double) PRNG.Next(1, 10) / 1000 ),
-            new Weights<int>(2, (double) PRNG.Next(1, 10) / 1000 ),
-            new Weights<int>(5, (double) PRNG.Next(1, 10) / 1000 ),
-            new Weights<int>(PRNG.Next(6, 100), (double) PRNG.Next(1, 10) / 1000 ),
-            new Weights<int>(int.MaxValue - 1, (double) PRNG.Next(1, 10) / 10000 ),
-            new Weights<int>(int.MaxValue, (double) PRNG.Next(1, 10) / 10000 ),
-        };
+        public static char[] Alphabets = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
 
         public static byte GetRandomByte()
         {
@@ -70,16 +54,17 @@ namespace Antigen
 
         public static char GetRandomChar()
         {
-            return Alphabet[PRNG.Next(Alphabet.Length)];
+            return Alphabets[PRNG.Next(Alphabets.Length)];
         }
 
         public static string GetRandomString(int length = -1)
         {
             length = (length == -1) ? PRNG.Next(10) : length;
             StringBuilder strBuilder = new StringBuilder();
+
             for (int c = 0; c < length; c++)
             {
-                strBuilder.Append(Alphabet[PRNG.Next(Alphabet.Length)]);
+                strBuilder.Append(Alphabets[PRNG.Next(Alphabets.Length)]);
             }
             return strBuilder.ToString();
         }
@@ -109,7 +94,7 @@ namespace Antigen
             return (decimal)PRNG.Next(10) + (1 / PRNG.Next(1, 5));
         }
 
-        public static LiteralExpressionSyntax GetLiteralExpression(Tree.ValueType literalType)
+        public static LiteralExpressionSyntax GetLiteralExpression(Tree.ValueType literalType, IList<Weights<int>> numerals)
         {
             SyntaxToken literalToken;
             SyntaxKind kind;
@@ -118,7 +103,7 @@ namespace Antigen
             {
                 // numeric
                 kind = SyntaxKind.NumericLiteralExpression;
-                int literalValue = PRNG.WeightedChoice(Numerals);
+                int literalValue = PRNG.WeightedChoice(numerals);
 
                 // If unsigned, and number selected is negative, then flip it
                 if ((literalType.PrimitiveType & Primitive.UnsignedInteger) != 0)

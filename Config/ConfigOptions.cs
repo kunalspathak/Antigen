@@ -1,6 +1,7 @@
 ﻿using Antigen.Tree;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
@@ -16,6 +17,9 @@ namespace Antigen.Config
     {
         public const string WeightSuffix = "Weight";
 
+        // Statement max depth
+        public const int MaxStmtDepth = 4;
+
         // Expression weights
         public double LiteralWeight = 0.025;
         public double VariableWeight = 0.3;
@@ -27,11 +31,12 @@ namespace Antigen.Config
         public double VariableDeclarationWeight = 0.03; //TODO: Reduce this and add aliases when we see this.
         public double IfElseStatementWeight = 0.2;
         public double AssignStatementWeight = 0.6;
-        public double ForStatementWeight = 0.3;
-        public double DoWhileStatementWeight = 0.2;
-        public double WhileStatementWeight = 0.3;
+        public double ForStatementWeight = 0.1;
+        public double DoWhileStatementWeight = 0.05;
+        public double WhileStatementWeight = 0.08;
         public double TryCatchFinallyStatementWeight = 0.4;
         public double SwitchStatementWeight = 0.1;
+        public double MethodCallStatementWeight = 0.4;
 
         // Type weights
         public double BooleanWeight = 0.3;

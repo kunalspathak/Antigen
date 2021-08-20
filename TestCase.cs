@@ -54,6 +54,24 @@ namespace Antigen
         private SyntaxNode testCaseRoot;
         private static Dictionary<int, int> uniqueIssues = new Dictionary<int, int>();
 
+        internal IList<Weights<int>> _numerals = new List<Weights<int>>()
+        {
+            new Weights<int>(int.MinValue, (double) PRNG.Next(1, 10) / 10000 ),
+            new Weights<int>(int.MinValue + 1, (double)PRNG.Next(1, 10) / 10000 ),
+            new Weights<int>(PRNG.Next(-100, -6), (double) PRNG.Next(1, 10) / 1000 ),
+            new Weights<int>(-5, (double) PRNG.Next(1, 10) / 1000 ),
+            new Weights<int>(-2, (double) PRNG.Next(1, 10) / 1000 ),
+            new Weights<int>(-1, (double) PRNG.Next(1, 10) / 1000 ),
+            new Weights<int>(0, (double) PRNG.Next(1, 10) / 1000 ),
+            new Weights<int>(1, (double) PRNG.Next(1, 10) / 1000 ),
+            new Weights<int>(2, (double) PRNG.Next(1, 10) / 1000 ),
+            new Weights<int>(5, (double) PRNG.Next(1, 10) / 1000 ),
+            new Weights<int>(PRNG.Next(6, 100), (double) PRNG.Next(1, 10) / 1000 ),
+            new Weights<int>(int.MaxValue - 1, (double) PRNG.Next(1, 10) / 10000 ),
+            new Weights<int>(int.MaxValue, (double) PRNG.Next(1, 10) / 10000 ),
+        };
+
+
         //private List<SyntaxNode> classesList;
         //private List<SyntaxNode> methodsList;
         //private List<SyntaxNode> propertiesList;
