@@ -11,7 +11,7 @@
         ReturnStatement,
         TryCatchFinallyStatement,
         SwitchStatement,
-        //FunctionCallStatement,
+        MethodCallStatement,
     }
 
     //public class Statements

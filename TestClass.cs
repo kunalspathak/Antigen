@@ -191,12 +191,23 @@ namespace Antigen
                 methods.Add(testMethod.Generate());
             }
             methods.Add(new TestMethod(this, "Method0", true).Generate());
-            methods.Add(ParseMemberDeclaration(
-@$"public static void Main(string[] args) {{
-    {ClassName} obj{ClassName} = new {ClassName}();
-    obj{ClassName}.Method0();
-}}
-"));
+
+            var staticMethods = PreGenerated.StaticMethods;
+            var mainMethod = staticMethods[0];
+            var loggerMethod = staticMethods[1];
+            var printLogMethod = staticMethods[2];
+
+            mainMethod = mainMethod.WithBody(
+                Block(
+                    ParseStatement($"{ClassName} obj{ClassName} = new {ClassName}();"),
+                    ParseStatement($"obj{ClassName}.Method0();"),
+                    ParseStatement("PrintLog();")
+                    )
+                );
+
+            methods.Add(mainMethod);
+            methods.Add(loggerMethod);
+            methods.Add(printLogMethod);
 
             return methods;
         }
@@ -269,6 +280,8 @@ namespace Antigen
                         Constants.LoopInvariantName,
                         LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(10)))))
                 .WithModifiers(TokenList(Token(SyntaxKind.StaticKeyword))));
+
+            fields.Add(PreGenerated.LoggerVariableDecl);
 
             return fields;
         }

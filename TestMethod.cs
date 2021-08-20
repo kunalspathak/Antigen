@@ -170,9 +170,9 @@ namespace Antigen
                 }
 
                 // print all static variables
-                foreach (string variableName in _testClass.ClassScope.AllVariables)
+                foreach (var variableName in _testClass.ClassScope.AllVariables)
                 {
-                    methodBody.Add(ParseStatement($"Console.WriteLine(\"{variableName}= \" + {variableName});"));
+                    methodBody.Add(ParseStatement($"Log(\"{variableName}\", {variableName});"));
                 }
             }
 
@@ -181,9 +181,9 @@ namespace Antigen
             if (_stmtCount > 0)
             {
                 // print all variables
-                foreach (string variableName in CurrentScope.AllVariables)
+                foreach (var variableName in CurrentScope.AllVariables)
                 {
-                    methodBody.Add(ParseStatement($"Console.WriteLine(\"{variableName}= \" + {variableName});"));
+                    methodBody.Add(ParseStatement($"Log(\"{variableName}\", {variableName});"));
                 }
             }
 
@@ -615,7 +615,7 @@ namespace Antigen
                             PopScope(); // pop 'finally' body scope
                         }
 
-                        return Annotate(TryStatement(Block(tryBody), catchClauses.ToSyntaxList(), FinallyClause(Block(finallyBody))), "TryCatchFinally");
+                        return Annotate(TryStatement(Block(tryBody), catchClauses.ToSyntaxList(), FinallyClause(Block(finallyBody))), "TryCatchFinally", depth);
                     }
                 case StmtKind.SwitchStatement:
                     {
