@@ -25,7 +25,7 @@ namespace Antigen
         {
             SyntaxTree validTree = CSharpSyntaxTree.ParseText(treeRoot.ToFullString());
 
-#if DEBUG
+#if UNDEFINED
             if (doValidation)
             {
                 SyntaxTree syntaxTree = treeRoot.SyntaxTree;

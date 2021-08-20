@@ -338,7 +338,7 @@ namespace Antigen
                             //TODO-config: Add MaxDepth in config
                             if (depth >= ConfigOptions.MaxStmtDepth)
                             {
-                                cur = StmtKind.VariableDeclaration;
+                                cur = GetASTUtils().GetRandomTerminalStatement();
                             }
                             else
                             {
@@ -358,7 +358,7 @@ namespace Antigen
                             //TODO-config: Add MaxDepth in config
                             if (depth >= ConfigOptions.MaxStmtDepth)
                             {
-                                cur = StmtKind.VariableDeclaration;
+                                cur = GetASTUtils().GetRandomTerminalStatement();
                             }
                             else
                             {
@@ -396,11 +396,11 @@ namespace Antigen
                         }
 
                         ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, depth);
-                        ExpressionSyntax rhs = null;
+                        ExpressionSyntax rhs;
 
                         //TODO-config no. of attempts
                         int noOfAttempts = 0;
-                        while (noOfAttempts++ < 5)
+                        do
                         {
                             rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType), rhsExprType, depth);
                             // Make sure that we do not end up with same lhs=lhs.
@@ -408,7 +408,7 @@ namespace Antigen
                             {
                                 break;
                             }
-                        }
+                        } while (noOfAttempts++ < 5);
                         Debug.Assert(lhs.ToFullString() != rhs.ToFullString());
 
                         // For division, make sure that divisor is not 0
@@ -451,7 +451,7 @@ namespace Antigen
                             StmtKind cur;
                             if (depth >= ConfigOptions.MaxStmtDepth)
                             {
-                                cur = StmtKind.VariableDeclaration;
+                                cur = GetASTUtils().GetRandomTerminalStatement();
                             }
                             else
                             {
@@ -485,7 +485,7 @@ namespace Antigen
                             StmtKind cur;
                             if (depth >= ConfigOptions.MaxStmtDepth)
                             {
-                                cur = StmtKind.VariableDeclaration;
+                                cur = GetASTUtils().GetRandomTerminalStatement();
                             }
                             else
                             {
@@ -518,7 +518,7 @@ namespace Antigen
                             StmtKind cur;
                             if (depth >= ConfigOptions.MaxStmtDepth)
                             {
-                                cur = StmtKind.VariableDeclaration;
+                                cur = GetASTUtils().GetRandomTerminalStatement();
                             }
                             else
                             {
@@ -562,7 +562,7 @@ namespace Antigen
                             //TODO-config: Add MaxDepth in config
                             if (depth >= ConfigOptions.MaxStmtDepth)
                             {
-                                cur = StmtKind.VariableDeclaration;
+                                cur = GetASTUtils().GetRandomTerminalStatement();
                             }
                             else
                             {
@@ -601,7 +601,7 @@ namespace Antigen
                                 //TODO-config: Add MaxDepth in config
                                 if (depth >= ConfigOptions.MaxStmtDepth)
                                 {
-                                    cur = StmtKind.VariableDeclaration;
+                                    cur = GetASTUtils().GetRandomTerminalStatement();
                                 }
                                 else
                                 {
@@ -628,7 +628,7 @@ namespace Antigen
                                 //TODO-config: Add MaxDepth in config
                                 if (depth >= ConfigOptions.MaxStmtDepth)
                                 {
-                                    cur = StmtKind.VariableDeclaration;
+                                    cur = GetASTUtils().GetRandomTerminalStatement();
                                 }
                                 else
                                 {
@@ -669,7 +669,7 @@ namespace Antigen
                                 //TODO-config: Add MaxDepth in config
                                 if (depth >= ConfigOptions.MaxStmtDepth)
                                 {
-                                    cur = StmtKind.VariableDeclaration;
+                                    cur = GetASTUtils().GetRandomTerminalStatement();
                                 }
                                 else
                                 {
@@ -705,7 +705,7 @@ namespace Antigen
                             //TODO-config: Add MaxDepth in config
                             if (depth >= ConfigOptions.MaxStmtDepth)
                             {
-                                cur = StmtKind.VariableDeclaration;
+                                cur = GetASTUtils().GetRandomTerminalStatement();
                             }
                             else
                             {
@@ -782,9 +782,10 @@ namespace Antigen
 
                         ExprKind lhsExprKind, rhsExprKind;
                         //TODO-config: Add MaxDepth in config
-                        if (depth >= 3)
+                        if (depth >= ConfigOptions.MaxExprDepth)
                         {
-                            lhsExprKind = rhsExprKind = ExprKind.LiteralExpression;
+                            lhsExprKind = GetRandomTerminalExpression(exprType);
+                            rhsExprKind = GetRandomTerminalExpression(exprType);
                         }
                         else
                         {
@@ -825,11 +826,11 @@ namespace Antigen
                         }
 
                         ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, depth);
-                        ExpressionSyntax rhs = null;
+                        ExpressionSyntax rhs;
 
                         //TODO-config no. of attempts
                         int noOfAttempts = 0;
-                        while (noOfAttempts++ < 5)
+                        do
                         {
                             rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType), rhsExprType, depth);
                             // Make sure that we do not end up with same lhs=lhs.
@@ -837,7 +838,7 @@ namespace Antigen
                             {
                                 break;
                             }
-                        }
+                        } while (noOfAttempts++ < 5);
                         Debug.Assert(lhs.ToFullString() != rhs.ToFullString());
 
                         // For division, make sure that divisor is not 0
@@ -869,11 +870,11 @@ namespace Antigen
         public StatementSyntax VariableAssignmentHelper(Tree.ValueType exprType, string variableName)
         {
             ExpressionSyntax lhs = Annotate(Helpers.GetVariableAccessExpression(variableName), "specific-Var");
-            ExpressionSyntax rhs = null;
+            ExpressionSyntax rhs;
 
             //TODO-config no. of attempts
             int noOfAttempts = 0;
-            while (noOfAttempts++ < 5)
+            do
             {
                 rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(exprType.PrimitiveType), exprType, 0);
                 // Make sure that we do not end up with same lhs=lhs.
@@ -881,10 +882,49 @@ namespace Antigen
                 {
                     break;
                 }
-            }
+            } while (noOfAttempts++ < 5);
             Debug.Assert(lhs.ToFullString() != rhs.ToFullString());
 
             return Annotate(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, lhs, rhs)), "specific-Assign", 0);
+        }
+
+        /// <summary>
+        ///     Makes sure to pick either  a method call that has valid return type
+        ///     or one of the variable or literal expression.
+        /// </summary>
+        /// <param name="exprType"></param>
+        /// <returns></returns>
+        private ExprKind GetRandomTerminalExpression(Tree.ValueType exprType)
+        {
+            ExprKind kind;
+            bool gotValidMethodCall = false;
+
+            //TODO-config no. of attempts
+            int noOfAttempts = 0;
+            do
+            {
+                kind = GetASTUtils().GetRandomTerminalExpression();
+
+                if (kind != ExprKind.MethodCallExpression)
+                {
+                    break;
+                }
+
+                // If terminal expression is a method call, make sure we have a method that 
+                // returns value of "exprType"
+                if (_testClass.GetRandomMethod(exprType) != null)
+                {
+                    gotValidMethodCall = true;
+                    break;
+                }
+            } while (noOfAttempts++ < 5);
+
+            if (kind == ExprKind.MethodCallExpression && !gotValidMethodCall)
+            {
+                kind = PRNG.Decide(0.7) ? ExprKind.VariableExpression : ExprKind.LiteralExpression;
+            }
+
+            return kind;
         }
 
         private ExpressionSyntax MethodCallHelper(MethodSignature methodSig, int depth)

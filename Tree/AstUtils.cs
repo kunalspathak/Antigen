@@ -15,8 +15,8 @@ namespace Antigen.Tree
         private List<Weights<StmtKind>> AllStatements = new List<Weights<StmtKind>>();
         private List<Weights<ValueType>> AllTypes = new List<Weights<ValueType>>();
         private List<Weights<ValueType>> AllStatementsWithCFStmts = new List<Weights<ValueType>>();
-        private List<Weights<ValueType>> AllTerminalExpressions = new List<Weights<ValueType>>();
-        private List<Weights<ValueType>> AllTerminalStatements = new List<Weights<ValueType>>();
+        private List<Weights<ExprKind>> AllTerminalExpressions = new List<Weights<ExprKind>>();
+        private List<Weights<StmtKind>> AllTerminalStatements = new List<Weights<StmtKind>>();
         private List<Weights<ValueType>> AllTerminalStatementsWithCFStmts = new List<Weights<ValueType>>();
         private List<Weights<Operator>> AllOperators = new List<Weights<Operator>>();
 
@@ -45,7 +45,15 @@ namespace Antigen.Tree
                     // skip adding return as it will be added as the last statement of function
                     continue;
                 }
-                AllStatements.Add(new Weights<StmtKind>(stmt, Options.Lookup(stmt)));
+
+                var weight = new Weights<StmtKind>(stmt, Options.Lookup(stmt));
+
+                AllStatements.Add(weight);
+
+                if (stmt == StmtKind.AssignStatement || stmt == StmtKind.MethodCallStatement || stmt == StmtKind.VariableDeclaration)
+                {
+                    AllTerminalStatements.Add(weight);
+                }
             }
 
             // Initialize expressions
@@ -68,6 +76,11 @@ namespace Antigen.Tree
                 if (expr == ExprKind.VariableExpression)
                 {
                     AllStructExpressions.Add(weight);
+                }
+
+                if (expr == ExprKind.LiteralExpression || expr == ExprKind.VariableExpression || expr == ExprKind.MethodCallExpression)
+                {
+                    AllTerminalExpressions.Add(weight);
                 }
             }
 
@@ -129,6 +142,16 @@ namespace Antigen.Tree
             return PRNG.WeightedChoice(exprs);
         }
 
+        public ExprKind GetRandomTerminalExpression()
+        {
+            IEnumerable<Weights<ExprKind>> exprs =
+                from z in AllTerminalExpressions
+                select z;
+
+            // Do a weighted random choice.
+            return PRNG.WeightedChoice(exprs);
+        }
+
         public ExprKind GetRandomExpressionReturningPrimitive(Primitive returnPrimitiveType)
         {
             IEnumerable<Weights<ExprKind>> exprs;
@@ -156,11 +179,30 @@ namespace Antigen.Tree
 
         #region Random statement methods
 
-        public StmtKind GetRandomStatemet()
+        /// <summary>
+        ///     Get random statement
+        /// </summary>
+        /// <returns></returns>
+        public StmtKind GetRandomStatement()
         {
             // Select all appropriate statements
             IEnumerable<Weights<StmtKind>> stmts =
                                         from z in AllStatements
+                                        select z;
+
+            // Do a weighted random choice.
+            return PRNG.WeightedChoice(stmts);
+        }
+
+        /// <summary>
+        /// Get random terminal statement
+        /// </summary>
+        /// <returns></returns>
+        public StmtKind GetRandomTerminalStatement()
+        {
+            // Select all appropriate statements
+            IEnumerable<Weights<StmtKind>> stmts =
+                                        from z in AllTerminalStatements
                                         select z;
 
             // Do a weighted random choice.

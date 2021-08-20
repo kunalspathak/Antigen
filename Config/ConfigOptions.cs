@@ -19,12 +19,13 @@ namespace Antigen.Config
 
         // Statement max depth
         public const int MaxStmtDepth = 4;
+        public const int MaxExprDepth = 3;
 
         // Expression weights
         public double LiteralWeight = 0.025;
         public double VariableWeight = 0.3;
         public double BinaryOpWeight = 1;
-        public double MethodCallWeight = 0.23;
+        public double MethodCallWeight = 0.15;
         public double AssignWeight = 0.4;
 
         // Statement weights

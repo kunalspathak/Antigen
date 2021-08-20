@@ -32,7 +32,6 @@ namespace Antigen
 
     public class TestCase
     {
-        private static int outputDiffHashCode = "Output diff".GetHashCode();
         #region Compiler options
 
         public enum CompilationType
@@ -45,14 +44,14 @@ namespace Antigen
         #region PreComputed roslyn syntax tress
         #endregion
 
-        private List<string> knownDiffs = new List<string>()
+        private readonly List<string> _knownDiffs = new List<string>()
         {
             "System.OverflowException: Value was either too large or too small for a Decimal.",
             "System.DivideByZeroException: Attempted to divide by zero.",
         };
 
         private SyntaxNode testCaseRoot;
-        private static Dictionary<int, int> uniqueIssues = new Dictionary<int, int>();
+        private static readonly Dictionary<int, int> s_uniqueIssues = new();
 
         internal IList<Weights<int>> _numerals = new List<Weights<int>>()
         {
@@ -77,17 +76,17 @@ namespace Antigen
         //private List<SyntaxNode> propertiesList;
         //private List<SyntaxNode> fieldsList;
 
-        private static TestRunner TestRunner;
-        private static RunOptions RunOptions;
+        private static TestRunner s_testRunner;
+        private static RunOptions s_runOptions;
         public string Name { get; private set; }
         public AstUtils AstUtils { get; private set; }
 
         public TestCase(int testId, RunOptions runOptions)
         {
-            RunOptions = runOptions;
+            s_runOptions = runOptions;
             AstUtils = new AstUtils(this, new ConfigOptions(), null);
             Name = "TestClass" + testId;
-            TestRunner = TestRunner.GetInstance(RunOptions);
+            s_testRunner = TestRunner.GetInstance(s_runOptions);
         }
 
         public void Generate()
@@ -103,7 +102,7 @@ namespace Antigen
         {
             SyntaxTree syntaxTree = testCaseRoot.SyntaxTree; // RslnUtilities.GetValidSyntaxTree(testCaseRoot);
 
-            CompileResult compileResult = TestRunner.Compile(syntaxTree, Name);
+            CompileResult compileResult = s_testRunner.Compile(syntaxTree, Name);
             StringBuilder fileContents;
             if (compileResult.AssemblyFullPath == null)
             {
@@ -118,7 +117,7 @@ namespace Antigen
                 }
                 fileContents.AppendLine("*/");
 
-                string errorFile = Path.Combine(RunOptions.OutputDirectory, $"{Name}-compile-error.g.cs");
+                string errorFile = Path.Combine(s_runOptions.OutputDirectory, $"{Name}-compile-error.g.cs");
                 File.WriteAllText(errorFile, fileContents.ToString());
 
                 return TestResult.CompileError;
@@ -135,7 +134,7 @@ namespace Antigen
             var testVariables = Switches.TestVars();
 
             // Execute test first and see if we have any errors/asserts
-            string test = TestRunner.Execute(compileResult, testVariables, 30);
+            string test = s_testRunner.Execute(compileResult, testVariables, 30);
             string testAssertion = RslnUtilities.ParseAssertionError(test);
 
             // If OOM, skip
@@ -149,12 +148,12 @@ namespace Antigen
             // If test assertion
             else if (!string.IsNullOrEmpty(testAssertion))
             {
-                SaveTestCase(testCaseRoot, null, null, test, testVariables, testAssertion, $"{Name}-test-assertion");
+                SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, test, testVariables, testAssertion, $"{Name}-test-assertion");
                 return TestResult.Assertion;
             }
             else
             {
-                foreach (string knownError in knownDiffs)
+                foreach (string knownError in _knownDiffs)
                 {
                     if (test.Contains(knownError))
                     {
@@ -175,7 +174,7 @@ namespace Antigen
                 }
             }
 
-            string baseline = TestRunner.Execute(compileResult, baselineVariables, 30);
+            string baseline = s_testRunner.Execute(compileResult, baselineVariables, 30);
             string baselineAssertion = RslnUtilities.ParseAssertionError(baseline);
 
             // If OOM, ignore this diff
@@ -190,13 +189,13 @@ namespace Antigen
             else if (!string.IsNullOrEmpty(baselineAssertion))
             {
 
-                SaveTestCase(testCaseRoot, baseline, baselineVariables, null, null, baselineAssertion, $"{Name}-base-assertion");
+                SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, baseline, baselineVariables, null, null, baselineAssertion, $"{Name}-base-assertion");
                 return TestResult.Assertion;
             }
             // If baseline and test output doesn't match
             else if (baseline != test)
             {
-                SaveTestCase(testCaseRoot, baseline, baselineVariables, test, testVariables, "OutputMismatch", $"{ Name}-output-mismatch");
+                SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, baseline, baselineVariables, test, testVariables, "OutputMismatch", $"{ Name}-output-mismatch");
                 return TestResult.OutputMismatch;
             }
 
@@ -212,6 +211,7 @@ namespace Antigen
         }
 
         private void SaveTestCase(
+            string assemblyPath,
             SyntaxNode testCaseRoot,
             string baselineOutput,
             Dictionary<string, string> baselineVars,
@@ -226,13 +226,13 @@ namespace Antigen
             int assertionHashCode = failureText.GetHashCode();
             lock (this)
             {
-                if (!uniqueIssues.ContainsKey(assertionHashCode))
+                if (!s_uniqueIssues.ContainsKey(assertionHashCode))
                 {
-                    uniqueIssues[assertionHashCode] = uniqueIssues.Count;
+                    s_uniqueIssues[assertionHashCode] = s_uniqueIssues.Count;
                 }
 
                 // Create hash of testAssertion and copy files in respective bucket.
-                uniqueIssueDirName = Path.Combine(RunOptions.OutputDirectory, $"UniqueIssue{uniqueIssues[assertionHashCode] }");
+                uniqueIssueDirName = Path.Combine(s_runOptions.OutputDirectory, $"UniqueIssue{s_uniqueIssues[assertionHashCode] }");
                 if (!Directory.Exists(uniqueIssueDirName))
                 {
                     Directory.CreateDirectory(uniqueIssueDirName);
@@ -240,7 +240,7 @@ namespace Antigen
                 }
             }
 #if DEBUG
-            File.Move(compileResult.AssemblyFullPath, Path.Combine(RunOptions.OutputDirectory, $"{Name}-fail.exe"), overwrite: true);
+            File.Move(assemblyPath, Path.Combine(s_runOptions.OutputDirectory, $"{Name}-fail.exe"), overwrite: true);
 #endif
 
             StringBuilder fileContents = new StringBuilder();
