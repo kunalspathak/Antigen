@@ -369,8 +369,8 @@ namespace Antigen.Trimmer
             //    File.WriteAllText(workingFile, testCaseRoot.ToFullString());
             //}
 
-            string currRunBaselineOutput = hasAssertion ? string.Empty :_testRunner.Execute(compileResult, Switches.BaseLineVars());
-            string currRunTestOutput = _testRunner.Execute(compileResult, testEnvVars);
+            string currRunBaselineOutput = hasAssertion ? string.Empty :_testRunner.Execute(compileResult, Switches.BaseLineVars(), 10);
+            string currRunTestOutput = _testRunner.Execute(compileResult, testEnvVars, 10);
 
             TestResult verificationResult = string.IsNullOrEmpty(_originalTestAssertion) ? TestResult.OutputMismatch : TestResult.Assertion;
 

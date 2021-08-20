@@ -105,44 +105,33 @@ namespace Antigen
 
                 return TestResult.CompileError;
             }
-            //else
-            //{
-            //    string workingFile = Path.Combine(RunOptions.OutputDirectory, $"{Name}-working.g.cs");
-            //    File.WriteAllText(workingFile, testCaseRoot.ToFullString());
-            //}
+#if UNREACHABLE
+            else
+            {
+                string workingFile = Path.Combine(RunOptions.OutputDirectory, $"{Name}-working.g.cs");
+                File.WriteAllText(workingFile, testCaseRoot.ToFullString());
+            }
+#endif
 
             var baselineVariables = Switches.BaseLineVars();
             var testVariables = Switches.TestVars();
 
             // Execute test first and see if we have any errors/asserts
-            string test = TestRunner.Execute(compileResult, testVariables);
+            string test = TestRunner.Execute(compileResult, testVariables, 30);
             string testAssertion = RslnUtilities.ParseAssertionError(test);
 
             // If OOM, skip
             if (test.Contains("Out of memory"))
             {
-                SaveTestCase(testCaseRoot, null, null, test, testVariables, RunOptions.OutputDirectory, $"{Name}-oom");
+#if UNREACHABLE
+                        SaveTestCase(testCaseRoot, null, null, test, testVariables, "Out of memory", $"{Name}-test-oom");
+#endif
                 return TestResult.OOM;
             }
-            // If assertion
+            // If test assertion
             else if (!string.IsNullOrEmpty(testAssertion))
             {
-                int assertionHashCode = testAssertion.GetHashCode();
-                if (!uniqueIssues.ContainsKey(assertionHashCode))
-                {
-                    uniqueIssues[assertionHashCode] = uniqueIssues.Count;
-                }
-
-                // Create hash of testAssertion and copy files in respective bucket.
-                string uniqueIssueDirName = Path.Combine(RunOptions.OutputDirectory, $"UniqueIssue{uniqueIssues[assertionHashCode] }");
-                if (!Directory.Exists(uniqueIssueDirName))
-                {
-                    Directory.CreateDirectory(uniqueIssueDirName);
-                }
-
-                SaveTestCase(testCaseRoot, null, null, test, testVariables, uniqueIssueDirName, $"{Name}-fail"); 
-                File.Move(compileResult.AssemblyFullPath, Path.Combine(RunOptions.OutputDirectory, $"{Name}-fail.exe"), overwrite: true);
-
+                SaveTestCase(testCaseRoot, null, null, test, testVariables, testAssertion, $"{Name}-test-assertion");
                 return TestResult.Assertion;
             }
             else
@@ -159,99 +148,49 @@ namespace Antigen
                         {
                             // ignore errors 
                         }
-
-                        //TODO: Temporary - should delete once we fix all the knownerrors.
-                        SaveTestCase(testCaseRoot, null, null, test, testVariables, RunOptions.OutputDirectory, $"{Name}-knownerrors");
+#if UNREACHABLE
+                        SaveTestCase(testCaseRoot, null, null, test, testVariables, knownError, $"{Name}-knownerrors");
+#endif
 
                         return TestResult.KnownErrors;
                     }
                 }
             }
 
-
-            string baseline = TestRunner.Execute(compileResult, baselineVariables);
+            string baseline = TestRunner.Execute(compileResult, baselineVariables, 30);
             string baselineAssertion = RslnUtilities.ParseAssertionError(baseline);
 
-            // Make sure baseline/test output is same
-            if (baseline == test)
+            // If OOM, ignore this diff
+            if (baseline.Contains("Out of memory"))
             {
-                try
-                {
-                    File.Delete(compileResult.AssemblyFullPath);
-                }
-                catch (Exception)
-                {
-                    // ignore errors 
-                }
-                return TestResult.Pass;
+#if UNREACHABLE
+                SaveTestCase(testCaseRoot, baseline, baselineVariables, null, null, "Out of memory", $"{Name}-base-oom");
+#endif
+                return TestResult.OOM;
+            }
+            // Is there assertion in baseline?
+            else if (!string.IsNullOrEmpty(baselineAssertion))
+            {
+
+                SaveTestCase(testCaseRoot, baseline, baselineVariables, null, null, baselineAssertion, $"{Name}-base-assertion");
+                return TestResult.Assertion;
+            }
+            // If baseline and test output doesn't match
+            else if (baseline != test)
+            {
+                SaveTestCase(testCaseRoot, baseline, baselineVariables, test, testVariables, "OutputMismatch", $"{ Name}-output-mismatch");
+                return TestResult.OutputMismatch;
             }
 
-            string outputMismatchDirName = Path.Combine(RunOptions.OutputDirectory, "OutputMismatch");
-            if (!Directory.Exists(outputMismatchDirName))
+            try
             {
-                Directory.CreateDirectory(outputMismatchDirName);
+                File.Delete(compileResult.AssemblyFullPath);
             }
-
-            SaveTestCase(testCaseRoot, baseline, baselineVariables, test, testVariables, outputMismatchDirName, $"{Name}-fail");
-            File.Move(compileResult.AssemblyFullPath, Path.Combine(RunOptions.OutputDirectory, $"{Name}-fail.exe"), overwrite: true);
-
-            return TestResult.OutputMismatch;
-
-
-            //foreach (string knownError in knownDiffs)
-            //{
-            //    if (baseline.Contains(knownError) && test.Contains(knownError))
-            //    {
-            //        try
-            //        {
-            //            File.Delete(compileResult.AssemblyFullPath);
-            //        }
-            //        catch (Exception)
-            //        {
-            //            // ignore errors 
-            //        }
-            //        SaveTestCase(testCaseRoot, baseline, baselineVariables, test, testVariables, RunOptions.OutputDirectory, $"{Name}-knownerrors");
-
-            //        return TestResult.KnownErrors;
-            //    }
-            //}
-
-            //if (baseline.Contains("Out of memory") || test.Contains("Out of memory"))
-            //{
-            //    SaveTestCase(testCaseRoot, baseline, baselineVariables, test, testVariables, RunOptions.OutputDirectory, $"{Name}-oom");
-            //    return TestResult.OOM;
-            //}
-
-            //if ((baseline == test) && string.IsNullOrEmpty(baselineAssertion))
-            //{
-            //    try
-            //    {
-            //        File.Delete(compileResult.AssemblyFullPath);
-            //    }
-            //    catch (Exception)
-            //    {
-            //        // ignore errors 
-            //    }
-            //    return TestResult.Pass;
-            //}
-
-            //int assertionHashCode = testAssertion == null ? outputDiffHashCode : testAssertion.GetHashCode();
-            //if (!uniqueIssues.ContainsKey(assertionHashCode))
-            //{
-            //    uniqueIssues[assertionHashCode] = uniqueIssues.Count;
-            //}
-
-            //// Create hash of testAssertion and copy files in respective bucket.
-            //string uniqueIssueDirName = Path.Combine(RunOptions.OutputDirectory, $"UniqueIssue{uniqueIssues[assertionHashCode] }");
-            //if (!Directory.Exists(uniqueIssueDirName))
-            //{
-            //    Directory.CreateDirectory(uniqueIssueDirName);
-            //}
-
-            //SaveTestCase(testCaseRoot, baseline, baselineVariables, test, testVariables, uniqueIssueDirName, $"{Name}-fail");
-
-            //File.Move(compileResult.AssemblyFullPath, Path.Combine(RunOptions.OutputDirectory, $"{Name}-fail.exe"), overwrite: true);
-            //return string.IsNullOrEmpty(testAssertion) ? TestResult.OutputMismatch : TestResult.Assertion;
+            catch (Exception)
+            {
+                // ignore errors 
+            }
+            return TestResult.Pass;
         }
 
         private void SaveTestCase(
@@ -260,9 +199,32 @@ namespace Antigen
             Dictionary<string, string> baselineVars,
             string testOutput,
             Dictionary<string, string> testVars,
-            string folderName,
+            string failureText,
             string testFileName)
         {
+
+            string output = string.IsNullOrEmpty(baselineOutput) ? testOutput : baselineOutput;
+            string uniqueIssueDirName = null;
+            int assertionHashCode = failureText.GetHashCode();
+            lock (this)
+            {
+                if (!uniqueIssues.ContainsKey(assertionHashCode))
+                {
+                    uniqueIssues[assertionHashCode] = uniqueIssues.Count;
+                }
+
+                // Create hash of testAssertion and copy files in respective bucket.
+                uniqueIssueDirName = Path.Combine(RunOptions.OutputDirectory, $"UniqueIssue{uniqueIssues[assertionHashCode] }");
+                if (!Directory.Exists(uniqueIssueDirName))
+                {
+                    Directory.CreateDirectory(uniqueIssueDirName);
+                    File.WriteAllText(Path.Combine(uniqueIssueDirName, "summary.txt"), output);
+                }
+            }
+#if DEBUG
+            File.Move(compileResult.AssemblyFullPath, Path.Combine(RunOptions.OutputDirectory, $"{Name}-fail.exe"), overwrite: true);
+#endif
+
             StringBuilder fileContents = new StringBuilder();
             if (baselineVars != null)
             {
@@ -300,7 +262,7 @@ namespace Antigen
             fileContents.AppendLine(testOutput);
             fileContents.AppendLine("*/");
 
-            string failFile = Path.Combine(folderName, $"{testFileName}.g.cs");
+            string failFile = Path.Combine(uniqueIssueDirName, $"{testFileName}.g.cs");
             File.WriteAllText(failFile, fileContents.ToString());
         }
 

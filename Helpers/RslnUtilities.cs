@@ -85,9 +85,9 @@ namespace Antigen
             }
 
             // If Fatal error, return text as it is.
-            if (output.Contains("Fatal error."))
+            if (output.Contains("Fatal error. System.AccessViolationException: Attempted to read or write protected memory. This is often an indication that other memory is corrupt."))
             {
-                return output;
+                return "Fatal error. System.AccessViolationException: Attempted to read or write protected memory. This is often an indication that other memory is corrupt.";
             }
 
 

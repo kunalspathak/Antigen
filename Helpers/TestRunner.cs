@@ -84,7 +84,7 @@ namespace Antigen
         ///     Execute the compiled assembly in an environment that has <paramref name="environmentVariables"/>.
         /// </summary>
         /// <returns></returns>
-        internal string Execute(CompileResult compileResult, Dictionary<string, string> environmentVariables)
+        internal string Execute(CompileResult compileResult, Dictionary<string, string> environmentVariables, int timeoutInSecs)
         {
             Debug.Assert(compileResult.AssemblyFullPath != null);
 
@@ -164,7 +164,7 @@ namespace Antigen
                     string output = proc.StandardOutput.ReadToEnd();
                     string error = proc.StandardError.ReadToEnd();
 
-                    bool exited = proc.WaitForExit(30 * 1000); // 10 seconds
+                    bool exited = proc.WaitForExit(timeoutInSecs * 1000); // 10 seconds
                     return exited ? output + error : "TIMEOUT";
                 }
             }
