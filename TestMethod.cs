@@ -701,6 +701,10 @@ namespace Antigen
 
                         return Annotate(SwitchStatement(switchExpr).WithSections(listOfCases.ToSyntaxList()), "SwitchCase", depth);
                     }
+                case StmtKind.MethodCallStatement:
+                    {
+                        return Annotate(ExpressionStatement(MethodCallHelper(_testClass.GetRandomMethod(), depth)), "MethodCall", depth); ;
+                    }
                 default:
                     Debug.Assert(false, string.Format("Hit unknown statement type {0}", Enum.GetName(typeof(StmtKind), stmtKind)));
                     break;

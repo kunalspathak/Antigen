@@ -44,14 +44,7 @@ namespace Antigen
 
         public void RegisterMethod(MethodSignature methodSignature)
         {
-            double weight = 0.5;
-            if (methodSignature.MethodName.StartsWith("Leaf"))
-            {
-                // left methods have lower weight. try calling actual
-                // methods first.
-                weight = 0.20;
-            }
-            _methods.Add(new Weights<MethodSignature>(methodSignature, weight));
+            _methods.Add(new Weights<MethodSignature>(methodSignature, (double) PRNG.Next(1, 100) / 100));
         }
 
         /// <summary>
@@ -71,6 +64,15 @@ namespace Antigen
                 return null;
             }
             return PRNG.WeightedChoice(matchingMethods);
+        }
+
+        /// <summary>
+        ///     Get random method that returns any type.
+        /// </summary>
+        /// <returns></returns>
+        public MethodSignature GetRandomMethod()
+        {
+            return PRNG.WeightedChoice(_methods);
         }
 
         public Scope CurrentScope
