@@ -113,7 +113,7 @@ namespace Antigen
                 ExpressionSyntax rhs = ExprHelper(ExprKind.LiteralExpression, variableType, 0);
                 CurrentScope.AddLocal(variableType, variableName);
 
-                methodBody.Add(Annotate(LocalDeclarationStatement(Helpers.GetVariableDeclaration(variableType, variableName, rhs)), "var-init"));
+                methodBody.Add(Annotate(LocalDeclarationStatement(Helpers.GetVariableDeclaration(variableType, variableName, rhs)), "var-init", 0));
             }
 
             // TODO-TEMP initialize one variable of each struct type
@@ -138,7 +138,7 @@ namespace Antigen
 
                 methodBody.Add(Annotate(LocalDeclarationStatement(
                     Helpers.GetVariableDeclaration(structType, variableName,
-                    Helpers.GetObjectCreationExpression(structType.TypeName))), "struct-init"));
+                    Helpers.GetObjectCreationExpression(structType.TypeName))), "struct-init", 0));
             }
 
             // TODO-TEMP initialize out and ref method parameters
@@ -166,7 +166,7 @@ namespace Antigen
                     ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, nonLeafMethod.ReturnType, 0);
                     ExpressionSyntax rhs = MethodCallHelper(nonLeafMethod, 0);
 
-                    methodBody.Add(Annotate(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, lhs, rhs)), "MethodCall-Assign"));
+                    methodBody.Add(Annotate(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, lhs, rhs)), "MethodCall-Assign", 0));
                 }
 
                 // print all static variables
@@ -293,7 +293,7 @@ namespace Antigen
                             }
                         }
 
-                        return Annotate(LocalDeclarationStatement(Helpers.GetVariableDeclaration(variableType, variableName, rhs)), "VarDecl");
+                        return Annotate(LocalDeclarationStatement(Helpers.GetVariableDeclaration(variableType, variableName, rhs)), "VarDecl", depth);
                     }
                 case StmtKind.IfElseStatement:
                     {
@@ -344,7 +344,7 @@ namespace Antigen
                         }
                         PopScope(); // pop 'else' body scope
 
-                        return Annotate(IfStatement(conditionExpr, Block(ifBody), ElseClause(Block(elseBody))), "IfElse");
+                        return Annotate(IfStatement(conditionExpr, Block(ifBody), ElseClause(Block(elseBody))), "IfElse", depth);
                     }
                 case StmtKind.AssignStatement:
                     {
@@ -394,7 +394,7 @@ namespace Antigen
                             rhs = Helpers.GetWrappedAndCastedExpression(rhsExprType, lhsExprType, rhs);
                         }
 
-                        return Annotate(ExpressionStatement(AssignmentExpression(assignOper.Oper, lhs, rhs)), "Assign");
+                        return Annotate(ExpressionStatement(AssignmentExpression(assignOper.Oper, lhs, rhs)), "Assign", depth);
                     }
                 case StmtKind.ForStatement:
                     {
@@ -438,7 +438,7 @@ namespace Antigen
 
                         PopScope(); // pop for-loop scope
 
-                        return Annotate(Block(forStmt.Generate(false)), "for-loop");
+                        return Annotate(Block(forStmt.Generate(false)), "for-loop", depth);
                     }
                 case StmtKind.DoWhileStatement:
                     {
@@ -471,7 +471,7 @@ namespace Antigen
                         }
 
                         PopScope(); // pop do-while scope
-                        return Annotate(Block(doStmt.Generate(false)), "do-while");
+                        return Annotate(Block(doStmt.Generate(false)), "do-while", depth);
                     }
                 case StmtKind.WhileStatement:
                     {
@@ -504,18 +504,18 @@ namespace Antigen
                         }
 
                         PopScope(); // pop while scope
-                        return Annotate(Block(whileStmt.Generate(false)), "while-loop");
+                        return Annotate(Block(whileStmt.Generate(false)), "while-loop", depth);
                     }
                 case StmtKind.ReturnStatement:
                     {
                         Tree.ValueType returnType = MethodSignature.ReturnType;
                         if (returnType.PrimitiveType == Primitive.Void)
                         {
-                            return Annotate(ReturnStatement(), "Return");
+                            return Annotate(ReturnStatement(), "Return", depth);
                         }
 
                         ExpressionSyntax returnExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(returnType.PrimitiveType), returnType, depth);
-                        return Annotate(ReturnStatement(returnExpr), "Return");
+                        return Annotate(ReturnStatement(returnExpr), "Return", depth);
                     }
                 case StmtKind.TryCatchFinallyStatement:
                     {
@@ -699,10 +699,10 @@ namespace Antigen
                                     DefaultSwitchLabel()))
                             .WithStatements(defaultBody.ToSyntaxList()));
 
-                        return Annotate(SwitchStatement(switchExpr).WithSections(listOfCases.ToSyntaxList()), "SwitchCase");
+                        return Annotate(SwitchStatement(switchExpr).WithSections(listOfCases.ToSyntaxList()), "SwitchCase", depth);
                     }
                 default:
-                    Debug.Assert(false, String.Format("Hit unknown statement type {0}", Enum.GetName(typeof(StmtKind), stmtKind)));
+                    Debug.Assert(false, string.Format("Hit unknown statement type {0}", Enum.GetName(typeof(StmtKind), stmtKind)));
                     break;
             }
             return null;
@@ -847,7 +847,7 @@ namespace Antigen
             }
             Debug.Assert(lhs.ToFullString() != rhs.ToFullString());
 
-            return Annotate(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, lhs, rhs)), "specific-Assign");
+            return Annotate(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, lhs, rhs)), "specific-Assign", 0);
         }
 
         private ExpressionSyntax MethodCallHelper(MethodSignature methodSig, int depth)
@@ -914,7 +914,7 @@ namespace Antigen
 #endif
         }
 
-        private StatementSyntax Annotate(StatementSyntax statement, string comment)
+        private StatementSyntax Annotate(StatementSyntax statement, string comment, int depth)
         {
 #if DEBUG
             string typeName = statement.GetType().Name;
@@ -923,7 +923,7 @@ namespace Antigen
                 statementsCount[typeName] = 0;
             }
             statementsCount[typeName]++;
-            return statement.WithTrailingTrivia(TriviaList(Comment($"/* S#{statementsCount[typeName]}: {comment} */")));
+            return statement.WithTrailingTrivia(TriviaList(Comment($"/* {depth}: S#{statementsCount[typeName]}: {comment} */")));
 #else
             return statement;
 #endif
