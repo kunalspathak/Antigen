@@ -474,7 +474,7 @@ namespace Antigen.Statements
                     {
                         Name = "__loopSecondaryVar" + _nestNum + "_" + i,
                         LoopParameters = TC.AstUtils.GetForBoundParameters(),
-                        IsPrimary = PRNG.Decide(0.1)    // Have 10% of extra primary induction variables              
+                        IsPrimary = PRNG.Decide(0.1)    // Have 10% of extra primary induction variables
                     });
                 }
                 ValidateInductionVariablesParams();
@@ -526,6 +526,11 @@ namespace Antigen.Statements
         public void AddToBody(StatementSyntax stmt)
         {
             Body.Add(stmt);
+        }
+
+        public void LogVariable(string name)
+        {
+            TestMethod.LogVariable(Body, name);
         }
 
         public LoopStatement(TestCase tc)

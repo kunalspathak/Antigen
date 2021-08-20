@@ -1,4 +1,5 @@
-﻿using Antigen.Statements;
+﻿using Antigen.Config;
+using Antigen.Statements;
 using Antigen.Tree;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -49,11 +50,26 @@ namespace Antigen
             _testClass.PushScope(scope);
         }
 
-        protected Scope PopScope()
+        protected Scope PopScope(Action<string> trackLocalVariables)
         {
             Scope ret = _testClass.PopScope();
-            //Debug.Assert(ret.Parent == ScopeStack.Peek());
+
+            // Before poping, log the variables
+            foreach (var variableName in ret.AllVariables)
+            {
+                //TODO-config: Add MaxDepth in config
+                if (PRNG.Decide(0.8))
+                {
+                    trackLocalVariables(variableName);
+                }
+            }
+
             return ret;
+        }
+
+        internal static void LogVariable(IList<StatementSyntax> stmtList, string variableName)
+        {
+            stmtList.Add(ParseStatement($"Log(\"{variableName}\", {variableName});"));
         }
 
         /// <summary>
@@ -151,7 +167,7 @@ namespace Antigen
 
             for (int i = 0; i < _stmtCount; i++)
             {
-                StmtKind cur = GetASTUtils().GetRandomStatemet();
+                StmtKind cur = GetASTUtils().GetRandomStatement();
                 methodBody.Add(StatementHelper(cur, 0));
             }
 
@@ -190,7 +206,7 @@ namespace Antigen
             // return statement
             methodBody.Add(StatementHelper(StmtKind.ReturnStatement, 0));
 
-            PopScope();
+            PopScope(variableName => { });
 
             RegisterMethod(MethodSignature);
 
@@ -270,6 +286,14 @@ namespace Antigen
                     .WithParameterList(ParameterList(SeparatedList<ParameterSyntax>(parameterNodes)));
         }
 
+
+        /// <summary>
+        ///     Generate statement of <paramref name="stmtKind"/>. It will generate terminal statement
+        ///     if <paramref name="depth"/> exceeds the threshold.
+        /// </summary>
+        /// <param name="stmtKind"></param>
+        /// <param name="depth"></param>
+        /// <returns></returns>
         public StatementSyntax StatementHelper(StmtKind stmtKind, int depth)
         {
             switch (stmtKind)
@@ -322,7 +346,7 @@ namespace Antigen
                             }
                             ifBody.Add(StatementHelper(cur, depth + 1));
                         }
-                        PopScope(); // pop 'if' body scope
+                        PopScope(variableName => LogVariable(ifBody, variableName)); // pop 'if' body scope
 
                         int elsecount = PRNG.Next(1, s_maxStatements);
                         IList<StatementSyntax> elseBody = new List<StatementSyntax>();
@@ -342,7 +366,7 @@ namespace Antigen
                             }
                             elseBody.Add(StatementHelper(cur, depth + 1));
                         }
-                        PopScope(); // pop 'else' body scope
+                        PopScope(variableName => LogVariable(elseBody, variableName)); // pop 'else' body scope
 
                         return Annotate(IfStatement(conditionExpr, Block(ifBody), ElseClause(Block(elseBody))), "IfElse", depth);
                     }
@@ -436,7 +460,7 @@ namespace Antigen
                             forStmt.AddToBody(StatementHelper(cur, depth + 1));
                         }
 
-                        PopScope(); // pop for-loop scope
+                        PopScope(variableName => forStmt.LogVariable(variableName)); // pop for-loop scope
 
                         return Annotate(Block(forStmt.Generate(false)), "for-loop", depth);
                     }
@@ -470,7 +494,7 @@ namespace Antigen
                             doStmt.AddToBody(StatementHelper(cur, depth + 1));
                         }
 
-                        PopScope(); // pop do-while scope
+                        PopScope(variableName => doStmt.LogVariable(variableName)); // pop do-while scope
                         return Annotate(Block(doStmt.Generate(false)), "do-while", depth);
                     }
                 case StmtKind.WhileStatement:
@@ -503,7 +527,7 @@ namespace Antigen
                             whileStmt.AddToBody(StatementHelper(cur, depth + 1));
                         }
 
-                        PopScope(); // pop while scope
+                        PopScope(variableName => whileStmt.LogVariable(variableName)); // pop while scope
                         return Annotate(Block(whileStmt.Generate(false)), "while-loop", depth);
                     }
                 case StmtKind.ReturnStatement:
@@ -546,7 +570,7 @@ namespace Antigen
                             }
                             tryBody.Add(StatementHelper(cur, depth + 1));
                         }
-                        PopScope(); // pop 'try' body scope
+                        PopScope(variableName => LogVariable(tryBody, variableName)); // pop 'try' body scope
 
                         IList<CatchClauseSyntax> catchClauses = new List<CatchClauseSyntax>();
                         var allExceptions = Tree.ValueType.AllExceptions;
@@ -585,7 +609,7 @@ namespace Antigen
                                 }
                                 catchBody.Add(StatementHelper(cur, depth + 1));
                             }
-                            PopScope(); // pop 'catch' body scope
+                            PopScope(variableName => LogVariable(catchBody, variableName)); // pop 'catch' body scope
 
                             catchClauses.Add(CatchClause(CatchDeclaration(IdentifierName(exceptionToCatch.Name)), null, Block(catchBody)));
                         }
@@ -612,7 +636,7 @@ namespace Antigen
                                 }
                                 finallyBody.Add(StatementHelper(cur, depth + 1));
                             }
-                            PopScope(); // pop 'finally' body scope
+                            PopScope(variableName => LogVariable(finallyBody, variableName)); // pop 'finally' body scope
                         }
 
                         return Annotate(TryStatement(Block(tryBody), catchClauses.ToSyntaxList(), FinallyClause(Block(finallyBody))), "TryCatchFinally", depth);
@@ -653,9 +677,9 @@ namespace Antigen
                                 }
                                 caseBody.Add(StatementHelper(cur, depth + 1));
                             }
-                            caseBody.Add(BreakStatement());
-                            PopScope(); // pop 'case' body scope
 
+                            PopScope(variableName => LogVariable(caseBody, variableName)); // pop 'case' body scope
+                            caseBody.Add(BreakStatement());
 
                             LiteralExpressionSyntax caseLiteralExpression;
                             do
@@ -689,8 +713,9 @@ namespace Antigen
                             }
                             defaultBody.Add(StatementHelper(cur, depth + 1));
                         }
+
+                        PopScope(variableName => LogVariable(defaultBody, variableName)); // pop 'default' body scope
                         defaultBody.Add(BreakStatement());
-                        PopScope(); // pop 'default' body scope
 
                         listOfCases.Add(
                             SwitchSection()
@@ -712,6 +737,14 @@ namespace Antigen
             return null;
         }
 
+        /// <summary>
+        ///     Generate statement of <paramref name="exprKind"/> that returns a value of <paramref name="exprType"/>
+        ///     type. It will generate terminal expression if <paramref name="depth"/> exceeds the threshold.
+        /// </summary>
+        /// <param name="exprKind"></param>
+        /// <param name="exprType"></param>
+        /// <param name="depth"></param>
+        /// <returns></returns>
         public ExpressionSyntax ExprHelper(ExprKind exprKind, Tree.ValueType exprType, int depth)
         {
             switch (exprKind)
