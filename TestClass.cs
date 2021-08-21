@@ -119,8 +119,7 @@ namespace Antigen
         {
             List<MemberDeclarationSyntax> structs = new List<MemberDeclarationSyntax>();
 
-            //TODO:config - number of structs
-            for (int structIndex = 1; structIndex <= 5; structIndex++)
+            for (int structIndex = 1; structIndex <= TC.Config.StructCount; structIndex++)
             {
                 string structName = $"S{structIndex}";
                 var (structDecl, fields) = GenerateStruct(structName, structName, structIndex, 1);
@@ -135,13 +134,10 @@ namespace Antigen
 
                 List<MemberDeclarationSyntax> fieldsTree = new List<MemberDeclarationSyntax>();
                 List<StructField> fieldsMetadata = new List<StructField>();
-                //TODO: config - number of fields
-                int fieldCount = PRNG.Next(1, 5);
+                int fieldCount = PRNG.Next(1, TC.Config.StructFieldCount);
                 for (int fieldIndex = 1; fieldIndex <= fieldCount; fieldIndex++)
                 {
-                    //TODO:config - probability of nested structs
-                    //TODO:config - struct nested depth
-                    if (PRNG.Decide(0.1) && depth < 3)
+                    if (PRNG.Decide(TC.Config.NestedStructProbability) && depth < TC.Config.NestedStructDepth)
                     {
                         string nestedStructName = $"S{structIndex}_D{depth}_F{fieldIndex}";
                         string nestedStructType = structType + "." + nestedStructName;
@@ -155,8 +151,7 @@ namespace Antigen
                     Tree.ValueType fieldType;
                     string fieldName;
 
-                    //TODO:config - probability of fields of type struct
-                    if (PRNG.Decide(0.3) && CurrentScope.NumOfStructTypes > 0)
+                    if (PRNG.Decide(TC.Config.StructFieldTypeProbability) && CurrentScope.NumOfStructTypes > 0)
                     {
                         fieldType = CurrentScope.AllStructTypes[PRNG.Next(CurrentScope.NumOfStructTypes)];
                     }
@@ -184,8 +179,7 @@ namespace Antigen
         {
             List<MemberDeclarationSyntax> methods = new List<MemberDeclarationSyntax>();
 
-            //TODO-config: No. of methods per class
-            for (int i = 1; i < 2; i++)
+            for (int i = 1; i < TC.Config.MethodCount; i++)
             {
                 var testMethod = new TestMethod(this, "Method" + i);
                 methods.Add(testMethod.Generate());

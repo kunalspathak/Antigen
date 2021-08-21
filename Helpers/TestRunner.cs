@@ -98,7 +98,7 @@ namespace Antigen
                 //TODO: if execute in debug vs. release dotnet.exe
                 Assembly asm = Assembly.LoadFrom(compileResult.AssemblyFullPath);
                 Type testClassType = asm.GetType(compileResult.AssemblyName);
-                MethodInfo mainMethodInfo = testClassType.GetMethod(RunOptions.MainMethodName);
+                MethodInfo mainMethodInfo = testClassType.GetMethod("Main");
                 Action<string[]> entryPoint = (Action<string[]>)Delegate.CreateDelegate(typeof(Action<string[]>), mainMethodInfo);
 
                 Exception ex = null;

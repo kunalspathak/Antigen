@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Antigen.Config;
@@ -11,8 +12,8 @@ namespace Antigen
 {
     class Program
     {
-        static object SpinLock = new object();
-        public static RunOptions RunOptions = new RunOptions();
+        static readonly object s_spinLock = new object();
+        private static readonly RunOptions s_runOptions = RunOptions.Initialize();
         private static readonly Dictionary<TestResult, int> s_stats = new Dictionary<TestResult, int>()
         {
             { TestResult.CompileError, 0 },
@@ -29,20 +30,20 @@ namespace Antigen
         {
             try
             {
-                PRNG.Initialize(RunOptions.Seed);
+                PRNG.Initialize(s_runOptions.Seed);
                 Switches.Initialize();
-                RunOptions.CoreRun = args[0];
+                s_runOptions.CoreRun = args[0];
 
                 // trimmer
                 if (args.Length > 1)
                 {
                     string testCaseToTrim = args[1];
-                    TestTrimmer testTrimmer = new TestTrimmer(testCaseToTrim, RunOptions);
+                    TestTrimmer testTrimmer = new TestTrimmer(testCaseToTrim, s_runOptions);
                     testTrimmer.Trim();
                     return;
                 }
 
-                Parallel.For(0, 8, (p) => RunTest());
+                Parallel.For(0, 1, (p) => RunTest());
 
             }
             catch (OutOfMemoryException oom)
@@ -62,7 +63,7 @@ namespace Antigen
 
         private static int GetNextTestId()
         {
-            lock (SpinLock)
+            lock (s_spinLock)
             {
                 return ++s_testId;
             }
@@ -70,7 +71,7 @@ namespace Antigen
 
         private static void SaveResult(Dictionary<TestResult, int> localStats)
         {
-            lock (SpinLock)
+            lock (s_spinLock)
             {
                 foreach (var resultStat in localStats)
                 {
@@ -104,10 +105,10 @@ namespace Antigen
             while (true)
             {
                 int currTestId = GetNextTestId();
-                TestCase testCase = new TestCase(currTestId, RunOptions);
+                TestCase testCase = new TestCase(currTestId, s_runOptions);
                 testCase.Generate();
                 TestResult result = testCase.Verify();
-                Console.WriteLine($"Test# {currTestId} - {Enum.GetName(typeof(TestResult), result)}. {(double)Process.GetCurrentProcess().WorkingSet64 / 1000000} MB ");
+                Console.WriteLine($"Test# {currTestId} [{testCase.Config.Name}] - {Enum.GetName(typeof(TestResult), result)}. {(double)Process.GetCurrentProcess().WorkingSet64 / 1000000} MB ");
 
                 localStats[result]++;
                 if (localStats.Count == 10)

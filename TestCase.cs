@@ -78,12 +78,16 @@ namespace Antigen
 
         private static TestRunner s_testRunner;
         private static RunOptions s_runOptions;
+
+        internal ConfigOptions Config { get; private set; }
         public string Name { get; private set; }
         public AstUtils AstUtils { get; private set; }
 
         public TestCase(int testId, RunOptions runOptions)
         {
             s_runOptions = runOptions;
+            Config = s_runOptions.Configs[PRNG.Next(s_runOptions.Configs.Count)];
+
             AstUtils = new AstUtils(this, new ConfigOptions(), null);
             Name = "TestClass" + testId;
             s_testRunner = TestRunner.GetInstance(s_runOptions);
@@ -253,7 +257,7 @@ namespace Antigen
             fileContents.AppendLine(testCaseRoot.NormalizeWhitespace().ToFullString());
             fileContents.AppendLine("/*");
 
-            fileContents.AppendLine($"Got output diff:");
+            fileContents.AppendLine($"Config: {Config.Name}");
             fileContents.AppendLine("--------- Baseline ---------");
             fileContents.AppendLine();
             fileContents.AppendLine("Environment:");

@@ -21,14 +21,12 @@ namespace Antigen
         private readonly TestClass _testClass;
         private TestCase TC => _testClass.TC;
         protected readonly string Name;
-        protected readonly int _stmtCount;
+        private readonly List<Weights<ParamValuePassing>> _valuePassing;
 
-        //TODO-config: Move this to ConfigOptions
-        private static readonly int s_maxStatements = 8;
 
 #if DEBUG
-        private Dictionary<string, int> expressionsCount = new Dictionary<string, int>();
-        private Dictionary<string, int> statementsCount = new Dictionary<string, int>();
+        private readonly Dictionary<string, int> _expressionsCount = new();
+        private readonly Dictionary<string, int> _statementsCount = new();
 #endif
 
         private int _variablesCount = 0;
@@ -57,8 +55,7 @@ namespace Antigen
             // Before poping, log the variables
             foreach (var variableName in ret.AllVariables)
             {
-                //TODO-config: Add MaxDepth in config
-                if (PRNG.Decide(0.8))
+                if (PRNG.Decide(TC.Config.LocalVariablesLogProbability))
                 {
                     trackLocalVariables(variableName);
                 }
@@ -83,12 +80,11 @@ namespace Antigen
         /// <summary>
         ///     Creates leaf method that does not take parameters and has a single return statement.
         /// </summary>
-        protected TestMethod(TestClass enclosingClass, string methodName, int stmtCount)
+        protected TestMethod(TestClass enclosingClass, string methodName)
         {
             _testClass = enclosingClass;
             Name = methodName;
             MethodScope = new Scope(enclosingClass.TC, ScopeKind.FunctionScope, enclosingClass.ClassScope);
-            _stmtCount = stmtCount;
         }
 
         /// <summary>
@@ -103,9 +99,13 @@ namespace Antigen
             Name = methodName;
             MethodScope = new Scope(enclosingClass.TC, ScopeKind.FunctionScope, enclosingClass.ClassScope);
             _isMainInvocation = isMainInvocation;
-
-            //TODO-config: Statements in a function
-            _stmtCount = PRNG.Next(1, s_maxStatements);
+            _valuePassing = new()
+            {
+                new Weights<ParamValuePassing>(ParamValuePassing.None, TC.Config.ParamPassingNoneProbability),
+                new Weights<ParamValuePassing>(ParamValuePassing.Ref, TC.Config.ParamPassingRefProbability),
+                new Weights<ParamValuePassing>(ParamValuePassing.Out, TC.Config.ParamPassingOutProbability),
+                //new Weights<ParamValuePassing>(ParamValuePassing.In, 10),
+            };
         }
 
         public virtual MethodDeclarationSyntax Generate()
@@ -118,12 +118,6 @@ namespace Antigen
             // TODO-TEMP initialize one variable of each type
             foreach (Tree.ValueType variableType in Tree.ValueType.GetTypes())
             {
-                //TODO-config: Only declare again 20% of variables
-                if (PRNG.Decide(0.8))
-                {
-                    continue;
-                }
-
                 string variableName = Helpers.GetVariableName(variableType, _variablesCount++);
 
                 ExpressionSyntax rhs = ExprHelper(ExprKind.LiteralExpression, variableType, 0);
@@ -135,12 +129,6 @@ namespace Antigen
             // TODO-TEMP initialize one variable of each struct type
             foreach (Tree.ValueType structType in CurrentScope.AllStructTypes)
             {
-                //TODO-config: Only declare again 20% of variables
-                if (PRNG.Decide(0.8))
-                {
-                    continue;
-                }
-
                 string variableName = Helpers.GetVariableName(structType, _variablesCount++);
 
                 CurrentScope.AddLocal(structType, variableName);
@@ -155,6 +143,27 @@ namespace Antigen
                 methodBody.Add(Annotate(LocalDeclarationStatement(
                     Helpers.GetVariableDeclaration(structType, variableName,
                     Helpers.GetObjectCreationExpression(structType.TypeName))), "struct-init", 0));
+
+                if (!PRNG.Decide(TC.Config.StructAliasProbability))
+                {
+                    continue;
+                }
+
+                var aliasVariableName = Helpers.GetVariableName(structType, _variablesCount++);
+
+                CurrentScope.AddLocal(structType, aliasVariableName);
+
+                // Add all the fields to the scope
+                listOfStructFields = CurrentScope.GetStructFields(structType);
+                foreach (var structField in listOfStructFields)
+                {
+                    CurrentScope.AddLocal(structField.FieldType, $"{aliasVariableName}.{structField.FieldName}");
+                }
+
+                methodBody.Add(Annotate(LocalDeclarationStatement(
+                    Helpers.GetVariableDeclaration(structType, aliasVariableName,
+                    Helpers.GetVariableAccessExpression(variableName))), "struct-alias-init", 0));
+
             }
 
             // TODO-TEMP initialize out and ref method parameters
@@ -165,7 +174,7 @@ namespace Antigen
                 CurrentScope.AddLocal(param.ParamType, param.ParamName);
             }
 
-            for (int i = 0; i < _stmtCount; i++)
+            for (int i = 0; i < PRNG.Next(1, TC.Config.MaxStatementCount); i++)
             {
                 StmtKind cur = GetASTUtils().GetRandomStatement();
                 methodBody.Add(StatementHelper(cur, 0));
@@ -192,15 +201,10 @@ namespace Antigen
                 }
             }
 
-            // If only statement in method is a return statement,
-            // do not print the variables we generated above.
-            if (_stmtCount > 0)
+            // print all variables
+            foreach (var variableName in CurrentScope.AllVariables)
             {
-                // print all variables
-                foreach (var variableName in CurrentScope.AllVariables)
-                {
-                    methodBody.Add(ParseStatement($"Log(\"{variableName}\", {variableName});"));
-                }
+                methodBody.Add(ParseStatement($"Log(\"{variableName}\", {variableName});"));
             }
 
             // return statement
@@ -223,9 +227,8 @@ namespace Antigen
             int numOfParameters = 0;
             if (!_isMainInvocation)
             {
-                //TODO:config - No. of parameters
-                numOfParameters = PRNG.Next(1, 10);
-                MethodSignature.ReturnType = GetRandomExprType(structProbability: 0.7);
+                numOfParameters = PRNG.Next(1, TC.Config.MaxMethodParametersCount);
+                MethodSignature.ReturnType = GetRandomExprType();
             }
 
             List<MethodParam> parameters = new List<MethodParam>();
@@ -234,8 +237,8 @@ namespace Antigen
 
             for (int paramIndex = 0; paramIndex < numOfParameters; paramIndex++)
             {
-                var paramType = GetRandomExprType(structProbability: 0.7);
-                var passingWay = PRNG.WeightedChoice(MethodSignature.ValuePassing);
+                var paramType = GetRandomExprType();
+                var passingWay = PRNG.WeightedChoice(_valuePassing);
                 string paramName = "p_" + Helpers.GetVariableName(paramType, paramIndex);
 
                 // Add parameters to the scope except the one that is marked as OUT
@@ -300,7 +303,7 @@ namespace Antigen
             {
                 case StmtKind.VariableDeclaration:
                     {
-                        Tree.ValueType variableType = GetRandomExprType(structProbability: 0.3);
+                        Tree.ValueType variableType = GetRandomExprType();
 
                         string variableName = Helpers.GetVariableName(variableType, _variablesCount++);
 
@@ -321,22 +324,22 @@ namespace Antigen
                     }
                 case StmtKind.IfElseStatement:
                     {
+                        Debug.Assert(depth <= TC.Config.MaxStmtDepth);
+
                         Tree.ValueType condValueType = Tree.ValueType.ForPrimitive(Primitive.Boolean);
                         ExpressionSyntax conditionExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Boolean), condValueType, 0);
 
                         Scope ifBranchScope = new Scope(TC, ScopeKind.ConditionalScope, CurrentScope);
                         Scope elseBranchScope = new Scope(TC, ScopeKind.ConditionalScope, CurrentScope);
 
-                        //TODO-config: Add MaxDepth in config
-                        int ifcount = PRNG.Next(1, s_maxStatements);
+                        int ifcount = PRNG.Next(1, TC.Config.MaxStatementCount);
                         IList<StatementSyntax> ifBody = new List<StatementSyntax>();
 
                         PushScope(ifBranchScope);
                         for (int i = 0; i < ifcount; i++)
                         {
                             StmtKind cur;
-                            //TODO-config: Add MaxDepth in config
-                            if (depth >= ConfigOptions.MaxStmtDepth)
+                            if (depth >= TC.Config.MaxStmtDepth)
                             {
                                 cur = GetASTUtils().GetRandomTerminalStatement();
                             }
@@ -348,15 +351,14 @@ namespace Antigen
                         }
                         PopScope(variableName => LogVariable(ifBody, variableName)); // pop 'if' body scope
 
-                        int elsecount = PRNG.Next(1, s_maxStatements);
+                        int elsecount = PRNG.Next(1, TC.Config.MaxStatementCount);
                         IList<StatementSyntax> elseBody = new List<StatementSyntax>();
 
                         PushScope(elseBranchScope);
                         for (int i = 0; i < elsecount; i++)
                         {
                             StmtKind cur;
-                            //TODO-config: Add MaxDepth in config
-                            if (depth >= ConfigOptions.MaxStmtDepth)
+                            if (depth >= TC.Config.MaxStmtDepth)
                             {
                                 cur = GetASTUtils().GetRandomTerminalStatement();
                             }
@@ -395,21 +397,19 @@ namespace Antigen
                             rhsExprType = lhsExprType;
                         }
 
-                        ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, depth);
-                        ExpressionSyntax rhs;
 
-                        //TODO-config no. of attempts
-                        int noOfAttempts = 0;
-                        do
+                        ExprKind rhsKind;
+                        if (depth >= TC.Config.MaxExprDepth)
                         {
-                            rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType), rhsExprType, depth);
-                            // Make sure that we do not end up with same lhs=lhs.
-                            if (lhs.ToFullString() != rhs.ToFullString())
-                            {
-                                break;
-                            }
-                        } while (noOfAttempts++ < 5);
-                        Debug.Assert(lhs.ToFullString() != rhs.ToFullString());
+                            rhsKind = GetRandomTerminalExpression(rhsExprType);
+                        }
+                        else
+                        {
+                            rhsKind = GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType);
+                        }
+
+                        ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, 0);
+                        ExpressionSyntax rhs = ExprHelper(rhsKind, rhsExprType, 0);
 
                         // For division, make sure that divisor is not 0
                         if ((assignOper.Oper == SyntaxKind.DivideAssignmentExpression) || (assignOper.Oper == SyntaxKind.ModuloAssignmentExpression))
@@ -422,10 +422,10 @@ namespace Antigen
                     }
                 case StmtKind.ForStatement:
                     {
+                        Debug.Assert(depth <= TC.Config.MaxStmtDepth);
+
                         Scope forLoopScope = new Scope(TC, ScopeKind.LoopScope, CurrentScope);
                         ForStatement forStmt = new ForStatement(TC);
-                        //TODO:config
-                        int n = PRNG.Next(1, s_maxStatements);
                         forStmt.LoopVar = CurrentScope.GetRandomVariable(Tree.ValueType.ForPrimitive(Primitive.Int));
                         forStmt.NestNum = depth;
                         forStmt.NumOfSecondaryInductionVariables = PRNG.Next(/*GetOptions().MaxNumberOfSecondaryInductionVariable*/ 1 + 1);
@@ -446,10 +446,10 @@ namespace Antigen
                         //TODO-imp: AddInductionVariables
                         //TODO-imp: ctrlFlowStack
                         //TODO future: label
-                        for (int i = 0; i < n; ++i)
+                        for (int i = 0; i < TC.Config.MaxStatementCount; ++i)
                         {
                             StmtKind cur;
-                            if (depth >= ConfigOptions.MaxStmtDepth)
+                            if (depth >= TC.Config.MaxStmtDepth)
                             {
                                 cur = GetASTUtils().GetRandomTerminalStatement();
                             }
@@ -466,10 +466,11 @@ namespace Antigen
                     }
                 case StmtKind.DoWhileStatement:
                     {
+                        Debug.Assert(depth <= TC.Config.MaxStmtDepth);
+
                         Scope doWhileScope = new Scope(TC, ScopeKind.LoopScope, CurrentScope);
                         DoWhileStatement doStmt = new DoWhileStatement(TC);
-                        //TODO:config
-                        int n = PRNG.Next(1, s_maxStatements);
+
                         doStmt.NestNum = depth;
                         doStmt.NumOfSecondaryInductionVariables = PRNG.Next(/*GetOptions().MaxNumberOfSecondaryInductionVariable*/ 1 + 1);
 
@@ -480,10 +481,10 @@ namespace Antigen
                         //TODO-imp: AddInductionVariables
                         //TODO-imp: ctrlFlowStack
                         //TODO future: label
-                        for (int i = 0; i < n; ++i)
+                        for (int i = 0; i < PRNG.Next(1, TC.Config.MaxStatementCount); ++i)
                         {
                             StmtKind cur;
-                            if (depth >= ConfigOptions.MaxStmtDepth)
+                            if (depth >= TC.Config.MaxStmtDepth)
                             {
                                 cur = GetASTUtils().GetRandomTerminalStatement();
                             }
@@ -499,10 +500,11 @@ namespace Antigen
                     }
                 case StmtKind.WhileStatement:
                     {
+                        Debug.Assert(depth <= TC.Config.MaxStmtDepth);
+
                         Scope whileScope = new Scope(TC, ScopeKind.LoopScope, CurrentScope);
                         WhileStatement whileStmt = new WhileStatement(TC);
-                        //TODO:config
-                        int n = PRNG.Next(1, s_maxStatements);
+
                         whileStmt.NestNum = depth;
                         whileStmt.NumOfSecondaryInductionVariables = PRNG.Next(/*GetOptions().MaxNumberOfSecondaryInductionVariable*/ 1 + 1);
 
@@ -513,10 +515,10 @@ namespace Antigen
                         //TODO-imp: AddInductionVariables
                         //TODO-imp: ctrlFlowStack
                         //TODO future: label
-                        for (int i = 0; i < n; ++i)
+                        for (int i = 0; i < PRNG.Next(1, TC.Config.MaxStatementCount); ++i)
                         {
                             StmtKind cur;
-                            if (depth >= ConfigOptions.MaxStmtDepth)
+                            if (depth >= TC.Config.MaxStmtDepth)
                             {
                                 cur = GetASTUtils().GetRandomTerminalStatement();
                             }
@@ -538,29 +540,27 @@ namespace Antigen
                             return Annotate(ReturnStatement(), "Return", depth);
                         }
 
-                        ExpressionSyntax returnExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(returnType.PrimitiveType), returnType, depth);
+                        ExpressionSyntax returnExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(returnType.PrimitiveType), returnType, 0);
                         return Annotate(ReturnStatement(returnExpr), "Return", depth);
                     }
                 case StmtKind.TryCatchFinallyStatement:
                     {
-                        //TODO-config: Add MaxDepth in config
-                        int catchCounts = PRNG.Next(0, 3);
+                        Debug.Assert(depth <= TC.Config.MaxStmtDepth);
 
-                        //TODO-config: Add finally weight in config
+                        int catchCounts = PRNG.Next(0, TC.Config.CatchClausesCount);
+
                         // If there are no catch, then definitely add finally, otherwise skip it.
-                        bool hasFinally = catchCounts == 0 || PRNG.Decide(0.5);
+                        bool hasFinally = catchCounts == 0 || PRNG.Decide(TC.Config.FinallyClauseProbability);
                         IList<StatementSyntax> tryBody = new List<StatementSyntax>();
 
                         Scope tryScope = new Scope(TC, ScopeKind.BracesScope, CurrentScope);
                         PushScope(tryScope);
 
-                        //TODO-config: Add MaxDepth in config
-                        int tryStmtCount = PRNG.Next(1, s_maxStatements);
+                        int tryStmtCount = PRNG.Next(1, TC.Config.MaxStatementCount);
                         for (int i = 0; i < tryStmtCount; i++)
                         {
                             StmtKind cur;
-                            //TODO-config: Add MaxDepth in config
-                            if (depth >= ConfigOptions.MaxStmtDepth)
+                            if (depth >= TC.Config.MaxStmtDepth)
                             {
                                 cur = GetASTUtils().GetRandomTerminalStatement();
                             }
@@ -587,19 +587,16 @@ namespace Antigen
                             }
                             caughtExceptions.Add(exceptionToCatch);
 
-                            //TODO-config: Add MaxDepth in config
-                            int catchStmtCount = PRNG.Next(1, s_maxStatements / 2);
+                            int catchStmtCount = PRNG.Next(1, TC.Config.MaxStatementCount);
                             IList<StatementSyntax> catchBody = new List<StatementSyntax>();
 
                             Scope catchScope = new Scope(TC, ScopeKind.BracesScope, CurrentScope);
                             PushScope(catchScope);
 
-                            //TODO-config: Add MaxDepth in config
                             for (int i = 0; i < catchStmtCount; i++)
                             {
                                 StmtKind cur;
-                                //TODO-config: Add MaxDepth in config
-                                if (depth >= ConfigOptions.MaxStmtDepth)
+                                if (depth >= TC.Config.MaxStmtDepth)
                                 {
                                     cur = GetASTUtils().GetRandomTerminalStatement();
                                 }
@@ -620,13 +617,11 @@ namespace Antigen
                             Scope finallyScope = new Scope(TC, ScopeKind.BracesScope, CurrentScope);
                             PushScope(finallyScope);
 
-                            //TODO-config: Add MaxDepth in config
-                            int finallyStmtCount = PRNG.Next(1, s_maxStatements);
+                            int finallyStmtCount = PRNG.Next(1, TC.Config.MaxStatementCount);
                             for (int i = 0; i < finallyStmtCount; i++)
                             {
                                 StmtKind cur;
-                                //TODO-config: Add MaxDepth in config
-                                if (depth >= ConfigOptions.MaxStmtDepth)
+                                if (depth >= TC.Config.MaxStmtDepth)
                                 {
                                     cur = GetASTUtils().GetRandomTerminalStatement();
                                 }
@@ -643,8 +638,9 @@ namespace Antigen
                     }
                 case StmtKind.SwitchStatement:
                     {
-                        //TODO-config: Add CaseCount in config
-                        int caseCount = PRNG.Next(2, 10);
+                        Debug.Assert(depth <= TC.Config.MaxStmtDepth);
+
+                        int caseCount = PRNG.Next(1, TC.Config.MaxCaseCounts);
 
                         Primitive switchType = new Primitive[] { Primitive.Int, Primitive.Long, Primitive.Char, Primitive.String }[PRNG.Next(4)];
                         Tree.ValueType switchExprType = Tree.ValueType.ForPrimitive(switchType);
@@ -659,15 +655,13 @@ namespace Antigen
                             Scope caseScope = new Scope(TC, ScopeKind.BracesScope, CurrentScope);
                             PushScope(caseScope);
 
-                            //TODO-config: Add no. of case statemets in config
                             // Generate statements within each cases
-                            int caseStmtCount = PRNG.Next(1, 3);
+                            int caseStmtCount = PRNG.Next(1, TC.Config.MaxStatementCount);
                             IList<StatementSyntax> caseBody = new List<StatementSyntax>();
                             for (int j = 0; j < caseStmtCount; j++)
                             {
                                 StmtKind cur;
-                                //TODO-config: Add MaxDepth in config
-                                if (depth >= ConfigOptions.MaxStmtDepth)
+                                if (depth >= TC.Config.MaxStmtDepth)
                                 {
                                     cur = GetASTUtils().GetRandomTerminalStatement();
                                 }
@@ -702,8 +696,7 @@ namespace Antigen
                         for (int j = 0; j < defaultStmtCount; j++)
                         {
                             StmtKind cur;
-                            //TODO-config: Add MaxDepth in config
-                            if (depth >= ConfigOptions.MaxStmtDepth)
+                            if (depth >= TC.Config.MaxStmtDepth)
                             {
                                 cur = GetASTUtils().GetRandomTerminalStatement();
                             }
@@ -761,6 +754,8 @@ namespace Antigen
 
                 case ExprKind.BinaryOpExpression:
                     {
+                        Debug.Assert(depth <= TC.Config.MaxExprDepth);
+
                         Primitive returnType = exprType.PrimitiveType;
 
                         Operator op = GetASTUtils().GetRandomBinaryOperator(returnPrimitiveType: returnType);
@@ -781,8 +776,7 @@ namespace Antigen
                         }
 
                         ExprKind lhsExprKind, rhsExprKind;
-                        //TODO-config: Add MaxDepth in config
-                        if (depth >= ConfigOptions.MaxExprDepth)
+                        if (depth >= TC.Config.MaxExprDepth)
                         {
                             lhsExprKind = GetRandomTerminalExpression(exprType);
                             rhsExprKind = GetRandomTerminalExpression(exprType);
@@ -801,9 +795,8 @@ namespace Antigen
                             return Annotate(Helpers.GetWrappedAndCastedExpression(exprType, exprType, Helpers.GetLiteralExpression(exprType, TC._numerals)), "BinOp-folded");
                         }
 
-                        //TODO-config: Add MaxDepth in config
-                        ExpressionSyntax lhs = ExprHelper(lhsExprKind, lhsExprType, depth >= 5 ? 0 : depth + 1);
-                        ExpressionSyntax rhs = ExprHelper(rhsExprKind, rhsExprType, depth >= 5 ? 0 : depth + 1);
+                        ExpressionSyntax lhs = ExprHelper(lhsExprKind, lhsExprType, depth + 1);
+                        ExpressionSyntax rhs = ExprHelper(rhsExprKind, rhsExprType, depth + 1);
 
                         // For division, make sure that divisor is not 0
                         if ((op.Oper == SyntaxKind.DivideExpression) || (op.Oper == SyntaxKind.ModuloExpression))
@@ -816,6 +809,8 @@ namespace Antigen
                     }
                 case ExprKind.AssignExpression:
                     {
+                        Debug.Assert(depth <= TC.Config.MaxExprDepth);
+
                         Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator(returnPrimitiveType: exprType.PrimitiveType);
                         Tree.ValueType lhsExprType, rhsExprType;
                         lhsExprType = rhsExprType = exprType;
@@ -825,21 +820,19 @@ namespace Antigen
                             rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
                         }
 
-                        ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, depth);
-                        ExpressionSyntax rhs;
 
-                        //TODO-config no. of attempts
-                        int noOfAttempts = 0;
-                        do
+                        ExprKind rhsKind;
+                        if (depth >= TC.Config.MaxExprDepth)
                         {
-                            rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType), rhsExprType, depth);
-                            // Make sure that we do not end up with same lhs=lhs.
-                            if (lhs.ToFullString() != rhs.ToFullString())
-                            {
-                                break;
-                            }
-                        } while (noOfAttempts++ < 5);
-                        Debug.Assert(lhs.ToFullString() != rhs.ToFullString());
+                            rhsKind = GetRandomTerminalExpression(rhsExprType);
+                        }
+                        else
+                        {
+                            rhsKind = GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType);
+                        }
+
+                        ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, depth + 1);
+                        ExpressionSyntax rhs = ExprHelper(rhsKind, rhsExprType, depth + 1);
 
                         // For division, make sure that divisor is not 0
                         if ((assignOper.Oper == SyntaxKind.DivideAssignmentExpression) || (assignOper.Oper == SyntaxKind.ModuloAssignmentExpression))
@@ -872,8 +865,7 @@ namespace Antigen
             ExpressionSyntax lhs = Annotate(Helpers.GetVariableAccessExpression(variableName), "specific-Var");
             ExpressionSyntax rhs;
 
-            //TODO-config no. of attempts
-            int noOfAttempts = 0;
+            int noOfAttempts = TC.Config.NumOfAttemptsForExpression;
             do
             {
                 rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(exprType.PrimitiveType), exprType, 0);
@@ -899,8 +891,7 @@ namespace Antigen
             ExprKind kind;
             bool gotValidMethodCall = false;
 
-            //TODO-config no. of attempts
-            int noOfAttempts = 0;
+            int noOfAttempts = TC.Config.NumOfAttemptsForExpression;
             do
             {
                 kind = GetASTUtils().GetRandomTerminalExpression();
@@ -921,7 +912,14 @@ namespace Antigen
 
             if (kind == ExprKind.MethodCallExpression && !gotValidMethodCall)
             {
-                kind = PRNG.Decide(0.7) ? ExprKind.VariableExpression : ExprKind.LiteralExpression;
+                if (exprType.PrimitiveType == Primitive.Struct)
+                {
+                    kind = ExprKind.VariableExpression;
+                }
+                else
+                {
+                    kind = PRNG.Decide(0.7) ? ExprKind.VariableExpression : ExprKind.LiteralExpression;
+                }
             }
 
             return kind;
@@ -929,7 +927,6 @@ namespace Antigen
 
         private ExpressionSyntax MethodCallHelper(MethodSignature methodSig, int depth)
         {
-            //MethodSignature methodSig = _testClass.GetRandomMethod(exprType);
             List<SyntaxNodeOrToken> argumentNodes = new List<SyntaxNodeOrToken>();
             int paramsCount = methodSig.Parameters.Count;
 
@@ -940,7 +937,7 @@ namespace Antigen
                 Tree.ValueType argType = parameter.ParamType;
                 ExprKind argExprKind = parameter.PassingWay == ParamValuePassing.None ? GetASTUtils().GetRandomExpressionReturningPrimitive(argType.PrimitiveType) : ExprKind.VariableExpression;
 
-                ExpressionSyntax argExpr = ExprHelper(argExprKind, argType, depth);
+                ExpressionSyntax argExpr = ExprHelper(argExprKind, argType, depth + 1);
                 ArgumentSyntax argSyntax = Argument(argExpr);
 
                 if (parameter.PassingWay == ParamValuePassing.Ref)
@@ -963,10 +960,9 @@ namespace Antigen
                 .WithArgumentList(ArgumentList(SeparatedList<ArgumentSyntax>(argumentNodes)));
         }
 
-        private Tree.ValueType GetRandomExprType(double structProbability)
+        private Tree.ValueType GetRandomExprType()
         {
-            //TODO:config - probability of struct variables
-            if (PRNG.Decide(structProbability) && CurrentScope.NumOfStructTypes > 0)
+            if (PRNG.Decide(TC.Config.StructUsageProbability) && CurrentScope.NumOfStructTypes > 0)
             {
                 return CurrentScope.AllStructTypes[PRNG.Next(CurrentScope.NumOfStructTypes)];
             }
@@ -980,12 +976,12 @@ namespace Antigen
         {
 #if DEBUG
             string typeName = expression.GetType().Name;
-            if (!expressionsCount.ContainsKey(typeName))
+            if (!_expressionsCount.ContainsKey(typeName))
             {
-                expressionsCount[typeName] = 0;
+                _expressionsCount[typeName] = 0;
             }
-            expressionsCount[typeName]++;
-            return expression.WithTrailingTrivia(TriviaList(Comment($"/* E#{expressionsCount[typeName]}: {comment} */")));
+            _expressionsCount[typeName]++;
+            return expression.WithTrailingTrivia(TriviaList(Comment($"/* E#{_expressionsCount[typeName]}: {comment} */")));
 #else
             return expression;
 #endif
@@ -995,12 +991,12 @@ namespace Antigen
         {
 #if DEBUG
             string typeName = statement.GetType().Name;
-            if (!statementsCount.ContainsKey(typeName))
+            if (!_statementsCount.ContainsKey(typeName))
             {
-                statementsCount[typeName] = 0;
+                _statementsCount[typeName] = 0;
             }
-            statementsCount[typeName]++;
-            return statement.WithTrailingTrivia(TriviaList(Comment($"/* {depth}: S#{statementsCount[typeName]}: {comment} */")));
+            _statementsCount[typeName]++;
+            return statement.WithTrailingTrivia(TriviaList(Comment($"/* {depth}: S#{_statementsCount[typeName]}: {comment} */")));
 #else
             return statement;
 #endif
@@ -1013,15 +1009,6 @@ namespace Antigen
         public Tree.ValueType ReturnType;
         public List<MethodParam> Parameters;
         public bool IsLeaf;
-
-        //TODO:config
-        public static List<Weights<ParamValuePassing>> ValuePassing = new()
-        {
-            new Weights<ParamValuePassing>(ParamValuePassing.None, 50),
-            new Weights<ParamValuePassing>(ParamValuePassing.Ref, 25),
-            new Weights<ParamValuePassing>(ParamValuePassing.Out, 15),
-            //new Weights<ParamValuePassing>(ParamValuePassing.In, 10),
-        };
 
         public MethodSignature(string methodName, bool isLeaf = false)
         {
@@ -1088,7 +1075,7 @@ namespace Antigen
     {
         private Tree.ValueType _returnType;
         public TestLeafMethod(TestClass enclosingClass, string methodName, Tree.ValueType returnType)
-            : base(enclosingClass, methodName, 0)
+            : base(enclosingClass, methodName)
         {
             _returnType = returnType;
         }

@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace Antigen.Config
 {
-    public class RunOptions : OptionsBase
+    public class RunOptions
     {
         // random seed
         public int Seed = -1;
@@ -19,11 +22,20 @@ namespace Antigen.Config
         public long NumTestCases = 0;
 
         // Duration to execute tests for (overrides number specified in each XML config file)
-        public ulong SecondsToRun = 0;
+        public int HoursToRun = 0;
 
-        // Full path to CoreRun.exe
+        [NonSerialized()]
         public string CoreRun = null;
 
-        public readonly string MainMethodName = "Main";
+        public List<ConfigOptions> Configs;
+
+        internal static RunOptions Initialize()
+        {
+            string currentDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            string antiGenConfig = Path.Combine(currentDirectory, "Config", "antigen.json");
+            Debug.Assert(File.Exists(antiGenConfig));
+
+            return JsonConvert.DeserializeObject<RunOptions>(File.ReadAllText(antiGenConfig));
+        }
     }
 }

@@ -9,17 +9,23 @@ using System.Xml;
 
 namespace Antigen.Config
 {
-    public class OptionsBase
+    public class ConfigOptions
     {
-    }
+        private const string WeightSuffix = "Weight";
 
-    public class ConfigOptions : OptionsBase
-    {
-        public const string WeightSuffix = "Weight";
+        public string Name;
 
-        // Statement max depth
-        public const int MaxStmtDepth = 4;
-        public const int MaxExprDepth = 3;
+        // Test general configuration
+        public int MaxStmtDepth = 4;
+        public int MaxExprDepth = 3;
+
+        public int MethodCount = 3;
+        public int MaxStatementCount = 10;
+        public int VariablesCount = 8;
+        public int StructCount = 2;
+
+        // More controls
+        public int NumOfAttemptsForExpression = 5;
 
         // Expression weights
         public double LiteralWeight = 0.025;
@@ -35,7 +41,7 @@ namespace Antigen.Config
         public double ForStatementWeight = 0.1;
         public double DoWhileStatementWeight = 0.05;
         public double WhileStatementWeight = 0.08;
-        public double TryCatchFinallyStatementWeight = 0.4;
+        public double TryCatchFinallyStatementWeight = 0.08;
         public double SwitchStatementWeight = 0.1;
         public double MethodCallStatementWeight = 0.4;
 
@@ -101,32 +107,117 @@ namespace Antigen.Config
         public double EqualsWeight = 0.8;
         public double NotEqualsWeight = 0.8;
 
-        // Config options
-        // Probablity of removing loop parameters -- see comments on BoundParameters in ForStatement 
+        /// <summary>
+        ///     Probablity of removing loop parameters -- see comments on BoundParameters in ForStatement 
+        /// </summary>
         public double LoopParametersRemovalProbability = 0.1;
 
-        // Probability of having forward loop whose induction variable always increases
+        /// <summary>
+        ///     Probability of having forward loop whose induction variable always increases
+        /// </summary>
         public double LoopForwardProbability = 0.7;
 
-        //Probabilty whether loop induction variable should start from loop invariant value or +/- 3
+        /// <summary>
+        ///     Probabilty whether loop induction variable should start from loop invariant value or +/- 3
+        /// </summary>
         public double LoopStartFromInvariantProbabilty = 0.5;
 
-        //Probabilty whether loop step should happen pre or post break condition
+        /// <summary>
+        ///     Probabilty whether loop step should happen pre or post break condition
+        /// </summary>
         public double LoopStepPreBreakCondProbability = 0.5;
 
-        // Probability of usage of array.length vs. loopinvariant
+        /// <summary>
+        ///     Probability of usage of array.length vs. loopinvariant
+        /// </summary>
         public double UseLoopInvariantVariableProbability = 1.0; // Always have 1.0 for now to stop making .length as invariant because that could lead to long loops
 
-        // This will put loop condition at the end of the loop body. 
-        // Always use ContinueStatementWeight = 0 if this is true (see lessmath_no_continue.xml), otherwise there is a chance of infinite loop here.
-        // This is a quick fix for now.  We need to come up with a better solution for this for IE11.
+        /// <summary>
+        ///     This will put loop condition at the end of the loop body.
+        ///     Always use ContinueStatementWeight = 0 if this is true (see lessmath_no_continue.xml), otherwise there is a chance of infinite loop here.
+        ///     This is a quick fix for now.  We need to come up with a better solution for this for IE11.
+        /// </summary>
         public bool AllowLoopCondAtEnd = false;
 
-        // number of testcases to create
-        public long NumTestCases = 1;
+        /// <summary>
+        ///     Nested struct probability
+        /// </summary>
+        public double NestedStructProbability = 0.2;
 
-        // max number of statements in a block
-        public int MaxStatements = 5;
+        /// <summary>
+        ///     Field count of structs
+        /// </summary>
+        public int StructFieldCount = 4;
+
+        /// <summary>
+        ///     Nested struct depth
+        /// </summary>
+        public int NestedStructDepth = 2;
+
+        /// <summary>
+        ///     Probability of field type being struct
+        /// </summary>
+        public double StructFieldTypeProbability = 0.2;
+
+        /// <summary>
+        ///     Struct variable declaration which is alias of existing variable
+        /// </summary>
+        public double StructAliasProbability = 0.2;
+
+        /// <summary>
+        ///     Log local variables in a block probability
+        /// </summary>
+        public double LocalVariablesLogProbability = 0.5;
+
+        /// <summary>
+        ///     Number of catch clauses
+        /// </summary>
+        public int CatchClausesCount = 2;
+
+        /// <summary>
+        ///     Finally clause probabiliy
+        /// </summary>
+        public double FinallyClauseProbability = 0.5;
+
+        /// <summary>
+        ///     Parameter passing probability - None.
+        /// </summary>
+        public double ParamPassingNoneProbability = 0.6;
+
+        /// <summary>
+        ///     Parameter passing probability - Ref.
+        /// </summary>
+        public double ParamPassingRefProbability = 0.2;
+
+        /// <summary>
+        ///     Parameter passing probability - Out.
+        /// </summary>
+        public double ParamPassingOutProbability = 0.2;
+
+        /// <summary>
+        ///     Leaf methods NoInline probability.
+        /// </summary>
+        public double LeafMethodsNoInlineProbability = 0.4;
+
+        /// <summary>
+        ///     Maximum no. of method parameters
+        /// </summary>
+        public int MaxMethodParametersCount = 10;
+
+        /// <summary>
+        ///     Struct usage probability
+        /// </summary>
+        public double StructUsageProbability = 0.4;
+
+        /// <summary>
+        ///     Maximum number of case counts in switch statement
+        /// </summary>
+        public int MaxCaseCounts = 4;
+
+        public override string ToString()
+        {
+            return Name;
+        }
 
         public double Lookup(Tree.ValueType type)
         {

@@ -20,21 +20,21 @@ namespace Antigen.Tree
         private List<Weights<ValueType>> AllTerminalStatementsWithCFStmts = new List<Weights<ValueType>>();
         private List<Weights<Operator>> AllOperators = new List<Weights<Operator>>();
 
-        private ConfigOptions Options;
+        private ConfigOptions ConfigOptions;
         private RunOptions RunOptions;
         private TestCase TestCase;
         private Weights<ExprKind> MethodCallWeight;
 
         public AstUtils(TestCase tc, ConfigOptions configOptions, RunOptions runOptions)
         {
-            Options = configOptions;
+            ConfigOptions = configOptions;
             RunOptions = runOptions;
             TestCase = tc;
 
             // Initialize types
             foreach (ValueType type in ValueType.GetTypes())
             {
-                AllTypes.Add(new Weights<ValueType>(type, Options.Lookup(type)));
+                AllTypes.Add(new Weights<ValueType>(type, ConfigOptions.Lookup(type)));
             }
 
             // Initialize statements
@@ -46,7 +46,7 @@ namespace Antigen.Tree
                     continue;
                 }
 
-                var weight = new Weights<StmtKind>(stmt, Options.Lookup(stmt));
+                var weight = new Weights<StmtKind>(stmt, ConfigOptions.Lookup(stmt));
 
                 AllStatements.Add(weight);
 
@@ -59,7 +59,7 @@ namespace Antigen.Tree
             // Initialize expressions
             foreach (ExprKind expr in (ExprKind[])Enum.GetValues(typeof(ExprKind)))
             {
-                var weight = new Weights<ExprKind>(expr, Options.Lookup(expr)); ;
+                var weight = new Weights<ExprKind>(expr, ConfigOptions.Lookup(expr)); ;
                 if (expr == ExprKind.MethodCallExpression)
                 {
                     MethodCallWeight = weight;
@@ -87,7 +87,7 @@ namespace Antigen.Tree
             // Initialize operators
             foreach (Operator oper in Operator.GetOperators())
             {
-                AllOperators.Add(new Weights<Operator>(oper, Options.Lookup(oper)));
+                AllOperators.Add(new Weights<Operator>(oper, ConfigOptions.Lookup(oper)));
             }
         }
 
@@ -287,21 +287,22 @@ namespace Antigen.Tree
             return PRNG.WeightedChoice(ops);
         }
 
+        //TODO: Move this into LoopStatement
         internal LoopControlParameters GetForBoundParameters()
         {
             LoopControlParameters Ret = new LoopControlParameters();
 
-            Ret.IsInitInLoopHeader = PRNG.Decide(Options.LoopParametersRemovalProbability);
-            Ret.IsStepInLoopHeader = PRNG.Decide(Options.LoopParametersRemovalProbability);
-            Ret.IsBreakCondInLoopHeader = PRNG.Decide(Options.LoopParametersRemovalProbability);
+            Ret.IsInitInLoopHeader = PRNG.Decide(ConfigOptions.LoopParametersRemovalProbability);
+            Ret.IsStepInLoopHeader = PRNG.Decide(ConfigOptions.LoopParametersRemovalProbability);
+            Ret.IsBreakCondInLoopHeader = PRNG.Decide(ConfigOptions.LoopParametersRemovalProbability);
 
-            Ret.IsLoopInvariantVariableUsed = PRNG.Decide(Options.UseLoopInvariantVariableProbability);
-            Ret.IsBreakCondAtEndOfLoopBody = Options.AllowLoopCondAtEnd ? PRNG.Decide(0.5) : false;
-            Ret.IsForwardLoop = PRNG.Decide(Options.LoopForwardProbability);
-            Ret.IsLoopStartFromInvariant = PRNG.Decide(Options.LoopStartFromInvariantProbabilty);
+            Ret.IsLoopInvariantVariableUsed = PRNG.Decide(ConfigOptions.UseLoopInvariantVariableProbability);
+            Ret.IsBreakCondAtEndOfLoopBody = ConfigOptions.AllowLoopCondAtEnd ? PRNG.Decide(0.5) : false;
+            Ret.IsForwardLoop = PRNG.Decide(ConfigOptions.LoopForwardProbability);
+            Ret.IsLoopStartFromInvariant = PRNG.Decide(ConfigOptions.LoopStartFromInvariantProbabilty);
             Ret.LoopInductionChangeFactor = PRNG.Next(1, 5);
             Ret.LoopInitValueVariation = PRNG.Next(0, Ret.LoopInductionChangeFactor);
-            Ret.IsStepBeforeBreakCondition = PRNG.Decide(Options.LoopStepPreBreakCondProbability);
+            Ret.IsStepBeforeBreakCondition = PRNG.Decide(ConfigOptions.LoopStepPreBreakCondProbability);
 
             // Generate operator for break condition in a forward loop
             // Depending on the loop type/condition, we will later flip the operator in LoopStatement
