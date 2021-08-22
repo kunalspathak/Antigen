@@ -157,15 +157,31 @@ namespace Antigen
                         throw new Exception("Process not started");
                     }
 
-                    // proc.StandardInput.Write(JsonConvert.SerializeObject(compileResult.Assembly));
-                    // proc.StandardInput.BaseStream.Write(compileResult.Assembly, 0, compileResult.Assembly.Length);
-                    // proc.StandardInput.Close();
+                    StringBuilder output = new StringBuilder();
+                    proc.OutputDataReceived += new DataReceivedEventHandler((s, e) =>
+                    {
+                        output.AppendLine(e.Data);
+                    });
 
-                    string output = proc.StandardOutput.ReadToEnd();
-                    string error = proc.StandardError.ReadToEnd();
+                    proc.ErrorDataReceived += new DataReceivedEventHandler((s, e) =>
+                    {
+                        output.AppendLine(e.Data);
+                    });
+
+                    proc.BeginOutputReadLine();
+                    proc.BeginErrorReadLine();
 
                     bool exited = proc.WaitForExit(timeoutInSecs * 1000); // 10 seconds
-                    return exited ? output + error : "TIMEOUT";
+                    if (!exited)
+                    {
+                        try
+                        {
+                            proc.Kill(true);
+                        }
+                        catch { }
+                        return "TIMEOUT";
+                    }
+                    return output.ToString();
                 }
             }
         }
