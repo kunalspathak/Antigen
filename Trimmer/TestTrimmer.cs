@@ -91,12 +91,11 @@ namespace Antigen.Trimmer
             do
             {
                 trimmedAtleastOne = false;
+                trimmedAtleastOne |= TrimEnvVars();
                 trimmedAtleastOne |= TrimStatements();
                 trimmedAtleastOne |= TrimExpressions();
-                trimmedAtleastOne |= TrimEnvVars();
 
             } while (trimmedAtleastOne);
-
         }
 
         /// <summary>
@@ -164,17 +163,18 @@ namespace Antigen.Trimmer
 
             };
 
-            bool trimmedAtleastOne = false;
-            bool trimmedInCurrIter;
+            //bool trimmedAtleastOne = false;
+            //bool trimmedInCurrIter;
 
-            do
-            {
-                trimmedInCurrIter = false;
-                trimmedInCurrIter |= Trim(trimmerList);
-                trimmedAtleastOne |= trimmedInCurrIter;
-            } while (trimmedInCurrIter);
+            //do
+            //{
+            //    trimmedInCurrIter = false;
+            //    trimmedInCurrIter |= Trim(trimmerList);
+            //    trimmedAtleastOne |= trimmedInCurrIter;
+            //} while (trimmedInCurrIter);
 
-            return trimmedAtleastOne;
+            //return trimmedAtleastOne;
+            return Trim(trimmerList);
         }
 
         public bool TrimEnvVars()
