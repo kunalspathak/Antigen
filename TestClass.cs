@@ -44,7 +44,7 @@ namespace Antigen
 
         public void RegisterMethod(MethodSignature methodSignature)
         {
-            _methods.Add(new Weights<MethodSignature>(methodSignature, (double) PRNG.Next(1, 100) / 100));
+            _methods.Add(new Weights<MethodSignature>(methodSignature, (double)PRNG.Next(1, 100) / 100));
         }
 
         /// <summary>
@@ -53,12 +53,33 @@ namespace Antigen
         public List<MethodSignature> AllNonLeafMethods => _methods.Where(m => !m.Data.IsLeaf).Select(m => m.Data).ToList();
 
         /// <summary>
+        ///     Returns all leaf methods
+        /// </summary>
+        public List<MethodSignature> AllLeafMethods => _methods.Where(m => m.Data.IsLeaf).Select(m => m.Data).ToList();
+
+        /// <summary>
         ///     Get random method that returns specfic returnType. Null if no such
         ///     method is generated yet.
         /// </summary>
         public MethodSignature GetRandomMethod(Tree.ValueType returnType)
         {
             var matchingMethods = _methods.Where(m => m.Data.ReturnType.Equals(returnType)).ToList();
+            if (matchingMethods.Count == 0)
+            {
+                return null;
+            }
+            return PRNG.WeightedChoice(matchingMethods);
+        }
+
+        /// <summary>
+        ///     Gets random leaf method that returns specific returnType. Null if no such
+        ///     method is generated yet.
+        /// </summary>
+        /// <param name="returnType"></param>
+        /// <returns></returns>
+        public MethodSignature GetRandomLeafMethod(Tree.ValueType returnType)
+        {
+            var matchingMethods = _methods.Where(m => m.Data.IsLeaf).Where(m => m.Data.ReturnType.Equals(returnType)).ToList();
             if (matchingMethods.Count == 0)
             {
                 return null;

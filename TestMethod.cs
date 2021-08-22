@@ -299,6 +299,8 @@ namespace Antigen
         /// <returns></returns>
         public StatementSyntax StatementHelper(StmtKind stmtKind, int depth)
         {
+            //Debug.Assert(depth <= TC.Config.MaxStmtDepth);
+
             switch (stmtKind)
             {
                 case StmtKind.VariableDeclaration:
@@ -324,7 +326,7 @@ namespace Antigen
                     }
                 case StmtKind.IfElseStatement:
                     {
-                        Debug.Assert(depth <= TC.Config.MaxStmtDepth);
+                        //Debug.Assert(depth <= TC.Config.MaxStmtDepth);
 
                         Tree.ValueType condValueType = Tree.ValueType.ForPrimitive(Primitive.Boolean);
                         ExpressionSyntax conditionExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Boolean), condValueType, 0);
@@ -339,13 +341,13 @@ namespace Antigen
                         for (int i = 0; i < ifcount; i++)
                         {
                             StmtKind cur;
-                            if (depth >= TC.Config.MaxStmtDepth)
+                            if (depth < TC.Config.MaxStmtDepth)
                             {
-                                cur = GetASTUtils().GetRandomTerminalStatement();
+                                cur = GetASTUtils().GetRandomStatement();
                             }
                             else
                             {
-                                cur = GetASTUtils().GetRandomStatement();
+                                cur = GetASTUtils().GetRandomTerminalStatement();
                             }
                             ifBody.Add(StatementHelper(cur, depth + 1));
                         }
@@ -358,13 +360,13 @@ namespace Antigen
                         for (int i = 0; i < elsecount; i++)
                         {
                             StmtKind cur;
-                            if (depth >= TC.Config.MaxStmtDepth)
+                            if (depth < TC.Config.MaxStmtDepth)
                             {
-                                cur = GetASTUtils().GetRandomTerminalStatement();
+                                cur = GetASTUtils().GetRandomStatement();
                             }
                             else
                             {
-                                cur = GetASTUtils().GetRandomStatement();
+                                cur = GetASTUtils().GetRandomTerminalStatement();
                             }
                             elseBody.Add(StatementHelper(cur, depth + 1));
                         }
@@ -397,17 +399,7 @@ namespace Antigen
                             rhsExprType = lhsExprType;
                         }
 
-
-                        ExprKind rhsKind;
-                        if (depth >= TC.Config.MaxExprDepth)
-                        {
-                            rhsKind = GetRandomTerminalExpression(rhsExprType);
-                        }
-                        else
-                        {
-                            rhsKind = GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType);
-                        }
-
+                        ExprKind rhsKind = GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType);
                         ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, 0);
                         ExpressionSyntax rhs = ExprHelper(rhsKind, rhsExprType, 0);
 
@@ -422,7 +414,7 @@ namespace Antigen
                     }
                 case StmtKind.ForStatement:
                     {
-                        Debug.Assert(depth <= TC.Config.MaxStmtDepth);
+                        //Debug.Assert(depth <= TC.Config.MaxStmtDepth);
 
                         Scope forLoopScope = new Scope(TC, ScopeKind.LoopScope, CurrentScope);
                         ForStatement forStmt = new ForStatement(TC);
@@ -449,13 +441,13 @@ namespace Antigen
                         for (int i = 0; i < TC.Config.MaxStatementCount; ++i)
                         {
                             StmtKind cur;
-                            if (depth >= TC.Config.MaxStmtDepth)
+                            if (depth < TC.Config.MaxStmtDepth)
                             {
-                                cur = GetASTUtils().GetRandomTerminalStatement();
+                                cur = GetASTUtils().GetRandomStatement();
                             }
                             else
                             {
-                                cur = GetASTUtils().GetRandomStatement();
+                                cur = GetASTUtils().GetRandomTerminalStatement();
                             }
                             forStmt.AddToBody(StatementHelper(cur, depth + 1));
                         }
@@ -466,7 +458,7 @@ namespace Antigen
                     }
                 case StmtKind.DoWhileStatement:
                     {
-                        Debug.Assert(depth <= TC.Config.MaxStmtDepth);
+                        //Debug.Assert(depth <= TC.Config.MaxStmtDepth);
 
                         Scope doWhileScope = new Scope(TC, ScopeKind.LoopScope, CurrentScope);
                         DoWhileStatement doStmt = new DoWhileStatement(TC);
@@ -484,13 +476,13 @@ namespace Antigen
                         for (int i = 0; i < PRNG.Next(1, TC.Config.MaxStatementCount); ++i)
                         {
                             StmtKind cur;
-                            if (depth >= TC.Config.MaxStmtDepth)
+                            if (depth < TC.Config.MaxStmtDepth)
                             {
-                                cur = GetASTUtils().GetRandomTerminalStatement();
+                                cur = GetASTUtils().GetRandomStatement();
                             }
                             else
                             {
-                                cur = GetASTUtils().GetRandomStatement();
+                                cur = GetASTUtils().GetRandomTerminalStatement();
                             }
                             doStmt.AddToBody(StatementHelper(cur, depth + 1));
                         }
@@ -500,7 +492,7 @@ namespace Antigen
                     }
                 case StmtKind.WhileStatement:
                     {
-                        Debug.Assert(depth <= TC.Config.MaxStmtDepth);
+                        //Debug.Assert(depth <= TC.Config.MaxStmtDepth);
 
                         Scope whileScope = new Scope(TC, ScopeKind.LoopScope, CurrentScope);
                         WhileStatement whileStmt = new WhileStatement(TC);
@@ -518,13 +510,13 @@ namespace Antigen
                         for (int i = 0; i < PRNG.Next(1, TC.Config.MaxStatementCount); ++i)
                         {
                             StmtKind cur;
-                            if (depth >= TC.Config.MaxStmtDepth)
+                            if (depth < TC.Config.MaxStmtDepth)
                             {
-                                cur = GetASTUtils().GetRandomTerminalStatement();
+                                cur = GetASTUtils().GetRandomStatement();
                             }
                             else
                             {
-                                cur = GetASTUtils().GetRandomStatement();
+                                cur = GetASTUtils().GetRandomTerminalStatement();
                             }
                             whileStmt.AddToBody(StatementHelper(cur, depth + 1));
                         }
@@ -545,7 +537,7 @@ namespace Antigen
                     }
                 case StmtKind.TryCatchFinallyStatement:
                     {
-                        Debug.Assert(depth <= TC.Config.MaxStmtDepth);
+                        //Debug.Assert(depth <= TC.Config.MaxStmtDepth);
 
                         int catchCounts = PRNG.Next(0, TC.Config.CatchClausesCount);
 
@@ -560,13 +552,13 @@ namespace Antigen
                         for (int i = 0; i < tryStmtCount; i++)
                         {
                             StmtKind cur;
-                            if (depth >= TC.Config.MaxStmtDepth)
+                            if (depth < TC.Config.MaxStmtDepth)
                             {
-                                cur = GetASTUtils().GetRandomTerminalStatement();
+                                cur = GetASTUtils().GetRandomStatement();
                             }
                             else
                             {
-                                cur = GetASTUtils().GetRandomStatement();
+                                cur = GetASTUtils().GetRandomTerminalStatement();
                             }
                             tryBody.Add(StatementHelper(cur, depth + 1));
                         }
@@ -596,13 +588,13 @@ namespace Antigen
                             for (int i = 0; i < catchStmtCount; i++)
                             {
                                 StmtKind cur;
-                                if (depth >= TC.Config.MaxStmtDepth)
+                                if (depth < TC.Config.MaxStmtDepth)
                                 {
-                                    cur = GetASTUtils().GetRandomTerminalStatement();
+                                    cur = GetASTUtils().GetRandomStatement();
                                 }
                                 else
                                 {
-                                    cur = GetASTUtils().GetRandomStatement();
+                                    cur = GetASTUtils().GetRandomTerminalStatement();
                                 }
                                 catchBody.Add(StatementHelper(cur, depth + 1));
                             }
@@ -621,13 +613,13 @@ namespace Antigen
                             for (int i = 0; i < finallyStmtCount; i++)
                             {
                                 StmtKind cur;
-                                if (depth >= TC.Config.MaxStmtDepth)
+                                if (depth < TC.Config.MaxStmtDepth)
                                 {
-                                    cur = GetASTUtils().GetRandomTerminalStatement();
+                                    cur = GetASTUtils().GetRandomStatement();
                                 }
                                 else
                                 {
-                                    cur = GetASTUtils().GetRandomStatement();
+                                    cur = GetASTUtils().GetRandomTerminalStatement();
                                 }
                                 finallyBody.Add(StatementHelper(cur, depth + 1));
                             }
@@ -638,7 +630,7 @@ namespace Antigen
                     }
                 case StmtKind.SwitchStatement:
                     {
-                        Debug.Assert(depth <= TC.Config.MaxStmtDepth);
+                        //Debug.Assert(depth <= TC.Config.MaxStmtDepth);
 
                         int caseCount = PRNG.Next(1, TC.Config.MaxCaseCounts);
 
@@ -661,13 +653,13 @@ namespace Antigen
                             for (int j = 0; j < caseStmtCount; j++)
                             {
                                 StmtKind cur;
-                                if (depth >= TC.Config.MaxStmtDepth)
+                                if (depth < TC.Config.MaxStmtDepth)
                                 {
-                                    cur = GetASTUtils().GetRandomTerminalStatement();
+                                    cur = GetASTUtils().GetRandomStatement();
                                 }
                                 else
                                 {
-                                    cur = GetASTUtils().GetRandomStatement();
+                                    cur = GetASTUtils().GetRandomTerminalStatement();
                                 }
                                 caseBody.Add(StatementHelper(cur, depth + 1));
                             }
@@ -696,13 +688,13 @@ namespace Antigen
                         for (int j = 0; j < defaultStmtCount; j++)
                         {
                             StmtKind cur;
-                            if (depth >= TC.Config.MaxStmtDepth)
+                            if (depth < TC.Config.MaxStmtDepth)
                             {
-                                cur = GetASTUtils().GetRandomTerminalStatement();
+                                cur = GetASTUtils().GetRandomStatement();
                             }
                             else
                             {
-                                cur = GetASTUtils().GetRandomStatement();
+                                cur = GetASTUtils().GetRandomTerminalStatement();
                             }
                             defaultBody.Add(StatementHelper(cur, depth + 1));
                         }
@@ -721,7 +713,7 @@ namespace Antigen
                     }
                 case StmtKind.MethodCallStatement:
                     {
-                        return Annotate(ExpressionStatement(MethodCallHelper(_testClass.GetRandomMethod(), depth)), "MethodCall", depth); ;
+                        return Annotate(ExpressionStatement(MethodCallHelper(_testClass.GetRandomMethod(), 0)), "MethodCall", depth); ;
                     }
                 default:
                     Debug.Assert(false, string.Format("Hit unknown statement type {0}", Enum.GetName(typeof(StmtKind), stmtKind)));
@@ -740,6 +732,8 @@ namespace Antigen
         /// <returns></returns>
         public ExpressionSyntax ExprHelper(ExprKind exprKind, Tree.ValueType exprType, int depth)
         {
+            //Debug.Assert(depth <= TC.Config.MaxExprDepth);
+
             switch (exprKind)
             {
                 case ExprKind.LiteralExpression:
@@ -754,7 +748,7 @@ namespace Antigen
 
                 case ExprKind.BinaryOpExpression:
                     {
-                        Debug.Assert(depth <= TC.Config.MaxExprDepth);
+                        //Debug.Assert(depth <= TC.Config.MaxExprDepth);
 
                         Primitive returnType = exprType.PrimitiveType;
 
@@ -776,15 +770,15 @@ namespace Antigen
                         }
 
                         ExprKind lhsExprKind, rhsExprKind;
-                        if (depth >= TC.Config.MaxExprDepth)
-                        {
-                            lhsExprKind = GetRandomTerminalExpression(exprType);
-                            rhsExprKind = GetRandomTerminalExpression(exprType);
-                        }
-                        else
+                        if (depth < TC.Config.MaxExprDepth)
                         {
                             lhsExprKind = GetASTUtils().GetRandomExpressionReturningPrimitive(lhsExprType.PrimitiveType);
                             rhsExprKind = GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType);
+                        }
+                        else
+                        {
+                            lhsExprKind = GetRandomTerminalExpression(exprType);
+                            rhsExprKind = GetRandomTerminalExpression(exprType);
                         }
 
                         // Fold arithmetic binop expressions that has constants.
@@ -809,7 +803,7 @@ namespace Antigen
                     }
                 case ExprKind.AssignExpression:
                     {
-                        Debug.Assert(depth <= TC.Config.MaxExprDepth);
+                        //Debug.Assert(depth <= TC.Config.MaxExprDepth);
 
                         Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator(returnPrimitiveType: exprType.PrimitiveType);
                         Tree.ValueType lhsExprType, rhsExprType;
@@ -822,13 +816,13 @@ namespace Antigen
 
 
                         ExprKind rhsKind;
-                        if (depth >= TC.Config.MaxExprDepth)
+                        if (depth < TC.Config.MaxExprDepth)
                         {
-                            rhsKind = GetRandomTerminalExpression(rhsExprType);
+                            rhsKind = GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType);
                         }
                         else
                         {
-                            rhsKind = GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType);
+                            rhsKind = GetRandomTerminalExpression(rhsExprType);
                         }
 
                         ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, depth + 1);
@@ -846,7 +840,14 @@ namespace Antigen
                     }
                 case ExprKind.MethodCallExpression:
                     {
-                        return MethodCallHelper(_testClass.GetRandomMethod(exprType), depth);
+                        if (depth < TC.Config.MaxExprDepth)
+                        {
+                            return MethodCallHelper(_testClass.GetRandomMethod(exprType), depth + 1);
+                        }
+                        else
+                        {
+                            return MethodCallHelper(_testClass.GetRandomLeafMethod(exprType), depth + 1);
+                        }
                     }
 
                 default:
@@ -889,28 +890,51 @@ namespace Antigen
         private ExprKind GetRandomTerminalExpression(Tree.ValueType exprType)
         {
             ExprKind kind;
-            bool gotValidMethodCall = false;
 
             int noOfAttempts = TC.Config.NumOfAttemptsForExpression;
+            bool found = false;
+
             do
             {
                 kind = GetASTUtils().GetRandomTerminalExpression();
-
-                if (kind != ExprKind.MethodCallExpression)
+                switch (kind)
                 {
-                    break;
+                    case ExprKind.LiteralExpression:
+                        {
+                            if (exprType.PrimitiveType != Primitive.Struct)
+                            {
+                                found = true;
+                            }
+                            break;
+                        }
+                    case ExprKind.VariableExpression:
+                        {
+                            found = true;
+                            break;
+                        }
+                    case ExprKind.MethodCallExpression:
+                        {
+                            // If terminal expression is a method call, make sure we have a method that 
+                            // returns value of "exprType"
+                            if (_testClass.GetRandomMethod(exprType) != null)
+                            {
+                                found = true;
+                                break;
+                            }
+                            break;
+                        }
+                    default:
+                        throw new Exception("Unsupported terminal expression");
+
                 }
 
-                // If terminal expression is a method call, make sure we have a method that 
-                // returns value of "exprType"
-                if (_testClass.GetRandomMethod(exprType) != null)
+                if (found)
                 {
-                    gotValidMethodCall = true;
                     break;
                 }
             } while (noOfAttempts++ < 5);
 
-            if (kind == ExprKind.MethodCallExpression && !gotValidMethodCall)
+            if (!found)
             {
                 if (exprType.PrimitiveType == Primitive.Struct)
                 {
@@ -935,7 +959,23 @@ namespace Antigen
                 MethodParam parameter = methodSig.Parameters[paramId];
 
                 Tree.ValueType argType = parameter.ParamType;
-                ExprKind argExprKind = parameter.PassingWay == ParamValuePassing.None ? GetASTUtils().GetRandomExpressionReturningPrimitive(argType.PrimitiveType) : ExprKind.VariableExpression;
+                ExprKind argExprKind;
+
+                if (parameter.PassingWay == ParamValuePassing.None)
+                {
+                    if (depth < TC.Config.MaxExprDepth)
+                    {
+                        argExprKind = GetASTUtils().GetRandomExpressionReturningPrimitive(argType.PrimitiveType);
+                    }
+                    else
+                    {
+                        argExprKind = GetRandomTerminalExpression(argType);
+                    }
+                }
+                else
+                {
+                    argExprKind = ExprKind.VariableExpression;
+                }
 
                 ExpressionSyntax argExpr = ExprHelper(argExprKind, argType, depth + 1);
                 ArgumentSyntax argSyntax = Argument(argExpr);
