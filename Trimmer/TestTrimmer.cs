@@ -77,7 +77,7 @@ namespace Antigen.Trimmer
         public void Trim()
         {
             var trimTask = Task.Run(TrimTree);
-            trimTask.Wait(TimeSpan.FromMinutes(20));
+            trimTask.Wait(TimeSpan.FromMinutes(40));
         }
 
         /// <summary>
@@ -188,12 +188,15 @@ namespace Antigen.Trimmer
                 string value = _testVariables[envVar];
 
                 _testVariables.Remove(envVar);
+                Console.Write($"{s_iterId}. Removing {envVar}={value}");
                 if (Verify($"trim{s_iterId++}", recentTree, _baselineVariables, _testVariables) == TestResult.Pass)
                 {
+                    Console.WriteLine(" - Success");
                     _testVariables[envVar] = value;
                 }
                 else
                 {
+                    Console.WriteLine(" - Revert");
                     trimmedAtleastOne = true;
                 }
             }
@@ -369,7 +372,7 @@ namespace Antigen.Trimmer
             //    File.WriteAllText(workingFile, testCaseRoot.ToFullString());
             //}
 
-            string currRunBaselineOutput = hasAssertion ? string.Empty :_testRunner.Execute(compileResult, Switches.BaseLineVars(), 10);
+            string currRunBaselineOutput = hasAssertion ? string.Empty :_testRunner.Execute(compileResult, EnvVarOptions.BaseLineVars(), 10);
             string currRunTestOutput = _testRunner.Execute(compileResult, testEnvVars, 10);
 
             TestResult verificationResult = string.IsNullOrEmpty(_originalTestAssertion) ? TestResult.OutputMismatch : TestResult.Assertion;
@@ -449,7 +452,7 @@ namespace Antigen.Trimmer
 
             //TODO: Only if something was visited
 
-            string failedFileName = $"{iterId}-lkg";
+            string failedFileName = "repro-lkg";
             string failFile = Path.Combine(Path.GetDirectoryName(_testFileToTrim), $"{ failedFileName}.g.cs");
             //string failFile = Path.Combine(RunOptions.OutputDirectory, $"{failedFileName}.g.cs");
             File.WriteAllText(failFile, fileContents.ToString());
