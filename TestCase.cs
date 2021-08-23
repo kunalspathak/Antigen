@@ -134,8 +134,8 @@ namespace Antigen
             }
 #endif
 
-            var baselineVariables = Switches.BaseLineVars();
-            var testVariables = Switches.TestVars();
+            var baselineVariables = EnvVarOptions.BaseLineVars();
+            var testVariables = EnvVarOptions.TestVars();
 
             // Execute test first and see if we have any errors/asserts
             string test = s_testRunner.Execute(compileResult, testVariables, 30);

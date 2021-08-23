@@ -55,7 +55,7 @@ namespace Antigen
         {
             string assemblyFullPath = Path.Combine(RunOptions.OutputDirectory, $"{assemblyName}.exe");
 
-            var cc = CSharpCompilation.Create($"{assemblyName}.exe", new SyntaxTree[] { programTree }, s_references, Switches.CompileOptions);
+            var cc = CSharpCompilation.Create($"{assemblyName}.exe", new SyntaxTree[] { programTree }, s_references, EnvVarOptions.CompileOptions);
 
             using (var ms = new MemoryStream())
             {

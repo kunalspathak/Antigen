@@ -31,7 +31,6 @@ namespace Antigen
             try
             {
                 PRNG.Initialize(s_runOptions.Seed);
-                Switches.Initialize();
                 s_runOptions.CoreRun = args[0];
 
                 // trimmer

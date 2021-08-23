@@ -29,13 +29,20 @@ namespace Antigen.Config
 
         public List<ConfigOptions> Configs;
 
+        public List<ComplusEnvVarGroup> BaselineEnvVars;
+
+        public List<ComplusEnvVarGroup> TestEnvVars;
+
         internal static RunOptions Initialize()
         {
             string currentDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
             string antiGenConfig = Path.Combine(currentDirectory, "Config", "antigen.json");
             Debug.Assert(File.Exists(antiGenConfig));
 
-            return JsonConvert.DeserializeObject<RunOptions>(File.ReadAllText(antiGenConfig));
+            var runOption = JsonConvert.DeserializeObject<RunOptions>(File.ReadAllText(antiGenConfig));
+            EnvVarOptions.Initialize(runOption.BaselineEnvVars, runOption.TestEnvVars);
+
+            return runOption;
         }
     }
 }
