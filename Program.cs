@@ -25,6 +25,7 @@ namespace Antigen
         };
 
         private static int s_testId = 0;
+        private static bool done = false;
 
         static void Main(string[] args)
         {
@@ -32,15 +33,16 @@ namespace Antigen
             {
                 PRNG.Initialize(s_runOptions.Seed);
                 s_runOptions.CoreRun = args[0];
+                s_runOptions.OutputDirectory = args[1];
 
-                // trimmer
-                if (args.Length > 1)
-                {
-                    string testCaseToTrim = args[1];
-                    TestTrimmer testTrimmer = new TestTrimmer(testCaseToTrim, s_runOptions);
-                    testTrimmer.Trim();
-                    return;
-                }
+                //// trimmer
+                //if (args.Length > 1)
+                //{
+                //    string testCaseToTrim = args[1];
+                //    TestTrimmer testTrimmer = new TestTrimmer(testCaseToTrim, s_runOptions);
+                //    testTrimmer.Trim();
+                //    return;
+                //}
 
                 Parallel.For(0, 4, (p) => RunTest());
 
@@ -64,6 +66,10 @@ namespace Antigen
         {
             lock (s_spinLock)
             {
+                if (s_testId >= s_runOptions.NumTestCases)
+                {
+                    done = true;
+                }
                 return ++s_testId;
             }
         }
@@ -101,7 +107,7 @@ namespace Antigen
                 { TestResult.OOM, 0 },
             };
 
-            while (true)
+            while (!done)
             {
                 int currTestId = GetNextTestId();
                 TestCase testCase = new TestCase(currTestId, s_runOptions);
