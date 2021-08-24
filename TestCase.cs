@@ -110,19 +110,19 @@ namespace Antigen
             StringBuilder fileContents;
             if (compileResult.AssemblyFullPath == null)
             {
-                fileContents = new StringBuilder();
+                //fileContents = new StringBuilder();
 
-                fileContents.AppendLine(testCaseRoot.NormalizeWhitespace().ToFullString());
-                fileContents.AppendLine("/*");
-                fileContents.AppendLine($"Got {compileResult.CompileErrors.Length} compiler error(s):");
-                foreach (var error in compileResult.CompileErrors)
-                {
-                    fileContents.AppendLine(error.ToString());
-                }
-                fileContents.AppendLine("*/");
+                //fileContents.AppendLine(testCaseRoot.NormalizeWhitespace().ToFullString());
+                //fileContents.AppendLine("/*");
+                //fileContents.AppendLine($"Got {compileResult.CompileErrors.Length} compiler error(s):");
+                //foreach (var error in compileResult.CompileErrors)
+                //{
+                //    fileContents.AppendLine(error.ToString());
+                //}
+                //fileContents.AppendLine("*/");
 
-                string errorFile = Path.Combine(s_runOptions.OutputDirectory, $"{Name}-compile-error.g.cs");
-                File.WriteAllText(errorFile, fileContents.ToString());
+                //string errorFile = Path.Combine(s_runOptions.OutputDirectory, $"{Name}-compile-error.g.cs");
+                //File.WriteAllText(errorFile, fileContents.ToString());
 
                 return TestResult.CompileError;
             }

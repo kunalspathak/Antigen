@@ -42,7 +42,7 @@ namespace Antigen
                     return;
                 }
 
-                Parallel.For(0, 1, (p) => RunTest());
+                Parallel.For(0, 4, (p) => RunTest());
 
             }
             catch (OutOfMemoryException oom)
@@ -107,7 +107,8 @@ namespace Antigen
                 TestCase testCase = new TestCase(currTestId, s_runOptions);
                 testCase.Generate();
                 TestResult result = testCase.Verify();
-                Console.WriteLine($"Test# {currTestId} [{testCase.Config.Name}] - {Enum.GetName(typeof(TestResult), result)}. {(double)Process.GetCurrentProcess().WorkingSet64 / 1000000} MB ");
+                //Console.WriteLine($"Test# {currTestId} [{testCase.Config.Name}] - {Enum.GetName(typeof(TestResult), result)}. {(double)Process.GetCurrentProcess().WorkingSet64 / 1000000} MB ");
+                Console.WriteLine("Test# {0, -5} [{1, -25}] - {2, -15} {3, -10} MB ", currTestId, testCase.Config.Name, Enum.GetName(typeof(TestResult), result), (double)Process.GetCurrentProcess().WorkingSet64 / 1000000);
 
                 localStats[result]++;
                 if (localStats.Count == 10)
@@ -115,6 +116,8 @@ namespace Antigen
                     SaveResult(localStats);
                     localStats.Clear();
                 }
+
+                GC.Collect();
             }
         }
     }

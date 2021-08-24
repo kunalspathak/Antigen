@@ -50,12 +50,12 @@ namespace Antigen
         /// <summary>
         ///     Returns all non-leaf methods
         /// </summary>
-        public List<MethodSignature> AllNonLeafMethods => _methods.Where(m => !m.Data.IsLeaf).Select(m => m.Data).ToList();
+        public IEnumerable<Weights<MethodSignature>> AllNonLeafMethods => _methods.Where(m => !m.Data.IsLeaf);
 
         /// <summary>
         ///     Returns all leaf methods
         /// </summary>
-        public List<MethodSignature> AllLeafMethods => _methods.Where(m => m.Data.IsLeaf).Select(m => m.Data).ToList();
+        public IEnumerable<Weights<MethodSignature>> AllLeafMethods => _methods.Where(m => m.Data.IsLeaf);
 
         /// <summary>
         ///     Get random method that returns specfic returnType. Null if no such
@@ -79,8 +79,8 @@ namespace Antigen
         /// <returns></returns>
         public MethodSignature GetRandomLeafMethod(Tree.ValueType returnType)
         {
-            var matchingMethods = _methods.Where(m => m.Data.IsLeaf).Where(m => m.Data.ReturnType.Equals(returnType)).ToList();
-            if (matchingMethods.Count == 0)
+            var matchingMethods = AllLeafMethods.Where(m => m.Data.ReturnType.Equals(returnType));
+            if (matchingMethods.Count() == 0)
             {
                 return null;
             }

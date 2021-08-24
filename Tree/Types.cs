@@ -1,9 +1,11 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Antigen.Tree
 {
@@ -226,11 +228,11 @@ namespace Antigen.Tree
             }
         }
 
-        public static List<Type> AllExceptions =>
+        public static IDictionary<Type, CatchDeclarationSyntax> AllExceptions =>
             typeof(Exception).Assembly.GetTypes()
                 .Where(x => x.IsSubclassOf(typeof(Exception)))
                 .Where(n => n.FullName.StartsWith("System.") && n.FullName.LastIndexOf(".") == 6)
-                .ToList();
+                .ToDictionary(t => t, t => CatchDeclaration(IdentifierName(t.Name)));
 
         public override string ToString()
         {

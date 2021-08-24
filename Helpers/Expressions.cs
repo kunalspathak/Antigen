@@ -63,5 +63,27 @@ namespace Antigen
         {
             return new SyntaxList<T>(list);
         }
+
+        /// <summary>
+        ///     Generate log invoke statement
+        /// </summary>
+        /// <param name="variableName"></param>
+        /// <returns></returns>
+        public static StatementSyntax GetLogInvokeStatement(string variableName)
+        {
+            return ExpressionStatement(
+                InvocationExpression(
+                    IdentifierName("Log"))
+                .WithArgumentList(
+                    ArgumentList(
+                    SeparatedList<ArgumentSyntax>(
+                        new SyntaxNodeOrToken[]
+                        {
+                            Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(variableName))),
+                            Token(SyntaxKind.CommaToken),
+                            Argument(GetVariableAccessExpression(variableName))
+                        }
+             ))));
+        }
     }
 }

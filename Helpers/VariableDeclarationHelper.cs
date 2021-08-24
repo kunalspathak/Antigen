@@ -37,7 +37,7 @@ namespace Antigen
         private static VariableDeclarationSyntax GetVariableDeclaration(string variableType, string variableName)
         {
             TypeSyntax variableTypeSyntax;
-            if (variableType.Contains("."))
+            if (variableType.Contains('.'))
             {
                 string[] seperatedTypes = variableType.Split('.', StringSplitOptions.RemoveEmptyEntries);
                 NameSyntax nameSyntax = QualifiedName(
@@ -71,7 +71,7 @@ namespace Antigen
 
         public static ExpressionSyntax GetVariableAccessExpression(string variableName)
         {
-            if (variableName.Contains("."))
+            if (variableName.Contains('.'))
             {
                 string[] seperatedFields = variableName.Split('.', StringSplitOptions.RemoveEmptyEntries);
                 var memberAccessExpr = MemberAccessExpression(
@@ -98,7 +98,7 @@ namespace Antigen
         {
             TypeSyntax objectTypeSyntax;
 
-            if (objectType.Contains("."))
+            if (objectType.Contains('.'))
             {
                 string[] seperatedTypes = objectType.Split('.', StringSplitOptions.RemoveEmptyEntries);
                 NameSyntax nameSyntax = QualifiedName(

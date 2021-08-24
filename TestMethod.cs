@@ -66,7 +66,7 @@ namespace Antigen
 
         internal static void LogVariable(IList<StatementSyntax> stmtList, string variableName)
         {
-            stmtList.Add(ParseStatement($"Log(\"{variableName}\", {variableName});"));
+            stmtList.Add(Helpers.GetLogInvokeStatement(variableName));
         }
 
         /// <summary>
@@ -188,8 +188,8 @@ namespace Antigen
                     //TODO-future: Select any assignOper
                     //Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator();
 
-                    ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, nonLeafMethod.ReturnType, 0);
-                    ExpressionSyntax rhs = MethodCallHelper(nonLeafMethod, 0);
+                    ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, nonLeafMethod.Data.ReturnType, 0);
+                    ExpressionSyntax rhs = MethodCallHelper(nonLeafMethod.Data, 0);
 
                     methodBody.Add(Annotate(ExpressionStatement(AssignmentExpression(SyntaxKind.SimpleAssignmentExpression, lhs, rhs)), "MethodCall-Assign", 0));
                 }
@@ -197,14 +197,14 @@ namespace Antigen
                 // print all static variables
                 foreach (var variableName in _testClass.ClassScope.AllVariables)
                 {
-                    methodBody.Add(ParseStatement($"Log(\"{variableName}\", {variableName});"));
+                    methodBody.Add(Helpers.GetLogInvokeStatement(variableName));
                 }
             }
 
             // print all variables
             foreach (var variableName in CurrentScope.AllVariables)
             {
-                methodBody.Add(ParseStatement($"Log(\"{variableName}\", {variableName});"));
+                methodBody.Add(Helpers.GetLogInvokeStatement(variableName));
             }
 
             // return statement
@@ -565,11 +565,12 @@ namespace Antigen
                         PopScope(variableName => LogVariable(tryBody, variableName)); // pop 'try' body scope
 
                         IList<CatchClauseSyntax> catchClauses = new List<CatchClauseSyntax>();
-                        var allExceptions = Tree.ValueType.AllExceptions;
+                        var allExceptions = Tree.ValueType.AllExceptions.Select(x => x.Key).ToList();
                         var caughtExceptions = new List<Type>();
+
                         for (int catchId = 0; catchId < catchCounts; catchId++)
                         {
-                            var exceptionToCatch = allExceptions[PRNG.Next(allExceptions.Count)];
+                            var exceptionToCatch = allExceptions[PRNG.Next(allExceptions.Count())];
                             allExceptions.Remove(exceptionToCatch);
 
                             // If we already generated a catch-clause of superclass, skip remaining catch clauses.
@@ -600,7 +601,7 @@ namespace Antigen
                             }
                             PopScope(variableName => LogVariable(catchBody, variableName)); // pop 'catch' body scope
 
-                            catchClauses.Add(CatchClause(CatchDeclaration(IdentifierName(exceptionToCatch.Name)), null, Block(catchBody)));
+                            catchClauses.Add(CatchClause(Tree.ValueType.AllExceptions[exceptionToCatch], null, Block(catchBody)));
                         }
 
                         IList<StatementSyntax> finallyBody = new List<StatementSyntax>();
@@ -1087,7 +1088,6 @@ namespace Antigen
             var paramList = Parameters.Select(p => $"{(p.PassingWay == ParamValuePassing.None ? "" : Enum.GetName(typeof(ParamValuePassing), p.PassingWay))} {p.ParamType}");
             return $"{ReturnType} {MethodName}({string.Join(", ", paramList)})";
         }
-
     }
 
     public class MethodParam

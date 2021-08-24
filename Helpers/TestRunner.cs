@@ -181,7 +181,7 @@ namespace Antigen
                         catch { }
                         return "TIMEOUT";
                     }
-                    return output.ToString();
+                    return output.ToString().Trim();
                 }
             }
         }

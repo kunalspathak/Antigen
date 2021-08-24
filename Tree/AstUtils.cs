@@ -14,10 +14,8 @@ namespace Antigen.Tree
         private List<Weights<ExprKind>> AllStructExpressions = new List<Weights<ExprKind>>();
         private List<Weights<StmtKind>> AllStatements = new List<Weights<StmtKind>>();
         private List<Weights<ValueType>> AllTypes = new List<Weights<ValueType>>();
-        private List<Weights<ValueType>> AllStatementsWithCFStmts = new List<Weights<ValueType>>();
         private List<Weights<ExprKind>> AllTerminalExpressions = new List<Weights<ExprKind>>();
         private List<Weights<StmtKind>> AllTerminalStatements = new List<Weights<StmtKind>>();
-        private List<Weights<ValueType>> AllTerminalStatementsWithCFStmts = new List<Weights<ValueType>>();
         private List<Weights<Operator>> AllOperators = new List<Weights<Operator>>();
 
         private ConfigOptions ConfigOptions;
