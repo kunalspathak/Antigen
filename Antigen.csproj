@@ -17,6 +17,10 @@
     <Compile Remove="*.g.cs" />
   </ItemGroup>
 
+  <PropertyGroup>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
   <ItemGroup>
     <None Update="Config\antigen.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
