@@ -79,7 +79,8 @@ namespace Antigen
                     SeparatedList<ArgumentSyntax>(
                         new SyntaxNodeOrToken[]
                         {
-                            Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(variableName))),
+                            // For variable names, just take 10 characters for longer variable names
+                            Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(variableName.Substring(0, Math.Min(variableName.Length, 10))))),
                             Token(SyntaxKind.CommaToken),
                             Argument(GetVariableAccessExpression(variableName))
                         }

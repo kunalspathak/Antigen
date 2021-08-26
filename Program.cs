@@ -16,16 +16,18 @@ namespace Antigen
         private static readonly RunOptions s_runOptions = RunOptions.Initialize();
         private static readonly Dictionary<TestResult, int> s_stats = new Dictionary<TestResult, int>()
         {
+            { TestResult.RoslynException, 0 },
             { TestResult.CompileError, 0 },
             { TestResult.Assertion, 0 },
             { TestResult.KnownErrors, 0 },
-            {TestResult.OutputMismatch, 0 },
-            {TestResult.Pass, 0 },
-            {TestResult.OOM, 0 },
+            { TestResult.OutputMismatch, 0 },
+            { TestResult.Pass, 0 },
+            { TestResult.OOM, 0 },
         };
 
         private static int s_testId = 0;
         private static bool done = false;
+        private static readonly DateTime s_StartTime = DateTime.Now;
 
         static void Main(string[] args)
         {
@@ -34,6 +36,16 @@ namespace Antigen
                 PRNG.Initialize(s_runOptions.Seed);
                 s_runOptions.CoreRun = args[0];
                 s_runOptions.OutputDirectory = args[1];
+
+                if (!File.Exists(s_runOptions.CoreRun))
+                {
+                    throw new Exception($"{s_runOptions.CoreRun} doesn't exist");
+                }
+                if (!Directory.Exists(s_runOptions.OutputDirectory))
+                {
+                    Console.WriteLine($"Creating {s_runOptions.OutputDirectory}");
+                    Directory.CreateDirectory(s_runOptions.OutputDirectory);
+                }
 
                 //// trimmer
                 //if (args.Length > 1)
@@ -44,7 +56,7 @@ namespace Antigen
                 //    return;
                 //}
 
-                Parallel.For(0, 4, (p) => RunTest());
+                Parallel.For(0, 1, (p) => RunTest());
 
             }
             catch (OutOfMemoryException oom)
@@ -99,6 +111,7 @@ namespace Antigen
         {
             Dictionary<TestResult, int> localStats = new Dictionary<TestResult, int>()
             {
+                { TestResult.RoslynException, 0 },
                 { TestResult.CompileError, 0 },
                 { TestResult.Assertion, 0 },
                 { TestResult.KnownErrors, 0 },
@@ -113,8 +126,13 @@ namespace Antigen
                 TestCase testCase = new TestCase(currTestId, s_runOptions);
                 testCase.Generate();
                 TestResult result = testCase.Verify();
-                //Console.WriteLine($"Test# {currTestId} [{testCase.Config.Name}] - {Enum.GetName(typeof(TestResult), result)}. {(double)Process.GetCurrentProcess().WorkingSet64 / 1000000} MB ");
-                Console.WriteLine("Test# {0, -5} [{1, -25}] - {2, -15} {3, -10} MB ", currTestId, testCase.Config.Name, Enum.GetName(typeof(TestResult), result), (double)Process.GetCurrentProcess().WorkingSet64 / 1000000);
+                Console.WriteLine("[{4}] Test# {0, -5} [{1, -25}] - {2, -15} {3, -10} MB ",
+                    currTestId,
+                    testCase.Config.Name,
+                    Enum.GetName(typeof(TestResult), result),
+                    (double)Process.GetCurrentProcess().WorkingSet64 / 1000000,
+                    (DateTime.Now - s_StartTime).ToString());
+
 
                 localStats[result]++;
                 if (localStats.Count == 10)

@@ -67,16 +67,22 @@ namespace Antigen
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex.Message);
-                    return new CompileResult(ex, ImmutableArray<Diagnostic>.Empty, null, null);
+                    return new CompileResult(ex);
                 }
 
                 if (!result.Success)
-                    return new CompileResult(null, result.Diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).ToImmutableArray(), null, null);
+                {
+#if DEBUG
+                    return new CompileResult(result.Diagnostics);
+#else
+                    return new CompileResult(null, null);
+#endif
+                }
 
                 ms.Seek(0, SeekOrigin.Begin);
                 File.WriteAllBytes(assemblyFullPath, ms.ToArray());
 
-                return new CompileResult(null, ImmutableArray<Diagnostic>.Empty, assemblyName, assemblyFullPath);
+                return new CompileResult(assemblyName, assemblyFullPath);
             }
         }
 
@@ -181,7 +187,16 @@ namespace Antigen
                         catch { }
                         return "TIMEOUT";
                     }
-                    return output.ToString().Trim();
+
+                    string finalOutput = "";
+                    try
+                    {
+                        finalOutput = output.ToString();
+
+                    } catch (ArgumentOutOfRangeException)
+                    {
+                    }
+                    return finalOutput.Trim();
                 }
             }
         }
@@ -189,32 +204,27 @@ namespace Antigen
 
     internal class CompileResult
     {
-        public CompileResult(Exception roslynException, ImmutableArray<Diagnostic> diagnostics, string assemblyName, string assemblyFullPath)
+        public CompileResult(IEnumerable<Diagnostic> diagnostics)
         {
-            RoslynException = roslynException;
-            List<Diagnostic> errors = new List<Diagnostic>();
-            List<Diagnostic> warnings = new List<Diagnostic>();
-            foreach (var diag in diagnostics)
-            {
-                if (diag.Severity == DiagnosticSeverity.Error)
-                {
-                    errors.Add(diag);
-                }
-                else if (diag.Severity == DiagnosticSeverity.Warning)
-                {
-                    errors.Add(diag);
-                }
-            }
-            CompileErrors = errors.ToImmutableArray();
-            CompileWarnings = warnings.ToImmutableArray();
+            CompileErrors = diagnostics.Where(diag => diag.Severity == DiagnosticSeverity.Error);
+            CompileWarnings = diagnostics.Where(diag => diag.Severity == DiagnosticSeverity.Warning);
+        }
+
+        public CompileResult(string assemblyName, string assemblyFullPath)
+        {
             AssemblyName = assemblyName;
             AssemblyFullPath = assemblyFullPath;
         }
 
+        public CompileResult(Exception roslynException)
+        {
+            RoslynException = roslynException;
+        }
+
         public string AssemblyName { get; }
         public Exception RoslynException { get; }
-        public ImmutableArray<Diagnostic> CompileErrors { get; }
-        public ImmutableArray<Diagnostic> CompileWarnings { get; }
+        public IEnumerable<Diagnostic> CompileErrors { get; }
+        public IEnumerable<Diagnostic> CompileWarnings { get; }
         public string AssemblyFullPath { get; }
     }
 }

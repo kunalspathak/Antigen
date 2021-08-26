@@ -22,6 +22,7 @@ namespace Antigen
 {
     public enum TestResult
     {
+        RoslynException,
         CompileError,
         KnownErrors,
         OutputMismatch,
@@ -107,10 +108,9 @@ namespace Antigen
             SyntaxTree syntaxTree = testCaseRoot.SyntaxTree; // RslnUtilities.GetValidSyntaxTree(testCaseRoot);
 
             CompileResult compileResult = s_testRunner.Compile(syntaxTree, Name);
-            StringBuilder fileContents;
             if (compileResult.AssemblyFullPath == null)
             {
-                //fileContents = new StringBuilder();
+                // StringBuilder fileContents = new StringBuilder();
 
                 //fileContents.AppendLine(testCaseRoot.NormalizeWhitespace().ToFullString());
                 //fileContents.AppendLine("/*");
@@ -123,8 +123,7 @@ namespace Antigen
 
                 //string errorFile = Path.Combine(s_runOptions.OutputDirectory, $"{Name}-compile-error.g.cs");
                 //File.WriteAllText(errorFile, fileContents.ToString());
-
-                return TestResult.CompileError;
+                return compileResult.RoslynException != null ? TestResult.RoslynException : TestResult.CompileError;
             }
 #if UNREACHABLE
             else
@@ -145,15 +144,16 @@ namespace Antigen
             if (test.Contains("Out of memory"))
             {
 #if UNREACHABLE
-                        SaveTestCase(testCaseRoot, null, null, test, testVariables, "Out of memory", $"{Name}-test-oom");
+                SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, test, testVariables, "Out of memory", $"{Name}-test-oom");
+
 #endif
-                return TestResult.OOM;
+                return TheTestResult(compileResult.AssemblyFullPath, TestResult.OOM);
             }
             // If test assertion
             else if (!string.IsNullOrEmpty(testAssertion))
             {
                 SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, test, testVariables, testAssertion, $"{Name}-test-assertion");
-                return TestResult.Assertion;
+                return TheTestResult(compileResult.AssemblyFullPath, TestResult.Assertion);
             }
             else
             {
@@ -170,10 +170,10 @@ namespace Antigen
                             // ignore errors 
                         }
 #if UNREACHABLE
-                        SaveTestCase(testCaseRoot, null, null, test, testVariables, knownError, $"{Name}-knownerrors");
-#endif
+                        SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, test, testVariables, testAssertion, $"{Name}-knownerrors");
 
-                        return TestResult.KnownErrors;
+#endif
+                        return TheTestResult(compileResult.AssemblyFullPath, TestResult.KnownErrors);
                     }
                 }
             }
@@ -185,33 +185,38 @@ namespace Antigen
             if (baseline.Contains("Out of memory"))
             {
 #if UNREACHABLE
-                SaveTestCase(testCaseRoot, baseline, baselineVariables, null, null, "Out of memory", $"{Name}-base-oom");
+                SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, baseline, baselineVariables, null, null, "Out of memory", $"{Name}-base-oom"); ;
 #endif
-                return TestResult.OOM;
+                return TheTestResult(compileResult.AssemblyFullPath, TestResult.OOM);
             }
             // Is there assertion in baseline?
             else if (!string.IsNullOrEmpty(baselineAssertion))
             {
 
                 SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, baseline, baselineVariables, null, null, baselineAssertion, $"{Name}-base-assertion");
-                return TestResult.Assertion;
+                return TheTestResult(compileResult.AssemblyFullPath, TestResult.Assertion);
             }
             // If baseline and test output doesn't match
             else if (baseline != test)
             {
                 SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, baseline, baselineVariables, test, testVariables, "OutputMismatch", $"{ Name}-output-mismatch");
-                return TestResult.OutputMismatch;
+                return TheTestResult(compileResult.AssemblyFullPath, TestResult.OutputMismatch);
             }
 
+            return TheTestResult(compileResult.AssemblyFullPath, TestResult.Pass);
+        }
+
+        private TestResult TheTestResult(string assemblyPath, TestResult result)
+        {
             try
             {
-                File.Delete(compileResult.AssemblyFullPath);
+                File.Delete(assemblyPath);
             }
             catch (Exception)
             {
                 // ignore errors 
             }
-            return TestResult.Pass;
+            return result;
         }
 
         private void SaveTestCase(
@@ -252,7 +257,10 @@ namespace Antigen
             {
                 fileContents.AppendLine($"// BaselineVars: {string.Join("|", baselineVars.ToList().Select(x => $"{x.Key}={x.Value}"))}");
             }
-            fileContents.AppendLine($"// TestVars: {string.Join("|", testVars.ToList().Select(x => $"{x.Key}={x.Value}"))}");
+            if (testVars != null)
+            {
+                fileContents.AppendLine($"// TestVars: {string.Join("|", testVars.ToList().Select(x => $"{x.Key}={x.Value}"))}");
+            }
             fileContents.AppendLine("//");
             fileContents.AppendLine(testCaseRoot.NormalizeWhitespace().ToFullString());
             fileContents.AppendLine("/*");
@@ -276,10 +284,13 @@ namespace Antigen
             fileContents.AppendLine();
             fileContents.AppendLine("Environment:");
             fileContents.AppendLine();
-            foreach (var envVars in testVars)
+            if (testVars != null)
             {
-                fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
-}
+                foreach (var envVars in testVars)
+                {
+                    fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
+                }
+            }
             fileContents.AppendLine();
             fileContents.AppendLine(testOutput);
             fileContents.AppendLine("*/");
