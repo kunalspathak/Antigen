@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Emit;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Collections.Specialized;
@@ -71,6 +72,24 @@ namespace Antigen
             new Weights<int>(int.MaxValue, (double) PRNG.Next(1, 10) / 10000 ),
         };
 
+        private static readonly ConcurrentDictionary<string, ExpressionSyntax> _variableExpressions = new();
+
+        public static ExpressionSyntax GetExpressionSyntax(string variableName)
+        {
+            // Cache max 1000 expressions after which recycle them.
+            if (_variableExpressions.Count > 1000)
+            {
+                _variableExpressions.Clear();
+            }
+
+            if (!_variableExpressions.TryGetValue(variableName, out var exprSyntax))
+            {
+                exprSyntax = Helpers.GetVariableAccessExpression(variableName);
+                _variableExpressions[variableName] = exprSyntax;
+            }
+
+            return exprSyntax;
+        }
 
         //private List<SyntaxNode> classesList;
         //private List<SyntaxNode> methodsList;

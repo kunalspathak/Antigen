@@ -101,5 +101,7 @@ public static void PrintLog() {{
                 return loggerVarDecl;
             }
         }
+
+        public static InvocationExpressionSyntax LogInvocationExpression = SyntaxFactory.InvocationExpression(IdentifierName("Log"));
     }
 }

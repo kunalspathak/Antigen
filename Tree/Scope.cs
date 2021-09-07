@@ -165,7 +165,7 @@ namespace Antigen.Tree
 
         #region Aggregate Scopes methods
         /// <summary>
-        /// Combines the list of Variables from all parent scopes.  Respects strict mode restrictions
+        ///     Combines the list of Variables from all parent scopes.
         /// </summary>
         /// <returns></returns>
         ///  

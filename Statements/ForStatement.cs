@@ -47,7 +47,7 @@ namespace Antigen.Statements
             ExpressionSyntax condition = GenerateIVLoopGuardCode();
             if (LoopKind == Kind.NormalLoop || LoopKind == Kind.ComplexLoop)
             {
-                ExpressionSyntax boundCond = BinaryExpression(SyntaxKind.LessThanExpression, Helpers.GetVariableAccessExpression(LoopVar), Bounds);
+                ExpressionSyntax boundCond = BinaryExpression(SyntaxKind.LessThanExpression, TestCase.GetExpressionSyntax(LoopVar), Bounds);
                 if (condition == null)
                 {
                     condition = boundCond;
@@ -62,7 +62,7 @@ namespace Antigen.Statements
             SeparatedSyntaxList<ExpressionSyntax> incrementors = GenerateIVStepCode();
             if (LoopKind == Kind.NormalLoop)
             {
-                incrementors.Add(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, Helpers.GetVariableAccessExpression(LoopVar)));
+                incrementors.Add(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, TestCase.GetExpressionSyntax(LoopVar)));
             }
             else if (LoopKind == Kind.ComplexLoop)
             {

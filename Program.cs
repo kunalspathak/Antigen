@@ -35,12 +35,13 @@ namespace Antigen
             {
                 PRNG.Initialize(s_runOptions.Seed);
                 s_runOptions.CoreRun = args[0];
-                s_runOptions.OutputDirectory = args[1];
 
                 if (!File.Exists(s_runOptions.CoreRun))
                 {
                     throw new Exception($"{s_runOptions.CoreRun} doesn't exist");
                 }
+
+                s_runOptions.OutputDirectory = args[1];
                 if (!Directory.Exists(s_runOptions.OutputDirectory))
                 {
                     Console.WriteLine($"Creating {s_runOptions.OutputDirectory}");
@@ -56,7 +57,7 @@ namespace Antigen
                 //    return;
                 //}
 
-                Parallel.For(0, 1, (p) => RunTest());
+                Parallel.For(0, 4, (p) => RunTest());
 
             }
             catch (OutOfMemoryException oom)

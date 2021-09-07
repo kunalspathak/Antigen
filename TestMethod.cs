@@ -64,9 +64,9 @@ namespace Antigen
             return ret;
         }
 
-        internal static void LogVariable(IList<StatementSyntax> stmtList, string variableName)
+        internal void LogVariable(IList<StatementSyntax> stmtList, string variableName)
         {
-            stmtList.Add(Helpers.GetLogInvokeStatement(variableName));
+            stmtList.Add(GetLogInvokeStatement(variableName));
         }
 
         /// <summary>
@@ -162,7 +162,7 @@ namespace Antigen
 
                 methodBody.Add(Annotate(LocalDeclarationStatement(
                     Helpers.GetVariableDeclaration(structType, aliasVariableName,
-                    Helpers.GetVariableAccessExpression(variableName))), "struct-alias-init", 0));
+                    TestCase.GetExpressionSyntax(variableName))), "struct-alias-init", 0));
 
             }
 
@@ -197,14 +197,14 @@ namespace Antigen
                 // print all static variables
                 foreach (var variableName in _testClass.ClassScope.AllVariables)
                 {
-                    methodBody.Add(Helpers.GetLogInvokeStatement(variableName));
+                    methodBody.Add(GetLogInvokeStatement(variableName));
                 }
             }
 
             // print all variables
             foreach (var variableName in CurrentScope.AllVariables)
             {
-                methodBody.Add(Helpers.GetLogInvokeStatement(variableName));
+                methodBody.Add(GetLogInvokeStatement(variableName));
             }
 
             // return statement
@@ -744,7 +744,7 @@ namespace Antigen
 
                 case ExprKind.VariableExpression:
                     {
-                        return Annotate(Helpers.GetVariableAccessExpression(CurrentScope.GetRandomVariable(exprType)), "Var");
+                        return Annotate(TestCase.GetExpressionSyntax(CurrentScope.GetRandomVariable(exprType)), "Var");
                     }
 
                 case ExprKind.BinaryOpExpression:
@@ -864,7 +864,7 @@ namespace Antigen
         /// <returns></returns>
         public StatementSyntax VariableAssignmentHelper(Tree.ValueType exprType, string variableName)
         {
-            ExpressionSyntax lhs = Annotate(Helpers.GetVariableAccessExpression(variableName), "specific-Var");
+            ExpressionSyntax lhs = Annotate(TestCase.GetExpressionSyntax(variableName), "specific-Var");
             ExpressionSyntax rhs;
 
             int noOfAttempts = TC.Config.NumOfAttemptsForExpression;
@@ -1041,6 +1041,29 @@ namespace Antigen
 #else
             return statement;
 #endif
+        }
+
+
+        /// <summary>
+        ///     Generate log invoke statement
+        /// </summary>
+        /// <param name="variableName"></param>
+        /// <returns></returns>
+        public static StatementSyntax GetLogInvokeStatement(string variableName)
+        {
+            return ExpressionStatement(
+                PreGenerated.LogInvocationExpression
+                .WithArgumentList(
+                    ArgumentList(
+                    SeparatedList<ArgumentSyntax>(
+                        new SyntaxNodeOrToken[]
+                        {
+                            // For variable names, just take 10 characters for longer variable names
+                            Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(variableName.Substring(0, Math.Min(variableName.Length, 10))))),
+                            Token(SyntaxKind.CommaToken),
+                            Argument(TestCase.GetExpressionSyntax(variableName))
+                        }
+             ))));
         }
     }
 

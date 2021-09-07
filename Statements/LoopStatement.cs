@@ -530,7 +530,7 @@ namespace Antigen.Statements
 
         public void LogVariable(string name)
         {
-            TestMethod.LogVariable(Body, name);
+            Body.Add(TestMethod.GetLogInvokeStatement(name));
         }
 
         public LoopStatement(TestCase tc)
