@@ -1,0 +1,32 @@
+﻿// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Antigen.Statements
+{
+    public class VarDeclStatement : Statement
+    {
+        public readonly string TypeName;
+        public readonly string VariableName;
+        public readonly Expression Expression;
+
+        public VarDeclStatement(TestCase testCase, string typeName, string variableName, Expression rhs) : base(testCase)
+        {
+            TypeName = typeName;
+            VariableName = variableName;
+            Expression = rhs;
+        }
+
+        public override string ToString()
+        {
+            return $"{TypeName} {VariableName} = {Expression};";
+        }
+    }
+}
