@@ -8,11 +8,11 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Antigen.Expressions;
 using Antigen.Tree;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Antigen.Statements
 {
@@ -90,7 +90,7 @@ namespace Antigen.Statements
 
     public class InductionVariable
     {
-        private static int NumOfIterations = 3;
+        private static readonly int s_numOfIterations = 3;
         public bool IsPrimary;
         public string Name;
         public LoopControlParameters LoopParameters;
@@ -115,13 +115,13 @@ namespace Antigen.Statements
             if (IsPrimary)
             {
                 if (LoopParameters.IsStepBeforeBreakCondition)
-                    return String.Format("({0} = {1} ; {4}, {0} {2} {3}; )", Name, __loopStart, getLoopControlOperator(true), __loopEnd, GetLoopStep());
+                    return string.Format("({0} = {1} ; {4}, {0} {2} {3}; )", Name, __loopStart, getLoopControlOperator(true), __loopEnd, GetLoopStep());
                 else
-                    return String.Format("({0} = {1} ; {0} {2} {3}; {4})", Name, __loopStart, getLoopControlOperator(true), __loopEnd, GetLoopStep());
+                    return string.Format("({0} = {1} ; {0} {2} {3}; {4})", Name, __loopStart, getLoopControlOperator(true), __loopEnd, GetLoopStep());
             }
             else
             {
-                return String.Format("({0} = {1} ; ; {2})", Name, __loopStart, GetLoopStep());
+                return string.Format("({0} = {1} ; ; {2})", Name, __loopStart, GetLoopStep());
             }
         }
 
@@ -145,14 +145,14 @@ namespace Antigen.Statements
         /// Returns value of loopinduction variable with which it should start the loop
         /// </summary>
         /// <returns></returns>
-        internal ExpressionSyntax GetLoopStart()
+        internal string GetLoopStart()
         {
             __loopStart = 0;
             // If loop starts with invariant then _loopvar = loopInvariant;
             if (LoopParameters.IsLoopStartFromInvariant)
-                return IdentifierName(LoopInvariantName);
+                return LoopInvariantName;
 
-            int loopStartValue = (InductionVariable.NumOfIterations * LoopParameters.LoopInductionChangeFactor);
+            int loopStartValue = (InductionVariable.s_numOfIterations * LoopParameters.LoopInductionChangeFactor);
 
             if (LoopParameters.IsForwardLoop)
                 loopStartValue += LoopParameters.LoopInitValueVariation;
@@ -161,20 +161,16 @@ namespace Antigen.Statements
 
             __loopStart = (LoopParameters.IsForwardLoop ? -1 : 1) * loopStartValue;
 
-            return BinaryExpression(
-                LoopParameters.IsForwardLoop ? SyntaxKind.SubtractExpression : SyntaxKind.AddExpression,
-                IdentifierName(LoopInvariantName),
-                LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(loopStartValue)));
-            //return String.Format("{0} {1} {2}", LoopInvariantName, LoopParameters.IsForwardLoop ? "-" : "+", loopStartValue.ToString());
+            return string.Format("{0} {1} {2}", LoopInvariantName, LoopParameters.IsForwardLoop ? "-" : "+", loopStartValue.ToString());
         }
 
         /// <summary>
         /// Returns value of loopinduction variable with which it should end the loop
         /// </summary>
         /// <returns></returns>
-        internal ExpressionSyntax GetLoopEnd()
+        internal string GetLoopEnd()
         {
-            int numOfIterations = InductionVariable.NumOfIterations;
+            int numOfIterations = InductionVariable.s_numOfIterations;
             __loopEnd = 0;
             // If loop doesn't start with invariant, it ends with loopInvariant : __loopvar = loopInvariant - N; __loopvar < loopInvariant;
             if (!LoopParameters.IsLoopStartFromInvariant)
@@ -192,13 +188,13 @@ namespace Antigen.Statements
             __loopEnd = (LoopParameters.IsForwardLoop ? 1 : -1) * loopEndValue;
 
             if (loopEndValue == 0)
-                return IdentifierName(LoopInvariantName);
+            {
+                return LoopInvariantName;
+            }
             else
-                return BinaryExpression(
-                    LoopParameters.IsForwardLoop ? SyntaxKind.AddExpression : SyntaxKind.SubtractExpression,
-                    IdentifierName(LoopInvariantName),
-                    LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(loopEndValue)));
-            //return String.Format("{0} {1} {2}", LoopInvariantName, LoopParameters.IsForwardLoop ? "+" : "-", loopEndValue.ToString());
+            {
+                return string.Format("{0} {1} {2}", LoopInvariantName, LoopParameters.IsForwardLoop ? "+" : "-", loopEndValue.ToString());
+            }
         }
 
         /// <summary>
@@ -206,24 +202,17 @@ namespace Antigen.Statements
         /// than loop control statements, call this only for secondary induction variables.
         /// </summary>
         /// <returns></returns>
-        internal ExpressionSyntax GetLoopStepForSecondaryIV()
+        internal string GetLoopStepForSecondaryIV()
         {
             Debug.Assert(!IsPrimary, "Try to get loop step for primary induction variable.");
             int selectedChangeFactor = GetRandomInductionChangeFactor();
             if (selectedChangeFactor == 1)
             {
-                return PostfixUnaryExpression(
-                    LoopParameters.IsForwardLoop ? SyntaxKind.PostIncrementExpression : SyntaxKind.PostDecrementExpression,
-                    IdentifierName(Name));
-                //return Name + (LoopParameters.IsForwardLoop ? "++" : "--") + ";";
+                return Name + (LoopParameters.IsForwardLoop ? "++" : "--") + ";";
             }
             else
             {
-                return AssignmentExpression(
-                    LoopParameters.IsForwardLoop ? SyntaxKind.AddAssignmentExpression : SyntaxKind.SubtractAssignmentExpression,
-                    IdentifierName(Name),
-                    LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(selectedChangeFactor)));
-                //return String.Format("{0} {1}= {2};", Name, LoopParameters.IsForwardLoop ? "+" : "-", selectedChangeFactor);
+                return string.Format("{0} {1}= {2};", Name, LoopParameters.IsForwardLoop ? "+" : "-", selectedChangeFactor);
             }
         }
 
@@ -242,22 +231,15 @@ namespace Antigen.Statements
         /// </summary>
         /// <param name="inductionVariable"></param>
         /// <returns></returns>
-        internal ExpressionSyntax GetLoopStep()
+        internal string GetLoopStep()
         {
             if (LoopParameters.LoopInductionChangeFactor == 1)
             {
-                return PostfixUnaryExpression(
-                    LoopParameters.IsForwardLoop ? SyntaxKind.PostIncrementExpression : SyntaxKind.PostDecrementExpression,
-                    IdentifierName(Name));
-                //return Name + (LoopParameters.IsForwardLoop ? "++" : "--") + ";";
+                return Name + (LoopParameters.IsForwardLoop ? "++" : "--") + ";";
             }
             else
             {
-                return AssignmentExpression(
-                    LoopParameters.IsForwardLoop ? SyntaxKind.AddAssignmentExpression : SyntaxKind.SubtractAssignmentExpression,
-                    IdentifierName(Name),
-                    LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(LoopParameters.LoopInductionChangeFactor)));
-                //return String.Format("{0} {1}= {2};", Name, LoopParameters.IsForwardLoop ? "+" : "-", LoopParameters.LoopInductionChangeFactor);
+                return string.Format("{0} {1}= {2};", Name, LoopParameters.IsForwardLoop ? "+" : "-", LoopParameters.LoopInductionChangeFactor);
             }
         }
 
@@ -266,35 +248,28 @@ namespace Antigen.Statements
         /// Returns the loop IV access code +/- change factor
         /// </summary>
         /// <returns></returns>
-        internal ExpressionSyntax GetLoopIVAccess()
+        internal string GetLoopIVAccess()
         {
             // 5% of time generate '0' for change factor
-            return BinaryExpression(
-                    LoopParameters.IsForwardLoop ? SyntaxKind.AddExpression : SyntaxKind.SubtractExpression,
-                    IdentifierName(Name),
-                    LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(GetRandomInductionChangeFactor())));
-
-            //return String.Format("{0} {1} {2}", Name, LoopParameters.IsForwardLoop ? "+" : "-", GetRandomInductionChangeFactor());
+            return string.Format("{0} {1} {2}", Name, LoopParameters.IsForwardLoop ? "+" : "-", GetRandomInductionChangeFactor());
         }
 
         /// <summary>
         /// Returns the guard condition for the loop. Loop will execute as long as this condition is true.
         /// </summary>
         /// <returns></returns>
-        internal ExpressionSyntax GetLoopGuardCondition()
+        internal string GetLoopGuardCondition()
         {
-            return BinaryExpression(getLoopControlOperator(true).Oper, IdentifierName(Name), GetLoopEnd());
-            //return String.Format("({0} {1} {2})", Name, getLoopControlOperator(true), GetLoopEnd());
+            return string.Format("({0} {1} {2})", Name, getLoopControlOperator(true), GetLoopEnd());
         }
 
         /// <summary>
         /// Returns the break condition for the loop. Loop will terminate when this condition is true.
         /// </summary>
         /// <returns></returns>
-        internal ExpressionSyntax GetLoopBreakCondition()
+        internal string GetLoopBreakCondition()
         {
-            return BinaryExpression(getLoopControlOperator(false).Oper, IdentifierName(Name), GetLoopEnd());
-            //return String.Format("({0} {1} {2})", Name, getLoopControlOperator(false), GetLoopEnd());
+            return string.Format("({0} {1} {2})", Name, getLoopControlOperator(false), GetLoopEnd());
         }
 
         /// <summary>
@@ -308,7 +283,9 @@ namespace Antigen.Statements
 
             // If break operator is '==' then guard operator is '!='. This is same regardless this is forward/backward loop
             if (result.Oper == SyntaxKind.EqualsExpression && isFetchingForGuardCondition)
+            {
                 result = Operator.ForSyntaxKind(SyntaxKind.NotEqualsExpression); // "!=";
+            }
 
             // If this is forward loop and we are fetching for break condition, no need to flip the operator
             else if (LoopParameters.IsForwardLoop && !isFetchingForGuardCondition) { }
@@ -319,12 +296,14 @@ namespace Antigen.Statements
             // If this is reverse loop and we are fetching for break condition OR this is forward loop and we are fetching for guard condition,
             // then flip the operator
             else
-                result = flipOperator(result);
+            {
+                result = FlipOperator(result);
+            }
 
             return result;
         }
 
-        private Operator flipOperator(Operator oldOperator)
+        private static Operator FlipOperator(Operator oldOperator)
         {
             Operator newOperator;
             switch (oldOperator.Oper)
@@ -351,15 +330,16 @@ namespace Antigen.Statements
         #endregion
     }
 
-    public class LoopStatement
+    public class LoopStatement : Statement
     {
         private int _nestNum;
         private int _noOfSecondaryInductionVariables;
         private List<InductionVariable> _inductionVariables;
+        protected StringBuilder loopBodyBuilder = new StringBuilder();
 
         #region Properties
 
-        public ExpressionSyntax Bounds;
+        public Expression Bounds;
 
         public bool IsContinueAllowedInLoopBody
         {
@@ -373,7 +353,7 @@ namespace Antigen.Statements
         public bool IsWrappedInFunction = false;
         public bool IsUseEvalIsWrappedInFunction = false;
         public bool IsSnippetGenerated = false;
-        protected List<StatementSyntax> Body = new List<StatementSyntax>();
+        protected List<Statement> Body = new List<Statement>();
         //TODO-future: labels for goto
         //public List<string> Labels = new List<string>();
         public List<InductionVariable> InductionVariables
@@ -439,7 +419,6 @@ namespace Antigen.Statements
         }
 
         protected bool offlineReduceOnly = false;
-        public string LoopVar;
         public int NestNum
         {
             get { return _nestNum; }
@@ -500,13 +479,13 @@ namespace Antigen.Statements
                 //if (!inductionVariable.LoopParameters.IsLoopInvariantVariableUsed)
                 //{
                 //    string arrayVariableToAccessForLength = LocalScope.GetRandomArrayObject(SymbolAction.Read);
-                //    if (!String.IsNullOrEmpty(arrayVariableToAccessForLength))
+                //    if (!string.IsNullOrEmpty(arrayVariableToAccessForLength))
                 //    {
-                //        inductionVariable.LoopInvariantName = String.Format("{0}.length", arrayVariableToAccessForLength);
+                //        inductionVariable.LoopInvariantName = string.Format("{0}.length", arrayVariableToAccessForLength);
                 //    }
                 //}
 
-                if (String.IsNullOrEmpty(inductionVariable.LoopInvariantName))
+                if (string.IsNullOrEmpty(inductionVariable.LoopInvariantName))
                     inductionVariable.LoopInvariantName = Constants.LoopInvariantName;
             }
         }
@@ -523,7 +502,7 @@ namespace Antigen.Statements
         }
         #endregion
 
-        public void AddToBody(StatementSyntax stmt)
+        public void AddToBody(Statement stmt)
         {
             Body.Add(stmt);
         }
@@ -533,9 +512,24 @@ namespace Antigen.Statements
             Body.Add(TestMethod.GetLogInvokeStatement(name));
         }
 
-        public LoopStatement(TestCase tc)
+        public LoopStatement(TestCase tc, int nestNum, int numOfSecondaryVars, Expression bounds, List<Statement> loopBody) : base(tc)
         {
             TC = tc;
+            NestNum = nestNum;
+            NumOfSecondaryInductionVariables = numOfSecondaryVars;
+            Bounds = bounds;
+            Body = loopBody;
+        }
+
+        protected override void PopulateContent()
+        {
+            loopBodyBuilder = new StringBuilder();
+
+            PopulatePreLoopBody();
+            PopulateLoopBody();
+            PopulatePostLoopBody();
+
+            _contents = loopBodyBuilder.ToString();
         }
 
         public string GetImplicitLoopVar()
@@ -548,22 +542,46 @@ namespace Antigen.Statements
             return null;
         }
 
-        protected List<StatementSyntax> GetLoopBody()
+        protected virtual void PopulatePreLoopBody()
+        {
+        }
+
+        protected virtual void PopulateLoopBody()
         {
             // load the value of Property once instead of reading from Property everytime because it queries the list of IVs
-            bool isContinueAllowedInLoopBody = IsContinueAllowedInLoopBody;
+            //bool isContinueAllowedInLoopBody = IsContinueAllowedInLoopBody;
 
-#if DEBUG
-            foreach (StatementSyntax sm in Body)
-            {
-                if (sm is ContinueStatementSyntax)
-                {
-                    Debug.Assert(isContinueAllowedInLoopBody, "continue is not allowed in loop since break condition is at the end of loop.");
-                }
-            }
-#endif
-            return Body;
+            loopBodyBuilder.AppendLine(string.Join(Environment.NewLine, Body));
+            //foreach (var sm in Body)
+            //{
+            //if (sm is ContinueStatement)
+            //{
+            //    Debug.Assert(isContinueAllowedInLoopBody, "continue is not allowed in loop since break condition is at the end of loop.");
+            //}
+            //    loopBodyBuilder.AppendLine(sm);
+            //}
         }
+
+        protected virtual void PopulatePostLoopBody()
+        {
+        }
+
+//        protected List<Statement> GetLoopBody()
+//        {
+//            // load the value of Property once instead of reading from Property everytime because it queries the list of IVs
+//            bool isContinueAllowedInLoopBody = IsContinueAllowedInLoopBody;
+
+//#if DEBUG
+//            foreach (StatementSyntax sm in Body)
+//            {
+//                if (sm is ContinueStatementSyntax)
+//                {
+//                    Debug.Assert(isContinueAllowedInLoopBody, "continue is not allowed in loop since break condition is at the end of loop.");
+//                }
+//            }
+//#endif
+//            return Body;
+//        }
 
         #region Loop induction code generation
 
@@ -572,9 +590,9 @@ namespace Antigen.Statements
             return InductionVariables.Select(iv => iv.ToString()).ToList();
         }
 
-        protected VariableDeclarationSyntax GenerateIVInitCode(bool isInitLoopHead = false)
+        protected string GenerateIVInitCode(bool isInitLoopHead = false)
         {
-            List<VariableDeclaratorSyntax> loopInits = new List<VariableDeclaratorSyntax>();
+            List<string> loopInits = new List<string>();
 
             // Induction variables to be initialized outside the loop
             foreach (var inductionVar in InductionVariables)
@@ -583,50 +601,38 @@ namespace Antigen.Statements
                     inductionVar.LoopParameters.IsInitInLoopHeader == isInitLoopHead)
                 {
                     inductionVar.isLoopInitGenerated = true;
-                    loopInits.Add(VariableDeclarator(Identifier(inductionVar.Name)).WithInitializer(EqualsValueClause(inductionVar.GetLoopStart())));
+                    loopInits.Add(string.Format("{0} = {1}", inductionVar.Name, inductionVar.GetLoopStart()));
                 }
             }
             if (loopInits.Count > 0)
             {
-                return VariableDeclaration(Helpers.GetToken(SyntaxKind.IntKeyword), SeparatedList(loopInits));
+                return $"int {string.Join(",", loopInits)};";
             }
-            return null;
+
+            return string.Empty;
         }
 
-        protected SeparatedSyntaxList<ExpressionSyntax> GenerateIVStepCode()
+        protected string GenerateIVStepCode()
         {
-            // Induction variables to be incr/decr in loop body
-            List<ExpressionSyntax> loopInits = new List<ExpressionSyntax>();
-            List<SyntaxNodeOrToken> finalInits = new List<SyntaxNodeOrToken>();
+            List<string> loopInits = new List<string>();
 
-            for (int i = 0; i < InductionVariables.Count; i++)
+            // Secondary induction variables to be incr/decr in loop body
+            foreach (var inductionVar in InductionVariables)
             {
-                InductionVariable inductionVariable = InductionVariables[i];
-                if (inductionVariable.LoopParameters.IsStepInLoopHeader)
+                if (inductionVar.LoopParameters.IsStepInLoopHeader)
                 {
-                    inductionVariable.isLoopStepGenerated = true;
-                    loopInits.Add(inductionVariable.GetLoopStep());
+                    inductionVar.isLoopStepGenerated = true;
+                    loopInits.Add(string.Format("{0}", inductionVar.GetLoopStep()));
                 }
             }
-
-            if (loopInits.Count > 0)
-            {
-                finalInits.Add(loopInits[0]);
-                for (int i = 1; i < loopInits.Count; i++)
-                {
-                    finalInits.Add(Token(SyntaxKind.CommaToken));
-                    finalInits.Add(loopInits[i]);
-                }
-            }
-
-            return SeparatedList<ExpressionSyntax>(finalInits);
+            return string.Join(", ", loopInits);
         }
 
-        protected List<StatementSyntax> GenerateIVBreakAndStepCode(bool isCodeForBreakCondAtTheEnd)
+        protected List<string> GenerateIVBreakAndStepCode(bool isCodeForBreakCondAtTheEnd)
         {
-            List<StatementSyntax> loopBreaks = new List<StatementSyntax>();
-            List<StatementSyntax> loopPreCondSteps = new List<StatementSyntax>();
-            List<StatementSyntax> loopPostCondSteps = new List<StatementSyntax>();
+            List<string> loopBreaks = new List<string>();
+            List<string> loopPreCondSteps = new List<string>();
+            List<string> loopPostCondSteps = new List<string>();
 
             // Generate break and step condition for primary variables
             foreach (var inductionVar in PrimaryInductionVariables)
@@ -636,7 +642,7 @@ namespace Antigen.Statements
                     inductionVar.LoopParameters.IsBreakCondAtEndOfLoopBody == isCodeForBreakCondAtTheEnd) //  If decided to add step at end of loop body and this is end of loop body
                 {
                     inductionVar.isLoopBreakGenerated = true;
-                    loopBreaks.Add(IfStatement(inductionVar.GetLoopBreakCondition(), Block(BreakStatement())));
+                    loopBreaks.Add(string.Format("if {0} break;", inductionVar.GetLoopBreakCondition()));
                 }
             }
 
@@ -650,11 +656,11 @@ namespace Antigen.Statements
                     inductionVar.isLoopStepGenerated = true;
                     if (inductionVar.LoopParameters.IsStepBeforeBreakCondition)
                     {
-                        loopPreCondSteps.Add(ExpressionStatement(inductionVar.GetLoopStep()));
+                        loopPreCondSteps.Add(string.Format("{0};", inductionVar.GetLoopStep()));
                     }
                     else
                     {
-                        loopPostCondSteps.Add(ExpressionStatement(inductionVar.GetLoopStep()));
+                        loopPostCondSteps.Add(string.Format("{0};", inductionVar.GetLoopStep()));
                     }
                 }
             }
@@ -663,9 +669,9 @@ namespace Antigen.Statements
             return loopBreaks;
         }
 
-        protected ExpressionSyntax GenerateIVLoopGuardCode()
+        protected string GenerateIVLoopGuardCode()
         {
-            ExpressionSyntax guardCondition = null;
+            List<string> loopGuardConditions = new List<string>();
 
             // Secondary induction variables to be incr/decr in loop body
             foreach (var inductionVariable in PrimaryInductionVariables)
@@ -674,18 +680,11 @@ namespace Antigen.Statements
                 if (inductionVariable.LoopParameters.IsBreakCondInLoopHeader)
                 {
                     inductionVariable.isLoopBreakGenerated = true;
-                    var currCondition = inductionVariable.GetLoopGuardCondition();
-                    if (guardCondition != null)
-                    {
-                        guardCondition = BinaryExpression(SyntaxKind.LogicalAndExpression, guardCondition, currCondition);
-                    }
-                    else
-                    {
-                        guardCondition = currCondition;
-                    }
+                    loopGuardConditions.Add(inductionVariable.GetLoopGuardCondition());
                 }
             }
-            return guardCondition;
+
+            return string.Join(" && ", loopGuardConditions);
         }
 
         #endregion

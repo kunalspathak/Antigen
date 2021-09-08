@@ -5,91 +5,95 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
-
+using Antigen.Expressions;
 
 namespace Antigen.Statements
 {
+    public enum Kind
+    {
+        SimpleLoop,
+        NormalLoop,
+        ComplexLoop
+    }
+
     public class ForStatement : LoopStatement
     {
-        public List<string> symTableLog = new List<string>();
+        public readonly Expression LoopStep;
+        public readonly Kind LoopKind;
+        public readonly string LoopVar;
 
-        public ExpressionSyntax LoopStep;
 
-        public Kind LoopKind;
-        public enum Kind
+        public ForStatement(
+            TestCase tc, string loopVar, int nestNum, int numOfSecondaryVars, Expression bounds, List<Statement> loopBody, Expression loopStep, Kind loopKind) :
+            base(tc, nestNum, numOfSecondaryVars, bounds, loopBody)
         {
-            SimpleLoop,
-            NormalLoop,
-            ComplexLoop
+            LoopVar = loopVar;
+            LoopStep = loopStep;
+            LoopKind = loopKind;
+
+            loopBodyBuilder = new StringBuilder();
+
+            PopulateContent();
         }
 
-        public ForStatement(TestCase tc) : base(tc) {}
-
-        public override List<StatementSyntax> Generate(bool labels)
+        protected override void PopulatePreLoopBody()
         {
-            List<StatementSyntax> result = new List<StatementSyntax>();
-
             // Induction variables to be initialized outside the loop
-            VariableDeclarationSyntax initCode = GenerateIVInitCode(false);
-            if (initCode != null)
-            {
-                result.Add(LocalDeclarationStatement(initCode));
-            }
+            loopBodyBuilder.AppendLine(GenerateIVInitCode(false));
 
-            // guard condition
-            ExpressionSyntax condition = GenerateIVLoopGuardCode();
+            // induction variable initialization
+            loopBodyBuilder.Append($"for({GenerateIVInitCode(true)};");
+
+            // condition
+            string guardCode = GenerateIVLoopGuardCode();
+            loopBodyBuilder.Append(guardCode);
+
             if (LoopKind == Kind.NormalLoop || LoopKind == Kind.ComplexLoop)
             {
-                ExpressionSyntax boundCond = BinaryExpression(SyntaxKind.LessThanExpression, TestCase.GetExpressionSyntax(LoopVar), Bounds);
-                if (condition == null)
-                {
-                    condition = boundCond;
-                }
-                else
-                {
-                    condition = BinaryExpression(SyntaxKind.LogicalAndExpression, condition, boundCond);
-                }
+                if (!string.IsNullOrEmpty(guardCode))
+                    loopBodyBuilder.Append(" &&");
+                loopBodyBuilder.Append($" {LoopVar} < ({Bounds})");
             }
+            loopBodyBuilder.Append(';');
 
             // induction variables to be incr/decr
-            SeparatedSyntaxList<ExpressionSyntax> incrementors = GenerateIVStepCode();
+            string stepCode = GenerateIVStepCode();
+            loopBodyBuilder.Append(stepCode);
+
             if (LoopKind == Kind.NormalLoop)
             {
-                incrementors.Add(PostfixUnaryExpression(SyntaxKind.PostIncrementExpression, TestCase.GetExpressionSyntax(LoopVar)));
+                if (!string.IsNullOrEmpty(stepCode))
+                {
+                    loopBodyBuilder.Append(" ,");
+                }
+                loopBodyBuilder.Append($" {LoopVar}++");
             }
             else if (LoopKind == Kind.ComplexLoop)
             {
-                incrementors.Add(LoopStep);
+                if (!string.IsNullOrEmpty(stepCode))
+                {
+                    loopBodyBuilder.Append(',');
+                }
+                loopBodyBuilder.Append(' ');
+                loopBodyBuilder.Append(LoopStep);
             }
+            loopBodyBuilder.AppendLine(")");
+
+            loopBodyBuilder.AppendLine("{");
 
             // Add step/break condition at the beginning 
-            List<StatementSyntax> loopBody = GenerateIVBreakAndStepCode(isCodeForBreakCondAtTheEnd: false);
+            loopBodyBuilder.AppendLine(string.Join(Environment.NewLine, GenerateIVBreakAndStepCode(isCodeForBreakCondAtTheEnd: false)));
+        }
 
-            // Add actual loop body
-            loopBody.AddRange(GetLoopBody());
-
+        protected override void PopulatePostLoopBody()
+        {
             // Add step/break condition at the end 
-            loopBody.AddRange(GenerateIVBreakAndStepCode(isCodeForBreakCondAtTheEnd: true));
+            loopBodyBuilder.AppendLine(string.Join(Environment.NewLine, GenerateIVBreakAndStepCode(isCodeForBreakCondAtTheEnd: true)));
 
-            ForStatementSyntax forStmt = ForStatement(Block(loopBody));
-
-            VariableDeclarationSyntax declaration = GenerateIVInitCode(true);
-            if (declaration != null)
-            {
-                forStmt = forStmt.WithDeclaration(declaration);
-            }
-            forStmt = forStmt.WithCondition(condition).WithIncrementors(incrementors);
-            result.Add(forStmt);
             Debug.Assert(HasSuccessfullyGenerated(), "ForStatement didn't generate properly. Please check the loop variables.");
 
-            return result;
+            loopBodyBuilder.AppendLine("}");
         }
-    };
+    }
 }
