@@ -5,9 +5,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
+using Antigen.Expressions;
 
 namespace Antigen.Statements
 {
@@ -22,7 +22,8 @@ namespace Antigen.Statements
 
         public override string ToString()
         {
-            return $"return {Expression};";
+            string expression = Expression != null ? Expression.ToString() : string.Empty;
+            return $"return {expression};";
         }
     }
 }

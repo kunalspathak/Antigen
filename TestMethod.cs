@@ -1,4 +1,5 @@
 ﻿using Antigen.Config;
+using Antigen.Expressions;
 using Antigen.Statements;
 using Antigen.Tree;
 using Microsoft.CodeAnalysis;
@@ -64,7 +65,7 @@ namespace Antigen
             return ret;
         }
 
-        internal void LogVariable(IList<StatementSyntax> stmtList, string variableName)
+        internal void LogVariable(List<Statement> stmtList, string variableName)
         {
             stmtList.Add(GetLogInvokeStatement(variableName));
         }
@@ -297,7 +298,7 @@ namespace Antigen
         /// <param name="stmtKind"></param>
         /// <param name="depth"></param>
         /// <returns></returns>
-        public StatementSyntax StatementHelper(StmtKind stmtKind, int depth)
+        public Statement StatementHelper(StmtKind stmtKind, int depth)
         {
             //Debug.Assert(depth <= TC.Config.MaxStmtDepth);
 
@@ -309,7 +310,7 @@ namespace Antigen
 
                         string variableName = Helpers.GetVariableName(variableType, _variablesCount++);
 
-                        ExpressionSyntax rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(variableType.PrimitiveType), variableType, 0);
+                        Expression rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(variableType.PrimitiveType), variableType, 0);
                         CurrentScope.AddLocal(variableType, variableName);
 
                         // Add all the fields to the scope
@@ -322,20 +323,20 @@ namespace Antigen
                             }
                         }
 
-                        return Annotate(LocalDeclarationStatement(Helpers.GetVariableDeclaration(variableType, variableName, rhs)), "VarDecl", depth);
+                        return new VarDeclStatement(TC, variableType, variableName, rhs);
                     }
                 case StmtKind.IfElseStatement:
                     {
                         //Debug.Assert(depth <= TC.Config.MaxStmtDepth);
 
                         Tree.ValueType condValueType = Tree.ValueType.ForPrimitive(Primitive.Boolean);
-                        ExpressionSyntax conditionExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Boolean), condValueType, 0);
+                        Expression conditionExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Boolean), condValueType, 0);
 
                         Scope ifBranchScope = new Scope(TC, ScopeKind.ConditionalScope, CurrentScope);
                         Scope elseBranchScope = new Scope(TC, ScopeKind.ConditionalScope, CurrentScope);
 
                         int ifcount = PRNG.Next(1, TC.Config.MaxStatementCount);
-                        IList<StatementSyntax> ifBody = new List<StatementSyntax>();
+                        List<Statement> ifBody = new List<Statement>();
 
                         PushScope(ifBranchScope);
                         for (int i = 0; i < ifcount; i++)
@@ -354,7 +355,7 @@ namespace Antigen
                         PopScope(variableName => LogVariable(ifBody, variableName)); // pop 'if' body scope
 
                         int elsecount = PRNG.Next(1, TC.Config.MaxStatementCount);
-                        IList<StatementSyntax> elseBody = new List<StatementSyntax>();
+                        List<Statement> elseBody = new List<Statement>();
 
                         PushScope(elseBranchScope);
                         for (int i = 0; i < elsecount; i++)
@@ -372,7 +373,7 @@ namespace Antigen
                         }
                         PopScope(variableName => LogVariable(elseBody, variableName)); // pop 'else' body scope
 
-                        return Annotate(IfStatement(conditionExpr, Block(ifBody), ElseClause(Block(elseBody))), "IfElse", depth);
+                        return new IfElseStatement(TC, conditionExpr, ifBody, elseBody);
                     }
                 case StmtKind.AssignStatement:
                     {
@@ -400,44 +401,36 @@ namespace Antigen
                         }
 
                         ExprKind rhsKind = GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType);
-                        ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, 0);
-                        ExpressionSyntax rhs = ExprHelper(rhsKind, rhsExprType, 0);
+                        Expression lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, 0);
+                        Expression rhs = ExprHelper(rhsKind, rhsExprType, 0);
 
-                        // For division, make sure that divisor is not 0
-                        if ((assignOper.Oper == SyntaxKind.DivideAssignmentExpression) || (assignOper.Oper == SyntaxKind.ModuloAssignmentExpression))
-                        {
-                            rhs = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, ParenthesizedExpression(rhs), LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(10, 100)))));
-                            rhs = Helpers.GetWrappedAndCastedExpression(rhsExprType, lhsExprType, rhs);
-                        }
-
-                        return Annotate(ExpressionStatement(AssignmentExpression(assignOper.Oper, lhs, rhs)), "Assign", depth);
+                        return new AssignStatement(TC, lhs, assignOper, rhs);
                     }
                 case StmtKind.ForStatement:
                     {
                         //Debug.Assert(depth <= TC.Config.MaxStmtDepth);
 
-                        Scope forLoopScope = new Scope(TC, ScopeKind.LoopScope, CurrentScope);
-                        ForStatement forStmt = new ForStatement(TC);
-                        forStmt.LoopVar = CurrentScope.GetRandomVariable(Tree.ValueType.ForPrimitive(Primitive.Int));
-                        forStmt.NestNum = depth;
-                        forStmt.NumOfSecondaryInductionVariables = PRNG.Next(/*GetOptions().MaxNumberOfSecondaryInductionVariable*/ 1 + 1);
+                        var forLoopScope = new Scope(TC, ScopeKind.LoopScope, CurrentScope);
+                        var loopVar = CurrentScope.GetRandomVariable(Tree.ValueType.ForPrimitive(Primitive.Int));
+                        var nestNum = depth;
+                        var numOfSecondaryVars = PRNG.Next(/*GetOptions().MaxNumberOfSecondaryInductionVariable*/ 1 + 1);
+                        var forLoopKind = Kind.ComplexLoop;
 
                         // 50% of the time, we'll make it a simple loop, 25% each normal and complex.
                         if (PRNG.Next(2) == 0)
-                            forStmt.LoopKind = Statements.ForStatement.Kind.SimpleLoop;
+                            forLoopKind = Kind.SimpleLoop;
                         else if (PRNG.Next(2) == 0)
-                            forStmt.LoopKind = Statements.ForStatement.Kind.NormalLoop;
-                        else
-                            forStmt.LoopKind = Statements.ForStatement.Kind.ComplexLoop;
+                            forLoopKind = Kind.NormalLoop;
 
                         PushScope(forLoopScope);
 
-                        forStmt.Bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Int), Tree.ValueType.ForPrimitive(Primitive.Int), 0);
-                        forStmt.LoopStep = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Int), Tree.ValueType.ForPrimitive(Primitive.Int), 0);
+                        var bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Int), Tree.ValueType.ForPrimitive(Primitive.Int), 0);
+                        var loopStep = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Int), Tree.ValueType.ForPrimitive(Primitive.Int), 0);
 
                         //TODO-imp: AddInductionVariables
                         //TODO-imp: ctrlFlowStack
                         //TODO future: label
+                        List<Statement> forLoopBody = new List<Statement>();
                         for (int i = 0; i < TC.Config.MaxStatementCount; ++i)
                         {
                             StmtKind cur;
@@ -449,30 +442,32 @@ namespace Antigen
                             {
                                 cur = GetASTUtils().GetRandomTerminalStatement();
                             }
-                            forStmt.AddToBody(StatementHelper(cur, depth + 1));
+                            forLoopBody.Add(StatementHelper(cur, depth + 1));
                         }
 
-                        PopScope(variableName => forStmt.LogVariable(variableName)); // pop for-loop scope
+                        //TODO: This can just append to forLoopBody
+                        PopScope(variableName => LogVariable(forLoopBody, variableName)); // pop 'for-loop' body scope
 
-                        return Annotate(Block(forStmt.Generate(false)), "for-loop", depth);
+                        return new ForStatement(TC, loopVar, nestNum, numOfSecondaryVars, bounds, forLoopBody, loopStep, forLoopKind);
                     }
                 case StmtKind.DoWhileStatement:
                     {
                         //Debug.Assert(depth <= TC.Config.MaxStmtDepth);
 
                         Scope doWhileScope = new Scope(TC, ScopeKind.LoopScope, CurrentScope);
-                        DoWhileStatement doStmt = new DoWhileStatement(TC);
 
-                        doStmt.NestNum = depth;
-                        doStmt.NumOfSecondaryInductionVariables = PRNG.Next(/*GetOptions().MaxNumberOfSecondaryInductionVariable*/ 1 + 1);
+                        var nestNum = depth;
+                        var numOfSecondaryVars = PRNG.Next(/*GetOptions().MaxNumberOfSecondaryInductionVariable*/ 1 + 1);
 
                         PushScope(doWhileScope);
 
-                        doStmt.Bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Boolean), Tree.ValueType.ForPrimitive(Primitive.Boolean), 0);
+                        var bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Boolean), Tree.ValueType.ForPrimitive(Primitive.Boolean), 0);
 
                         //TODO-imp: AddInductionVariables
                         //TODO-imp: ctrlFlowStack
                         //TODO future: label
+                        List<Statement> whileLoopBody = new List<Statement>();
+
                         for (int i = 0; i < PRNG.Next(1, TC.Config.MaxStatementCount); ++i)
                         {
                             StmtKind cur;
@@ -484,29 +479,31 @@ namespace Antigen
                             {
                                 cur = GetASTUtils().GetRandomTerminalStatement();
                             }
-                            doStmt.AddToBody(StatementHelper(cur, depth + 1));
+                            whileLoopBody.Add(StatementHelper(cur, depth + 1));
                         }
 
-                        PopScope(variableName => doStmt.LogVariable(variableName)); // pop do-while scope
-                        return Annotate(Block(doStmt.Generate(false)), "do-while", depth);
+                        PopScope(variableName => LogVariable(whileLoopBody, variableName)); // pop 'do-while' body scope
+
+                        return new DoWhileStatement(TC, nestNum, numOfSecondaryVars, bounds, whileLoopBody);
                     }
                 case StmtKind.WhileStatement:
                     {
                         //Debug.Assert(depth <= TC.Config.MaxStmtDepth);
 
                         Scope whileScope = new Scope(TC, ScopeKind.LoopScope, CurrentScope);
-                        WhileStatement whileStmt = new WhileStatement(TC);
 
-                        whileStmt.NestNum = depth;
-                        whileStmt.NumOfSecondaryInductionVariables = PRNG.Next(/*GetOptions().MaxNumberOfSecondaryInductionVariable*/ 1 + 1);
+                        var nestNum = depth;
+                        var numOfSecondaryVars = PRNG.Next(/*GetOptions().MaxNumberOfSecondaryInductionVariable*/ 1 + 1);
 
                         PushScope(whileScope);
 
-                        whileStmt.Bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Boolean), Tree.ValueType.ForPrimitive(Primitive.Boolean), 0);
+                        var bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Boolean), Tree.ValueType.ForPrimitive(Primitive.Boolean), 0);
 
                         //TODO-imp: AddInductionVariables
                         //TODO-imp: ctrlFlowStack
                         //TODO future: label
+                        List<Statement> whileLoopBody = new List<Statement>();
+
                         for (int i = 0; i < PRNG.Next(1, TC.Config.MaxStatementCount); ++i)
                         {
                             StmtKind cur;
@@ -518,22 +515,23 @@ namespace Antigen
                             {
                                 cur = GetASTUtils().GetRandomTerminalStatement();
                             }
-                            whileStmt.AddToBody(StatementHelper(cur, depth + 1));
+                            whileLoopBody.Add(StatementHelper(cur, depth + 1));
                         }
 
-                        PopScope(variableName => whileStmt.LogVariable(variableName)); // pop while scope
-                        return Annotate(Block(whileStmt.Generate(false)), "while-loop", depth);
+                        PopScope(variableName => LogVariable(whileLoopBody, variableName)); // pop 'while' body scope
+
+                        return new WhileStatement(TC, nestNum, numOfSecondaryVars, bounds, whileLoopBody);
                     }
                 case StmtKind.ReturnStatement:
                     {
                         Tree.ValueType returnType = MethodSignature.ReturnType;
                         if (returnType.PrimitiveType == Primitive.Void)
                         {
-                            return Annotate(ReturnStatement(), "Return", depth);
+                            return new ReturnStatement(TC, null);
                         }
 
-                        ExpressionSyntax returnExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(returnType.PrimitiveType), returnType, 0);
-                        return Annotate(ReturnStatement(returnExpr), "Return", depth);
+                        Expression returnExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(returnType.PrimitiveType), returnType, 0);
+                        return new ReturnStatement(TC, returnExpr);
                     }
                 case StmtKind.TryCatchFinallyStatement:
                     {
@@ -543,7 +541,7 @@ namespace Antigen
 
                         // If there are no catch, then definitely add finally, otherwise skip it.
                         bool hasFinally = catchCounts == 0 || PRNG.Decide(TC.Config.FinallyClauseProbability);
-                        IList<StatementSyntax> tryBody = new List<StatementSyntax>();
+                        List<Statement> tryBody = new List<Statement>();
 
                         Scope tryScope = new Scope(TC, ScopeKind.BracesScope, CurrentScope);
                         PushScope(tryScope);
@@ -564,7 +562,8 @@ namespace Antigen
                         }
                         PopScope(variableName => LogVariable(tryBody, variableName)); // pop 'try' body scope
 
-                        IList<CatchClauseSyntax> catchClauses = new List<CatchClauseSyntax>();
+                        List<Tuple<Type, List<Statement>>> catchClauses = new ();
+
                         var allExceptions = Tree.ValueType.AllExceptions.Select(x => x.Key).ToList();
                         var caughtExceptions = new List<Type>();
 
@@ -581,7 +580,7 @@ namespace Antigen
                             caughtExceptions.Add(exceptionToCatch);
 
                             int catchStmtCount = PRNG.Next(1, TC.Config.MaxStatementCount);
-                            IList<StatementSyntax> catchBody = new List<StatementSyntax>();
+                            List<Statement> catchBody = new List<Statement>();
 
                             Scope catchScope = new Scope(TC, ScopeKind.BracesScope, CurrentScope);
                             PushScope(catchScope);
@@ -600,11 +599,10 @@ namespace Antigen
                                 catchBody.Add(StatementHelper(cur, depth + 1));
                             }
                             PopScope(variableName => LogVariable(catchBody, variableName)); // pop 'catch' body scope
-
-                            catchClauses.Add(CatchClause(Tree.ValueType.AllExceptions[exceptionToCatch], null, Block(catchBody)));
+                            catchClauses.Add(Tuple.Create(exceptionToCatch, catchBody));
                         }
 
-                        IList<StatementSyntax> finallyBody = new List<StatementSyntax>();
+                        List<Statement> finallyBody = new List<Statement>();
                         if (hasFinally)
                         {
                             Scope finallyScope = new Scope(TC, ScopeKind.BracesScope, CurrentScope);
@@ -627,7 +625,7 @@ namespace Antigen
                             PopScope(variableName => LogVariable(finallyBody, variableName)); // pop 'finally' body scope
                         }
 
-                        return Annotate(TryStatement(Block(tryBody), catchClauses.ToSyntaxList(), FinallyClause(Block(finallyBody))), "TryCatchFinally", depth);
+                        return new TryCatchFinallyStatement(TC, tryBody, catchClauses, finallyBody);
                     }
                 case StmtKind.SwitchStatement:
                     {
@@ -638,8 +636,9 @@ namespace Antigen
                         Primitive switchType = new Primitive[] { Primitive.Int, Primitive.Long, Primitive.Char, Primitive.String }[PRNG.Next(4)];
                         Tree.ValueType switchExprType = Tree.ValueType.ForPrimitive(switchType);
                         ExprKind switchExprKind = GetASTUtils().GetRandomExpressionReturningPrimitive(switchType);
-                        ExpressionSyntax switchExpr = ExprHelper(switchExprKind, switchExprType, 0);
-                        IList<SwitchSectionSyntax> listOfCases = new List<SwitchSectionSyntax>();
+                        Expression switchExpr = ExprHelper(switchExprKind, switchExprType, 0);
+                        //IList<SwitchSectionSyntax> listOfCases = new List<SwitchSectionSyntax>();
+                        List<Tuple<ConstantValue, List<Statement>>> listOfCases = new ();
                         HashSet<string> usedCaseLabels = new HashSet<string>();
 
                         // Generate each cases
@@ -650,7 +649,7 @@ namespace Antigen
 
                             // Generate statements within each cases
                             int caseStmtCount = PRNG.Next(1, TC.Config.MaxStatementCount);
-                            IList<StatementSyntax> caseBody = new List<StatementSyntax>();
+                            List<Statement> caseBody = new List<Statement>();
                             for (int j = 0; j < caseStmtCount; j++)
                             {
                                 StmtKind cur;
@@ -666,17 +665,14 @@ namespace Antigen
                             }
 
                             PopScope(variableName => LogVariable(caseBody, variableName)); // pop 'case' body scope
-                            caseBody.Add(BreakStatement());
 
-                            LiteralExpressionSyntax caseLiteralExpression;
+                            ConstantValue caseConstantValue;
                             do
                             {
-                                caseLiteralExpression = ExprHelper(ExprKind.LiteralExpression, switchExprType, 0) as LiteralExpressionSyntax;
-                            } while (!usedCaseLabels.Add(caseLiteralExpression.Token.ValueText));
+                                caseConstantValue = ExprHelper(ExprKind.LiteralExpression, switchExprType, 0) as ConstantValue;
+                            } while (!usedCaseLabels.Add(caseConstantValue.Value));
 
-                            listOfCases.Add(SwitchSection()
-                                .WithLabels(SingletonList<SwitchLabelSyntax>(CaseSwitchLabel(caseLiteralExpression)))
-                                .WithStatements(caseBody.ToSyntaxList()));
+                            listOfCases.Add(Tuple.Create(caseConstantValue, caseBody));
                         }
 
                         // Generate default
@@ -685,7 +681,7 @@ namespace Antigen
 
                         // Generate statements within default
                         int defaultStmtCount = PRNG.Next(1, 3);
-                        IList<StatementSyntax> defaultBody = new List<StatementSyntax>();
+                        List<Statement> defaultBody = new List<Statement>();
                         for (int j = 0; j < defaultStmtCount; j++)
                         {
                             StmtKind cur;
@@ -701,20 +697,12 @@ namespace Antigen
                         }
 
                         PopScope(variableName => LogVariable(defaultBody, variableName)); // pop 'default' body scope
-                        defaultBody.Add(BreakStatement());
 
-                        listOfCases.Add(
-                            SwitchSection()
-                            .WithLabels(
-                                SingletonList<SwitchLabelSyntax>(
-                                    DefaultSwitchLabel()))
-                            .WithStatements(defaultBody.ToSyntaxList()));
-
-                        return Annotate(SwitchStatement(switchExpr).WithSections(listOfCases.ToSyntaxList()), "SwitchCase", depth);
+                        return new SwitchStatement(TC, switchExpr, listOfCases, defaultBody);
                     }
                 case StmtKind.MethodCallStatement:
                     {
-                        return Annotate(ExpressionStatement(MethodCallHelper(_testClass.GetRandomMethod(), 0)), "MethodCall", depth); ;
+                        return new MethodCallStatement(TC, MethodCallHelper(_testClass.GetRandomMethod(), 0));
                     }
                 default:
                     Debug.Assert(false, string.Format("Hit unknown statement type {0}", Enum.GetName(typeof(StmtKind), stmtKind)));
@@ -731,7 +719,7 @@ namespace Antigen
         /// <param name="exprType"></param>
         /// <param name="depth"></param>
         /// <returns></returns>
-        public ExpressionSyntax ExprHelper(ExprKind exprKind, Tree.ValueType exprType, int depth)
+        public Expression ExprHelper(ExprKind exprKind, Tree.ValueType exprType, int depth)
         {
             //Debug.Assert(depth <= TC.Config.MaxExprDepth);
 
@@ -739,12 +727,12 @@ namespace Antigen
             {
                 case ExprKind.LiteralExpression:
                     {
-                        return Annotate(Helpers.GetLiteralExpression(exprType, TC._numerals), "Literal");
+                        return ConstantValue.GetConstantValue(exprType, TC._numerals);
                     }
 
                 case ExprKind.VariableExpression:
                     {
-                        return Annotate(TestCase.GetExpressionSyntax(CurrentScope.GetRandomVariable(exprType)), "Var");
+                        return new VariableExpression(TC, CurrentScope.GetRandomVariable(exprType));
                     }
 
                 case ExprKind.BinaryOpExpression:
@@ -787,20 +775,13 @@ namespace Antigen
                         // errors during compiling the test case.
                         if (op.HasFlag(OpFlags.Math) && lhsExprKind == ExprKind.LiteralExpression && rhsExprKind == ExprKind.LiteralExpression)
                         {
-                            return Annotate(Helpers.GetWrappedAndCastedExpression(exprType, exprType, Helpers.GetLiteralExpression(exprType, TC._numerals)), "BinOp-folded");
+                            return ConstantValue.GetConstantValue(exprType, TC._numerals);
                         }
 
-                        ExpressionSyntax lhs = ExprHelper(lhsExprKind, lhsExprType, depth + 1);
-                        ExpressionSyntax rhs = ExprHelper(rhsExprKind, rhsExprType, depth + 1);
+                        Expression lhs = ExprHelper(lhsExprKind, lhsExprType, depth + 1);
+                        Expression rhs = ExprHelper(rhsExprKind, rhsExprType, depth + 1);
 
-                        // For division, make sure that divisor is not 0
-                        if ((op.Oper == SyntaxKind.DivideExpression) || (op.Oper == SyntaxKind.ModuloExpression))
-                        {
-                            rhs = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, ParenthesizedExpression(rhs), LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(10, 100)))));
-                            rhs = Helpers.GetWrappedAndCastedExpression(rhsExprType, exprType, rhs);
-                        }
-
-                        return Annotate(Helpers.GetWrappedAndCastedExpression(lhsExprType, exprType, Helpers.GetBinaryExpression(lhs, op, rhs)), "BinOp");
+                        return new CastExpression(TC, new BinaryExpression(TC, lhs, op, rhs), exprType);
                     }
                 case ExprKind.AssignExpression:
                     {
@@ -826,18 +807,10 @@ namespace Antigen
                             rhsKind = GetRandomTerminalExpression(rhsExprType);
                         }
 
-                        ExpressionSyntax lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, depth + 1);
-                        ExpressionSyntax rhs = ExprHelper(rhsKind, rhsExprType, depth + 1);
+                        Expression lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, depth + 1);
+                        Expression rhs = ExprHelper(rhsKind, rhsExprType, depth + 1);
 
-                        // For division, make sure that divisor is not 0
-                        if ((assignOper.Oper == SyntaxKind.DivideAssignmentExpression) || (assignOper.Oper == SyntaxKind.ModuloAssignmentExpression))
-                        {
-                            rhs = ParenthesizedExpression(BinaryExpression(SyntaxKind.AddExpression, ParenthesizedExpression(rhs), LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(10, 100)))));
-                            rhs = Helpers.GetWrappedAndCastedExpression(rhsExprType, lhsExprType, rhs);
-                        }
-
-                        return Annotate(Helpers.GetWrappedAndCastedExpression(lhsExprType, exprType,
-                            AssignmentExpression(assignOper.Oper, lhs, rhs)), "Assign");
+                        return new CastExpression(TC, new AssignExpression(TC, lhs, assignOper, rhs), exprType);
                     }
                 case ExprKind.MethodCallExpression:
                     {
@@ -950,9 +923,11 @@ namespace Antigen
             return kind;
         }
 
-        private ExpressionSyntax MethodCallHelper(MethodSignature methodSig, int depth)
+        private Expression MethodCallHelper(MethodSignature methodSig, int depth)
         {
-            List<SyntaxNodeOrToken> argumentNodes = new List<SyntaxNodeOrToken>();
+            List<Expression> argumentNodes = new List<Expression>();
+            List<ParamValuePassing> passingWays = new List<ParamValuePassing>();
+
             int paramsCount = methodSig.Parameters.Count;
 
             for (int paramId = 0; paramId < paramsCount; paramId++)
@@ -978,27 +953,13 @@ namespace Antigen
                     argExprKind = ExprKind.VariableExpression;
                 }
 
-                ExpressionSyntax argExpr = ExprHelper(argExprKind, argType, depth + 1);
-                ArgumentSyntax argSyntax = Argument(argExpr);
+                Expression argExpr = ExprHelper(argExprKind, argType, depth + 1);
 
-                if (parameter.PassingWay == ParamValuePassing.Ref)
-                {
-                    argSyntax = argSyntax.WithRefKindKeyword(Token(SyntaxKind.RefKeyword));
-                }
-                else if (parameter.PassingWay == ParamValuePassing.Out)
-                {
-                    argSyntax = argSyntax.WithRefKindKeyword(Token(SyntaxKind.OutKeyword));
-                }
-
-                argumentNodes.Add(argSyntax);
-                if (paramId + 1 < paramsCount)
-                {
-                    argumentNodes.Add(Token(SyntaxKind.CommaToken));
-                }
+                passingWays.Add(parameter.PassingWay);
+                argumentNodes.Add(argExpr);
             }
 
-            return InvocationExpression(IdentifierName(methodSig.MethodName))
-                .WithArgumentList(ArgumentList(SeparatedList<ArgumentSyntax>(argumentNodes)));
+            return new MethodCallExpression(methodSig.MethodName, argumentNodes, passingWays);
         }
 
         private Tree.ValueType GetRandomExprType()

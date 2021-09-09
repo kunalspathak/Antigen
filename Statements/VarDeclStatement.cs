@@ -5,19 +5,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
+using Antigen.Expressions;
 
 namespace Antigen.Statements
 {
     public class VarDeclStatement : Statement
     {
-        public readonly string TypeName;
+        public readonly Tree.ValueType TypeName;
         public readonly string VariableName;
         public readonly Expression Expression;
 
-        public VarDeclStatement(TestCase testCase, string typeName, string variableName, Expression rhs) : base(testCase)
+        public VarDeclStatement(TestCase testCase, Tree.ValueType typeName, string variableName, Expression rhs) : base(testCase)
         {
             TypeName = typeName;
             VariableName = variableName;

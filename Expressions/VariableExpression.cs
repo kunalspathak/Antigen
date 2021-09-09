@@ -11,7 +11,7 @@ using Antigen.Tree;
 
 namespace Antigen.Expressions
 {
-    public class VariableExpression : Node
+    public class VariableExpression : Expression
     {
         public readonly string Name;
 

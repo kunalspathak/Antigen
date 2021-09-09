@@ -5,7 +5,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -14,17 +13,16 @@ namespace Antigen.Statements
     public class MethodCallStatement : Statement
     {
         public readonly string MethodName;
-        public readonly List<Expression> Arguments;
+        public readonly Expression MethodCallExpr;
 
-        public MethodCallStatement(TestCase testCase, string methodName, List<Expression> arguments) : base(testCase)
+        public MethodCallStatement(TestCase testCase, Expression methodCallExpr) : base(testCase)
         {
-            MethodName = methodName;
-            Arguments = arguments;
+            MethodCallExpr = methodCallExpr;
         }
 
         public override string ToString()
         {
-            return $"{MethodName}({string.Join(", ", Arguments)});";
+            return $"{MethodCallExpr};";
         }
     }
 }

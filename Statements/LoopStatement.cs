@@ -507,11 +507,6 @@ namespace Antigen.Statements
             Body.Add(stmt);
         }
 
-        public void LogVariable(string name)
-        {
-            Body.Add(TestMethod.GetLogInvokeStatement(name));
-        }
-
         public LoopStatement(TestCase tc, int nestNum, int numOfSecondaryVars, Expression bounds, List<Statement> loopBody) : base(tc)
         {
             TC = tc;

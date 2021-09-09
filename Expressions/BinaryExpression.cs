@@ -32,13 +32,22 @@ namespace Antigen.Expressions
                 // To avoid divide by zero errors
                 Right = new AssignExpression(testCase,
                     new ParenthsizedExpression(testCase, rhs),
-                    Operator.ForSyntaxKind(SyntaxKind.AddExpression),
-                    new ConstantValue(testCase, PRNG.Next(10, 100).ToString()));
+                    Operator.ForSyntaxKind(SyntaxKind.AddExpression), ConstantValue.GetRandomConstantInt());
             }
             else
             {
                 Right = rhs;
             }
+        }
+
+        protected override string GetCode()
+        {
+            return base.GetCode();
+        }
+
+        protected override void PopulateContent()
+        {
+            base.PopulateContent();
         }
 
         public override string ToString()

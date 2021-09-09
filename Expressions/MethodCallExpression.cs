@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,16 +15,49 @@ namespace Antigen.Expressions
     {
         public readonly string MethodName;
         public readonly List<Expression> Arguments;
+        public readonly List<ParamValuePassing> ArgsPassingWays;
 
-        public MethodCallExpression(TestCase testCase, string methodName, List<Expression> arguments) : base(testCase)
+        public MethodCallExpression(string methodName, List<Expression> arguments, List<ParamValuePassing> passingWays) : base(null)
         {
+            Debug.Assert(arguments.Count == passingWays.Count);
+
             MethodName = methodName;
             Arguments = arguments;
+
+            PopulateContent();
+        }
+
+        protected override void PopulateContent()
+        {
+            List<string> finalArgs = new List<string>();
+
+            for (int argId = 0; argId < Arguments.Count; argId++)
+            {
+                Expression argument = Arguments[argId];
+                ParamValuePassing paramPassing = ArgsPassingWays[argId];
+                switch (paramPassing)
+                {
+                    case ParamValuePassing.None:
+                        finalArgs.Add(argument.ToString());
+                        break;
+                    case ParamValuePassing.Ref:
+                        finalArgs.Add($"ref {argument}");
+                        break;
+                    case ParamValuePassing.Out:
+                        finalArgs.Add($"out {argument}");
+                        break;
+                    default:
+                        Debug.Assert(false, "Unreachable");
+                        break;
+                }
+            }
+
+            _contents = $"{MethodName}({string.Join(", ", finalArgs)})";
         }
 
         public override string ToString()
         {
-            return $"{MethodName}({string.Join(", ", Arguments)})";
+            return _contents;
         }
     }
 }

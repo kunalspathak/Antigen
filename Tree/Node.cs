@@ -10,19 +10,24 @@ using System.Threading.Tasks;
 
 namespace Antigen.Tree
 {
-    public class Node
+    public abstract class Node
     {
         protected TestCase _testCase;
+        protected string _contents;
 
         //public virtual void Render(RenderContext renderContext)
         //{
 
         //}
 
+        //TODO: Have this call an abstract method
         public override string ToString()
         {
-            return string.Empty; // base.ToString();
+            return Annotate();
         }
+
+        protected abstract string Annotate();
+        protected virtual void PopulateContent() { }
 
         public Node(TestCase tc)
         {
