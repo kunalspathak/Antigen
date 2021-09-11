@@ -14,7 +14,7 @@ namespace Antigen.Expressions
 {
     public class AssignExpression : BinaryExpression
     {
-        public AssignExpression(TestCase testCase, Expression lhs, Operator op, Expression rhs) : base(testCase, lhs, op, rhs)
+        public AssignExpression(TestCase testCase, Tree.ValueType leftType, Expression lhs, Operator op, Expression rhs) : base(testCase, leftType, lhs, op, rhs)
         {
         }
     }

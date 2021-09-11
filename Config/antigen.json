@@ -1,5 +1,5 @@
 {
-    "Seed": -1,
+    "Seed": 1,
     "OutputDirectory": ".",
     "NumTestCases": 1000,
     "HoursToRun": 10,
@@ -639,9 +639,9 @@
         },
         {
             "Name": "Structs",
-            "StructCount": 10,
-            "StructFieldCount": 10,
-            "NestedStructDepth": 5,
+            "StructCount": 5,
+            "StructFieldCount": 5,
+            "NestedStructDepth": 3,
             "NestedStructProbability": 0.4,
             "StructFieldTypeProbability": 0.5,
             "StructAliasProbability": 0.5,

@@ -13,7 +13,7 @@ namespace Antigen.Tree
     public abstract class Node
     {
         protected TestCase _testCase;
-        protected string _contents;
+        //protected string _contents;
 
         //public virtual void Render(RenderContext renderContext)
         //{
@@ -21,13 +21,13 @@ namespace Antigen.Tree
         //}
 
         //TODO: Have this call an abstract method
-        public override string ToString()
-        {
-            return Annotate();
-        }
+        //public override string ToString()
+        //{
+        //    return string.Empty;
+        //}
 
         protected abstract string Annotate();
-        protected virtual void PopulateContent() { }
+        //protected virtual void PopulateContent() { }
 
         public Node(TestCase tc)
         {

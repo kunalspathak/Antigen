@@ -1,10 +1,11 @@
-﻿using Antigen.Tree;
+﻿using System.Collections.Generic;
+using Antigen.Tree;
 
 namespace Antigen.Expressions
 {
     public class Expression : Node
     {
-#if DEBUG
+#if DEBUG_TODO
         private readonly Dictionary<string, int> _expressionsCount = new();
 #endif
 
@@ -15,7 +16,7 @@ namespace Antigen.Expressions
 
         protected override string Annotate()
         {
-#if DEBUG
+#if DEBUG_TODO
             string typeName = GetType().Name;
             if (!_expressionsCount.ContainsKey(typeName))
             {

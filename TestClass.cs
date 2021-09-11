@@ -8,6 +8,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Antigen.Expressions;
+using Antigen.Statements;
 using Antigen.Tree;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -113,47 +115,49 @@ namespace Antigen
             return ret;
         }
 
-        public ClassDeclarationSyntax Generate()
+        public ClassDeclStatement Generate()
         {
             // push class scope
             PushScope(ClassScope);
 
-            List<MemberDeclarationSyntax> classMembers = new List<MemberDeclarationSyntax>();
+            List<Statement> classMembers = new List<Statement>();
             classMembers.AddRange(GenerateStructs());
-            classMembers.AddRange(GenerateStaticFields());
+            classMembers.AddRange(GenerateFields(isStatic: true));
+            classMembers.AddRange(GenerateFields(isStatic: false));
+
+            // special
+            classMembers.Add(new FieldDeclStatement(TC, Tree.ValueType.ForPrimitive(Primitive.Int), Constants.LoopInvariantName, ConstantValue.GetRandomConstantInt(0, 10), true));
+            classMembers.Add(new ArbitraryCodeStatement(TC, "private static List<string> toPrint = new List<string>();"));
+
             classMembers.AddRange(GenerateLeafMethods());
             classMembers.AddRange(GenerateMethods());
+            classMembers.Add(PreGenerated.StaticMethods);
 
             // pop class scope
             PopScope();
 
-            return ClassDeclaration(ClassName)
-               .WithMembers(classMembers.ToSyntaxList())
-               .WithModifiers(new SyntaxTokenList(Token(SyntaxKind.PublicKeyword)));
+            return new ClassDeclStatement(TC, ClassName, classMembers);
         }
 
         /// <summary>
         ///     Generate structs in this class
         /// </summary>
         /// <returns></returns>
-        private List<MemberDeclarationSyntax> GenerateStructs()
+        private List<Statement> GenerateStructs()
         {
-            List<MemberDeclarationSyntax> structs = new List<MemberDeclarationSyntax>();
+            List<Statement> structs = new List<Statement>();
 
             for (int structIndex = 1; structIndex <= TC.Config.StructCount; structIndex++)
             {
                 string structName = $"S{structIndex}";
-                var (structDecl, fields) = GenerateStruct(structName, structName, structIndex, 1);
+                var structDecl = GenerateStruct(structName, structName, structIndex, 1);
                 structs.Add(structDecl);
-                CurrentScope.AddStructType(structName, fields);
+                CurrentScope.AddStructType(structName, structDecl.StructFields);
             }
 
-            (MemberDeclarationSyntax, List<StructField>) GenerateStruct(string structName, string structType, int structIndex, int depth)
+            StructDeclStatement GenerateStruct(string structName, string structType, int structIndex, int depth)
             {
-                StructDeclarationSyntax structDeclaration = StructDeclaration(structName)
-                    .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
-
-                List<MemberDeclarationSyntax> fieldsTree = new List<MemberDeclarationSyntax>();
+                List<StructDeclStatement> nestedStructs = new List<StructDeclStatement>();
                 List<StructField> fieldsMetadata = new List<StructField>();
                 int fieldCount = PRNG.Next(1, TC.Config.StructFieldCount);
                 for (int fieldIndex = 1; fieldIndex <= fieldCount; fieldIndex++)
@@ -162,10 +166,11 @@ namespace Antigen
                     {
                         string nestedStructName = $"S{structIndex}_D{depth}_F{fieldIndex}";
                         string nestedStructType = structType + "." + nestedStructName;
-                        var (structDecl, childFields) = GenerateStruct(nestedStructName, nestedStructType, structIndex, depth + 1);
-                        fieldsTree.Add(structDecl);
-                        CurrentScope.AddStructType(nestedStructType, childFields);
-                        structName = nestedStructName;
+                        var structDecl = GenerateStruct(nestedStructName, nestedStructType, structIndex, depth + 1);
+                        nestedStructs.Add(structDecl);
+                        CurrentScope.AddStructType(nestedStructType, structDecl.StructFields);
+
+                        //structName = nestedStructName;
                         continue;
                     }
 
@@ -182,11 +187,10 @@ namespace Antigen
                     }
 
                     fieldName = Helpers.GetVariableName(fieldType, fieldIndex);
-                    fieldsTree.Add(FieldDeclaration(Helpers.GetVariableDeclaration(fieldType, fieldName)).WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword))));
+                    //fieldsTree.Add(new VarDeclStatement(TC, fieldType, fieldName, null));
                     fieldsMetadata.Add(new StructField(fieldType, fieldName));
                 }
-
-                return (structDeclaration.WithMembers(fieldsTree.ToSyntaxList()), fieldsMetadata);
+                return new StructDeclStatement(TC, structName, fieldsMetadata, nestedStructs);
             }
 
             return structs;
@@ -196,9 +200,9 @@ namespace Antigen
         ///     Generate methods in this class
         /// </summary>
         /// <returns></returns>
-        private IList<MemberDeclarationSyntax> GenerateMethods()
+        private IList<MethodDeclStatement> GenerateMethods()
         {
-            List<MemberDeclarationSyntax> methods = new List<MemberDeclarationSyntax>();
+            List<MethodDeclStatement> methods = new List<MethodDeclStatement>();
 
             for (int i = 1; i < TC.Config.MethodCount; i++)
             {
@@ -207,32 +211,15 @@ namespace Antigen
             }
             methods.Add(new TestMethod(this, "Method0", true).Generate());
 
-            var staticMethods = PreGenerated.StaticMethods;
-            var mainMethod = staticMethods[0];
-            var loggerMethod = staticMethods[1];
-            var printLogMethod = staticMethods[2];
-
-            mainMethod = mainMethod.WithBody(
-                Block(
-                    ParseStatement($"{ClassName} obj{ClassName} = new {ClassName}();"),
-                    ParseStatement($"obj{ClassName}.Method0();"),
-                    ParseStatement("PrintLog();")
-                    )
-                );
-
-            methods.Add(mainMethod);
-            methods.Add(loggerMethod);
-            methods.Add(printLogMethod);
-
             return methods;
         }
 
         /// <summary>
         ///     Generate leaf methods in this class.
         /// </summary>
-        private IList<MemberDeclarationSyntax> GenerateLeafMethods()
+        private IList<MethodDeclStatement> GenerateLeafMethods()
         {
-            List<MemberDeclarationSyntax> leafMethods = new List<MemberDeclarationSyntax>();
+            List<MethodDeclStatement> leafMethods = new List<MethodDeclStatement>();
             int leafMethodId = 0;
             foreach (Tree.ValueType variableType in Tree.ValueType.GetTypes())
             {
@@ -249,31 +236,31 @@ namespace Antigen
         }
 
         /// <summary>
-        ///     Generate static fields in this class.
+        ///     Generate fields in this class.
         /// </summary>
-        private IList<MemberDeclarationSyntax> GenerateStaticFields()
+        private List<Statement> GenerateFields(bool isStatic)
         {
-            List<MemberDeclarationSyntax> fields = new List<MemberDeclarationSyntax>();
+            List<Statement> fields = new List<Statement>();
 
             // TODO-TEMP initialize one variable of each type
             int _variablesCount = 0;
             foreach (Tree.ValueType variableType in Tree.ValueType.GetTypes())
             {
-                string variableName = "s_" + Helpers.GetVariableName(variableType, _variablesCount++);
+                string variableName = (isStatic ? "s_" : string.Empty) + Helpers.GetVariableName(variableType, _variablesCount++);
 
-                ExpressionSyntax rhs = Helpers.GetLiteralExpression(variableType, TC._numerals);
+                Expression rhs = ConstantValue.GetConstantValue(variableType, TC._numerals);
+
                 CurrentScope.AddLocal(variableType, variableName);
 
-                fields.Add(FieldDeclaration(Helpers.GetVariableDeclaration(variableType, variableName, rhs))
-                    .WithModifiers(TokenList(Token(SyntaxKind.StaticKeyword))));
+                fields.Add(new FieldDeclStatement(TC, variableType, variableName, rhs, isStatic));
             }
 
             // TODO-TEMP initialize one variable of each struct type
             foreach (Tree.ValueType structType in CurrentScope.AllStructTypes)
             {
-                string variableName = "s_" + Helpers.GetVariableName(structType, _variablesCount++);
+                string variableName = (isStatic ? "s_" : string.Empty) + Helpers.GetVariableName(structType, _variablesCount++);
 
-                ExpressionSyntax rhs = Helpers.GetObjectCreationExpression(structType.TypeName);
+                Expression rhs = new CreationExpression(TC, structType.TypeName, null);
                 CurrentScope.AddLocal(structType, variableName);
 
                 // Add all the fields to the scope
@@ -283,20 +270,10 @@ namespace Antigen
                     CurrentScope.AddLocal(structField.FieldType, $"{variableName}.{structField.FieldName}");
                 }
 
-                fields.Add(FieldDeclaration(Helpers.GetVariableDeclaration(structType, variableName, rhs))
-                    .WithModifiers(TokenList(Token(SyntaxKind.StaticKeyword))));
+                fields.Add(new FieldDeclStatement(TC, structType, variableName, rhs, isStatic));
             }
 
             //TODO: Define some more constants
-            fields.Add(
-                FieldDeclaration(
-                    Helpers.GetVariableDeclaration(
-                        Tree.ValueType.ForPrimitive(Primitive.Int),
-                        Constants.LoopInvariantName,
-                        LiteralExpression(SyntaxKind.NumericLiteralExpression, Literal(PRNG.Next(10)))))
-                .WithModifiers(TokenList(Token(SyntaxKind.StaticKeyword))));
-
-            fields.Add(PreGenerated.LoggerVariableDecl);
 
             return fields;
         }

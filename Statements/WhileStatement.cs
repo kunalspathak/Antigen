@@ -15,20 +15,19 @@ namespace Antigen.Statements
         public WhileStatement(TestCase tc, int nestNum, int numOfSecondaryVars, Expression bounds, List<Statement> loopBody) :
                 base(tc, nestNum, numOfSecondaryVars, bounds, loopBody)
         {
-            PopulateContent();
         }
 
         protected override void PopulatePreLoopBody()
         {
             // Induction variables to be initialized outside the loop
-            loopBodyBuilder.AppendLine(GenerateIVInitCode());
+            loopBodyBuilder.AppendFormat("{0};", GenerateIVInitCode()).AppendLine();
 
             loopBodyBuilder.Append("while(");
-            loopBodyBuilder.Append($"({Bounds})");
+            loopBodyBuilder.AppendFormat("({0})", Bounds);
 
             string loopGuardCondition = GenerateIVLoopGuardCode();
             if (!string.IsNullOrEmpty(loopGuardCondition))
-                loopBodyBuilder.Append($" && ({loopGuardCondition})");
+                loopBodyBuilder.AppendFormat(" && ({0})", loopGuardCondition);
             loopBodyBuilder.Append(')');
 
             loopBodyBuilder.AppendLine("{");

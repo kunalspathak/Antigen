@@ -26,7 +26,7 @@ namespace Antigen.Statements
 
         public override string ToString()
         {
-            return $"{TypeName} {VariableName} = {Expression};";
+            return Expression != null ? $"{TypeName} {VariableName} = {Expression};" : $"{TypeName} {VariableName};";
         }
     }
 }

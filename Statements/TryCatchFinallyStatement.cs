@@ -22,16 +22,9 @@ namespace Antigen.Statements
             TryBody = tryBody;
             CatchBodies = catchBodies;
             FinallyBody = finallyBody;
-
-            PopulateContent();
         }
 
         public override string ToString()
-        {
-            return _contents;
-        }
-
-        protected override void PopulateContent()
         {
             StringBuilder strBuilder = new StringBuilder();
             strBuilder.AppendLine("try");
@@ -42,7 +35,7 @@ namespace Antigen.Statements
             {
                 foreach (var catchClause in CatchBodies)
                 {
-                    strBuilder.AppendLine($"catch ({catchClause.Item1})");
+                    strBuilder.AppendFormat("catch ({0})", catchClause.Item1).AppendLine();
                     strBuilder.AppendLine("{");
                     strBuilder.AppendLine(string.Join(Environment.NewLine, catchClause.Item2));
                     strBuilder.AppendLine("}");
@@ -50,12 +43,12 @@ namespace Antigen.Statements
             }
             if (FinallyBody != null && FinallyBody.Count > 0)
             {
-                strBuilder.AppendLine($"finally");
+                strBuilder.AppendLine("finally");
                 strBuilder.AppendLine("{");
                 strBuilder.AppendLine(string.Join(Environment.NewLine, FinallyBody));
                 strBuilder.AppendLine("}");
             }
-            _contents = strBuilder.ToString();
+            return strBuilder.ToString();
         }
     }
 }

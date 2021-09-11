@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Antigen.Statements;
 
 namespace Antigen.Tree
 {
@@ -36,7 +37,7 @@ namespace Antigen.Tree
         // List of local variables in current scope. 
         private Dictionary<ValueType, List<string>> LocalVariables = new Dictionary<ValueType, List<string>>();
 
-        public List<string> AllVariables => LocalVariables.SelectMany(dict => dict.Value).ToList();
+        public List<string> LocalVariableNames => LocalVariables.SelectMany(dict => dict.Value).ToList();
 
         // A mapping of all the primitive fields present in given struct
         // Every time a variable "xyz" of one of the struct is defined, all the fields corresponding to that struct
@@ -67,8 +68,23 @@ namespace Antigen.Tree
         #region Get variables/types from the scope
         public string GetRandomVariable(ValueType variableType)
         {
-            List<string> allUsableVariables = GetUsableVariables(variableType);
-            return allUsableVariables[PRNG.Next(allUsableVariables.Count)];
+            var defaultVariable = string.Empty;
+            var curr = this;
+
+            while (curr != null)
+            {
+                if (curr.ListOfVariables.TryGetValue(variableType, out var variables))
+                {
+                    defaultVariable = variables[PRNG.Next(variables.Count)];
+
+                    if (PRNG.Decide(0.3))
+                    {
+                        return defaultVariable;
+                    }
+                }
+                curr = curr.parent;
+            }
+            return defaultVariable;
         }
 
         public ValueType GetRandomStructType()
@@ -88,17 +104,17 @@ namespace Antigen.Tree
         #region Add variables/types to scope
         public void AddLocal(ValueType variableType, string variableName)
         {
-#if DEBUG
-            foreach (var valueType in LocalVariables.Keys)
-            {
-                Debug.Assert(!LocalVariables[valueType].Contains(variableName));
-            }
+//#if DEBUG
+//            foreach (var valueType in LocalVariables.Keys)
+//            {
+//                Debug.Assert(!LocalVariables[valueType].Contains(variableName));
+//            }
 
-            foreach (var valueType in ListOfVariables.Keys)
-            {
-                Debug.Assert(!ListOfVariables[valueType].Contains(variableName));
-            }
-#endif
+//            foreach (var valueType in ListOfVariables.Keys)
+//            {
+//                Debug.Assert(!ListOfVariables[valueType].Contains(variableName));
+//            }
+//#endif
             // Add to local variables
             if (!LocalVariables.ContainsKey(variableType))
             {
@@ -122,8 +138,10 @@ namespace Antigen.Tree
         ///     
         ///     It also resolves all the fields present in <paramref name="structFields"/>
         ///     and store the fully qualifier name in <see cref="StructToFieldsMapping"/>.
+        ///     
+        ///     Returns the new structType created.
         /// </summary>
-        public void AddStructType(string typeName, List<StructField> structFields)
+        public ValueType AddStructType(string typeName, List<StructField> structFields)
         {
             ValueType newStructType = ValueType.CreateStructType(typeName);
             List<StructField> fieldsInCurrStruct = new List<StructField>();
@@ -160,6 +178,7 @@ namespace Antigen.Tree
             StructToFieldsMapping[newStructType] = fieldsInCurrStruct;
 
             ListOfStructTypes.Add(newStructType);
+            return newStructType;
         }
         #endregion
 
@@ -172,7 +191,6 @@ namespace Antigen.Tree
         private List<string> GetUsableVariables(ValueType variableType)
         {
             List<string> variables = new List<string>();
-
             Scope curr = this;
 
             while (curr != null)

@@ -235,11 +235,11 @@ namespace Antigen.Statements
         {
             if (LoopParameters.LoopInductionChangeFactor == 1)
             {
-                return Name + (LoopParameters.IsForwardLoop ? "++" : "--") + ";";
+                return Name + (LoopParameters.IsForwardLoop ? "++" : "--");
             }
             else
             {
-                return string.Format("{0} {1}= {2};", Name, LoopParameters.IsForwardLoop ? "+" : "-", LoopParameters.LoopInductionChangeFactor);
+                return string.Format("{0} {1}= {2}", Name, LoopParameters.IsForwardLoop ? "+" : "-", LoopParameters.LoopInductionChangeFactor);
             }
         }
 
@@ -335,7 +335,7 @@ namespace Antigen.Statements
         private int _nestNum;
         private int _noOfSecondaryInductionVariables;
         private List<InductionVariable> _inductionVariables;
-        protected StringBuilder loopBodyBuilder = new StringBuilder();
+        protected StringBuilder loopBodyBuilder;
 
         #region Properties
 
@@ -516,7 +516,7 @@ namespace Antigen.Statements
             Body = loopBody;
         }
 
-        protected override void PopulateContent()
+        public override string ToString()
         {
             loopBodyBuilder = new StringBuilder();
 
@@ -524,7 +524,7 @@ namespace Antigen.Statements
             PopulateLoopBody();
             PopulatePostLoopBody();
 
-            _contents = loopBodyBuilder.ToString();
+            return loopBodyBuilder.ToString();
         }
 
         public string GetImplicitLoopVar()
@@ -601,7 +601,7 @@ namespace Antigen.Statements
             }
             if (loopInits.Count > 0)
             {
-                return $"int {string.Join(",", loopInits)};";
+                return $"int {string.Join(",", loopInits)}";
             }
 
             return string.Empty;

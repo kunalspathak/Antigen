@@ -23,11 +23,10 @@ namespace Antigen.Expressions
 
             MethodName = methodName;
             Arguments = arguments;
-
-            PopulateContent();
+            ArgsPassingWays = passingWays;
         }
 
-        protected override void PopulateContent()
+        public override string ToString()
         {
             List<string> finalArgs = new List<string>();
 
@@ -52,12 +51,7 @@ namespace Antigen.Expressions
                 }
             }
 
-            _contents = $"{MethodName}({string.Join(", ", finalArgs)})";
-        }
-
-        public override string ToString()
-        {
-            return _contents;
+            return $"{MethodName}({string.Join(", ", finalArgs)})";
         }
     }
 }

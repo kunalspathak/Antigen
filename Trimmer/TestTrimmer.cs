@@ -422,7 +422,7 @@ namespace Antigen.Trimmer
             StringBuilder fileContents = new StringBuilder();
             fileContents.AppendLine(programContents);
             fileContents.AppendLine("/*");
-            fileContents.AppendLine($"Got output diff:");
+            fileContents.AppendLine("Got output diff:");
 
             fileContents.AppendLine("--------- Baseline ---------  ");
             fileContents.AppendLine();
@@ -432,7 +432,7 @@ namespace Antigen.Trimmer
             {
                 foreach (var envVars in baselineEnvVars)
                 {
-                    fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
+                    fileContents.AppendFormat("{0}={1}", envVars.Key, envVars.Value).AppendLine();
                 }
             }
             fileContents.AppendLine();
@@ -444,7 +444,7 @@ namespace Antigen.Trimmer
             fileContents.AppendLine();
             foreach (var envVars in testEnvVars)
             {
-                fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
+                fileContents.AppendFormat("{0}={1}", envVars.Key, envVars.Value).AppendLine();
             }
             fileContents.AppendLine();
             fileContents.AppendLine(currRunTestOutput);

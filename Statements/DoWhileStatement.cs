@@ -15,14 +15,12 @@ namespace Antigen.Statements
         public DoWhileStatement(TestCase tc, int nestNum, int numOfSecondaryVars, Expression bounds, List<Statement> loopBody) :
                 base(tc, nestNum, numOfSecondaryVars, bounds, loopBody)
         {
-            PopulateContent();
         }
 
         protected override void PopulatePreLoopBody()
         {
             // Induction variables to be initialized outside the loop
-            loopBodyBuilder.AppendLine(GenerateIVInitCode());
-
+            loopBodyBuilder.AppendFormat("{0};", GenerateIVInitCode()).AppendLine();
             loopBodyBuilder.AppendLine("do {");
 
             // Add step/break condition at the beginning 
@@ -35,13 +33,13 @@ namespace Antigen.Statements
             loopBodyBuilder.AppendLine(string.Join(Environment.NewLine, GenerateIVBreakAndStepCode(isCodeForBreakCondAtTheEnd: true)));
             loopBodyBuilder.AppendLine("} while(");
 
-            loopBodyBuilder.Append($"({Bounds})");
+            loopBodyBuilder.AppendFormat("({0})", Bounds);
 
             string loopGuardCondition = GenerateIVLoopGuardCode();
             if (!string.IsNullOrEmpty(loopGuardCondition))
-                loopBodyBuilder.Append($" && ({loopGuardCondition})");
+                loopBodyBuilder.AppendFormat(" && ({0})", loopGuardCondition);
 
-            loopBodyBuilder.AppendLine("');");
+            loopBodyBuilder.AppendLine(");");
 
             Debug.Assert(HasSuccessfullyGenerated(), "DoWhileStatement didn't generate properly. Please check the loop variables.");
         }

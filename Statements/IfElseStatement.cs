@@ -22,14 +22,12 @@ namespace Antigen.Statements
             Condition = condition;
             IfBody = ifBody;
             ElseBody = elseBody;
-
-            PopulateContent();
         }
 
-        protected override void PopulateContent()
+        public override string ToString()
         {
             StringBuilder strBuilder = new StringBuilder();
-            strBuilder.AppendLine($"if ({Condition})");
+            strBuilder.AppendFormat("if ({0})", Condition).AppendLine();
             strBuilder.AppendLine("{");
             strBuilder.AppendLine(string.Join(Environment.NewLine, IfBody));
             strBuilder.AppendLine("}");
@@ -40,12 +38,7 @@ namespace Antigen.Statements
                 strBuilder.AppendLine(string.Join(Environment.NewLine, ElseBody));
                 strBuilder.AppendLine("}");
             }
-            _contents = strBuilder.ToString();
-        }
-
-        public override string ToString()
-        {
-            return _contents;
+            return strBuilder.ToString();
         }
     }
 }

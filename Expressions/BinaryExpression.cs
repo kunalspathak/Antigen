@@ -18,7 +18,7 @@ namespace Antigen.Expressions
         public readonly Operator Op;
         public readonly Expression Right;
 
-        public BinaryExpression(TestCase testCase, Expression lhs, Operator op, Expression rhs) : base(testCase)
+        public BinaryExpression(TestCase testCase, Tree.ValueType leftType, Expression lhs, Operator op, Expression rhs) : base(testCase)
         {
             Left = lhs;
             Op = op;
@@ -30,24 +30,19 @@ namespace Antigen.Expressions
                 (Op.Oper == SyntaxKind.ModuloExpression))
             {
                 // To avoid divide by zero errors
-                Right = new AssignExpression(testCase,
+                var addExpression = new AssignExpression(
+                    testCase,
+                    leftType,
                     new ParenthsizedExpression(testCase, rhs),
-                    Operator.ForSyntaxKind(SyntaxKind.AddExpression), ConstantValue.GetRandomConstantInt());
+                    Operator.ForSyntaxKind(SyntaxKind.AddExpression),
+                    ConstantValue.GetRandomConstantInt(10, 100));
+
+                Right = new CastExpression(testCase, addExpression, leftType);
             }
             else
             {
                 Right = rhs;
             }
-        }
-
-        protected override string GetCode()
-        {
-            return base.GetCode();
-        }
-
-        protected override void PopulateContent()
-        {
-            base.PopulateContent();
         }
 
         public override string ToString()

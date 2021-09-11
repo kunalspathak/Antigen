@@ -1,4 +1,5 @@
 ﻿using Antigen.Config;
+using Antigen.Statements;
 using Antigen.Tree;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -115,11 +116,18 @@ namespace Antigen
 
         public void Generate()
         {
-            ClassDeclarationSyntax klass = new TestClass(this, Name).Generate();
+            var klass = new TestClass(this, Name).Generate();
+            var finalCode = PreGenerated.UsingDirective + klass.ToString();
 
-            testCaseRoot = CompilationUnit()
-                            .WithUsings(PreGenerated.UsingDirective.ToSyntaxList())
-                            .WithMembers(new SyntaxList<MemberDeclarationSyntax>(klass));
+            testCaseRoot = CSharpSyntaxTree.ParseText(finalCode).GetRoot();
+
+            //string formattedContents = testCaseRoot.NormalizeWhitespace().SyntaxTree.GetText().ToString();
+
+            File.WriteAllText(@"e:\perfinvestigation\minibench\Antigen.cs", finalCode);
+            //File.WriteAllText(@"e:\perfinvestigation\minibench\Antigen.cs", testCaseRoot.ToFullString());
+            //var _1 = CSharpSyntaxTree.ParseText(finalCode).GetRoot();
+            //var _2 = CSharpSyntaxTree.ParseText(CSharpSyntaxTree.ParseText(finalCode).GetRoot().ToFullString());
+            Console.WriteLine();
         }
 
         public TestResult Verify()
@@ -284,7 +292,7 @@ namespace Antigen
             fileContents.AppendLine(testCaseRoot.NormalizeWhitespace().ToFullString());
             fileContents.AppendLine("/*");
 
-            fileContents.AppendLine($"Config: {Config.Name}");
+            fileContents.AppendFormat("Config: {0}", Config.Name).AppendLine();
             fileContents.AppendLine("--------- Baseline ---------");
             fileContents.AppendLine();
             fileContents.AppendLine("Environment:");
@@ -293,7 +301,7 @@ namespace Antigen
             {
                 foreach (var envVars in baselineVars)
                 {
-                    fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
+                    fileContents.AppendFormat("{0}={1}", envVars.Key, envVars.Value).AppendLine();
                 }
             }
             fileContents.AppendLine();
@@ -307,7 +315,7 @@ namespace Antigen
             {
                 foreach (var envVars in testVars)
                 {
-                    fileContents.AppendLine($"{envVars.Key}={envVars.Value}");
+                    fileContents.AppendFormat("{0}={1}", envVars.Key, envVars.Value).AppendLine();
                 }
             }
             fileContents.AppendLine();

@@ -20,13 +20,27 @@ namespace Antigen.Expressions
         {
             if (valueType.PrimitiveType == Primitive.Char)
             {
-                Value = $"'{Value}'";
+                Value = $"'{value}'";
                 return;
             }
             else if (valueType.PrimitiveType == Primitive.String)
             {
-                Value = $"\"{Value}\"";
+                Value = $"\"{value}\"";
                 return;
+            }
+            else if (valueType.PrimitiveType == Primitive.Float)
+            {
+                Value = $"{value}f";
+                return;
+            }
+            else if (valueType.PrimitiveType == Primitive.Decimal)
+            {
+                Value = $"{value}m";
+                return;
+            }
+            else if ((valueType.PrimitiveType & Primitive.UnsignedInteger) != 0)
+            {
+                value = value.TrimStart('-');
             }
             else if (valueType.PrimitiveType == Primitive.Boolean)
             {
@@ -40,9 +54,9 @@ namespace Antigen.Expressions
             return $"{Value}";
         }
 
-        public static ConstantValue GetRandomConstantInt()
+        public static ConstantValue GetRandomConstantInt(int min, int max)
         {
-            return new ConstantValue(Tree.ValueType.ForPrimitive(Primitive.Int), PRNG.Next(10, 100).ToString());
+            return new ConstantValue(Tree.ValueType.ForPrimitive(Primitive.Int), PRNG.Next(min, max).ToString());
         }
 
         public static ConstantValue GetConstantValue(Tree.ValueType literalType, IList<Weights<int>> numerals)

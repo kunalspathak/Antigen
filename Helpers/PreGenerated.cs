@@ -10,78 +10,76 @@ using System.Threading.Tasks;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.CSharp;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
-
+using Antigen.Statements;
 
 namespace Antigen
 {
     public static class PreGenerated
     {
+        private static ArbitraryCodeStatement s_usingStmts = null;
         /// <summary>
         ///     Returns code related to using directives.
         /// </summary>
-        public static List<UsingDirectiveSyntax> UsingDirective =
-            new List<UsingDirectiveSyntax>()
+        public static Statement UsingDirective
+        {
+            get
             {
-                            UsingDirective(IdentifierName("System"))
-                            .WithUsingKeyword(Token(TriviaList(new[]{
-                            Comment("// Licensed to the .NET Foundation under one or more agreements."),
-                            Comment("// The .NET Foundation licenses this file to you under the MIT license."),
-                            Comment("// See the LICENSE file in the project root for more information."),
-                            Comment("//"),
-                            Comment("// This file is auto-generated."),
-                            Comment("// Seed: " + PRNG.GetSeed()),
-                            Comment("//"),
-                            }), SyntaxKind.UsingKeyword, TriviaList())),
-                            UsingDirective(
-                                QualifiedName(
-                                    QualifiedName(
-                                        IdentifierName("System"),
-                                        IdentifierName("Collections")),
-                                    IdentifierName("Generic"))),
-                            UsingDirective(
-                                QualifiedName(
-                                    QualifiedName(
-                                        IdentifierName("System"),
-                                        IdentifierName("Runtime")),
-                                    IdentifierName("CompilerServices")))
-            };
+                if (s_usingStmts != null)
+                {
+                    return s_usingStmts;
+                }
 
+                string usingCode =
+@"// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+// See the LICENSE file in the project root for more information.
+//
+// This file is auto-generated.
+// Seed: -1
+//
+                using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+";
+                s_usingStmts = new ArbitraryCodeStatement(null, usingCode);
+                return s_usingStmts;
+            }
+        }
 
-        private static List<MethodDeclarationSyntax> staticMethods = null;
+        private static ArbitraryCodeStatement s_staticMethods = null;
 
         /// <summary>
         ///     Returns list of 3 static methods - Main, Log and PrintLog.
         /// </summary>
-        public static List<MethodDeclarationSyntax> StaticMethods
+        public static Statement StaticMethods
         {
             get
             {
-                if (staticMethods != null)
+                if (s_staticMethods != null)
                 {
-                    return staticMethods;
+                    return s_staticMethods;
                 }
 
-                MethodDeclarationSyntax mainMethod = (MethodDeclarationSyntax)ParseMemberDeclaration(@$"public static void Main(string[] args) {{ }}");
-                MethodDeclarationSyntax loggerMethod = (MethodDeclarationSyntax)ParseMemberDeclaration(
-    $@"[MethodImpl(MethodImplOptions.NoInlining)]
-public static void Log(string varName, object varValue) {{
-    toPrint.Add($""{{varName}}={{varValue}}"");
-}}");
-                MethodDeclarationSyntax printLogMethod = (MethodDeclarationSyntax)ParseMemberDeclaration(
-    $@"
-public static void PrintLog() {{
-    foreach (var entry in toPrint)
-    {{
-        Console.WriteLine(entry);
-    }}
-}}
-");
+                StringBuilder staticMethodBuilder = new StringBuilder();
 
-                staticMethods = new List<MethodDeclarationSyntax>()
-            {
-                mainMethod, loggerMethod, printLogMethod
-            };
-                return staticMethods;
+                // Main method
+                staticMethodBuilder.AppendLine("public static void Main(string[] args) {  }");
+
+                // Log method
+                staticMethodBuilder.AppendLine("[MethodImpl(MethodImplOptions.NoInlining)]");
+                staticMethodBuilder.AppendLine("public static void Log(string varName, object varValue) {");
+                staticMethodBuilder.AppendLine(@$"     toPrint.Add($""{{varName}}={{varValue}}"");");
+                staticMethodBuilder.AppendLine("}");
+
+                // PrintLog method
+                staticMethodBuilder.AppendLine("public static void PrintLog() {");
+                staticMethodBuilder.AppendLine("foreach (var entry in toPrint) {");
+                staticMethodBuilder.AppendLine("Console.WriteLine(entry);");
+                staticMethodBuilder.AppendLine("}}");
+
+                s_staticMethods = new ArbitraryCodeStatement(null, staticMethodBuilder.ToString());
+
+                return s_staticMethods;
             }
         }
 

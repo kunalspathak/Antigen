@@ -79,9 +79,9 @@ namespace Antigen
 #endif
                 }
 
-                ms.Seek(0, SeekOrigin.Begin);
-                File.WriteAllBytes(assemblyFullPath, ms.ToArray());
-                Console.WriteLine($"{ms.Length} bytes");
+                //ms.Seek(0, SeekOrigin.Begin);
+                //File.WriteAllBytes(assemblyFullPath, ms.ToArray());
+                //Console.WriteLine($"{ms.Length} bytes");
 
                 return new CompileResult(assemblyName, assemblyFullPath);
             }

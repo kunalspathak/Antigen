@@ -1,11 +1,12 @@
-﻿using Antigen.Tree;
+﻿using System.Collections.Generic;
+using Antigen.Tree;
 
 namespace Antigen.Statements
 {
     public class Statement : Node
     {
 
-#if DEBUG
+#if DEBUG_TODO
         private readonly Dictionary<string, int> _statementsCount = new();
 #endif
 
@@ -17,22 +18,17 @@ namespace Antigen.Statements
 
         protected override string Annotate()
         {
-#if DEBUG
+#if DEBUG_TODO
             string typeName = GetType().Name;
             if (!_statementsCount.ContainsKey(typeName))
             {
                 _statementsCount[typeName] = 0;
             }
             _statementsCount[typeName]++;
-            return $"{GetCode() /* S#{_statementsCount[typeName]}: {typeName} */}";
+            return $"{ToString() /* S#{_statementsCount[typeName]}: {typeName} */}";
 #else
-            return GetCode();
+            return ToString();
 #endif
-        }
-
-        protected override string GetCode()
-        {
-            return string.Empty;
         }
     }
 }

@@ -23,26 +23,19 @@ namespace Antigen.Statements
             SwitchExpr = switchExpr;
             Cases = cases;
             DefaultBody = defaultBody;
-
-            PopulateContent();
         }
 
         public override string ToString()
         {
-            return _contents;
-        }
-
-        protected override void PopulateContent()
-        {
             StringBuilder strBuilder = new StringBuilder();
-            strBuilder.AppendLine($"switch ({SwitchExpr})");
+            strBuilder.AppendFormat("switch ({0})", SwitchExpr).AppendLine();
             strBuilder.AppendLine("{");
 
             if (Cases != null && Cases.Count > 0)
             {
                 foreach (var caseClause in Cases)
                 {
-                    strBuilder.AppendLine($"case {caseClause.Item1}:");
+                    strBuilder.AppendFormat("case {0}:", caseClause.Item1).AppendLine();
                     strBuilder.AppendLine("{");
                     strBuilder.AppendLine(string.Join(Environment.NewLine, caseClause.Item2));
                     strBuilder.AppendLine("break;");
@@ -50,15 +43,14 @@ namespace Antigen.Statements
                 }
             }
 
-            strBuilder.AppendLine($"default:");
+            strBuilder.AppendLine("default:");
             strBuilder.AppendLine("{");
             strBuilder.AppendLine(string.Join(Environment.NewLine, DefaultBody));
             strBuilder.AppendLine("break;");
             strBuilder.AppendLine("}");
 
             strBuilder.AppendLine("}");
-
-            _contents = strBuilder.ToString();
+            return strBuilder.ToString();
         }
     }
 }

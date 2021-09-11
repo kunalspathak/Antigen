@@ -31,19 +31,15 @@ namespace Antigen.Statements
             LoopVar = loopVar;
             LoopStep = loopStep;
             LoopKind = loopKind;
-
-            loopBodyBuilder = new StringBuilder();
-
-            PopulateContent();
         }
 
         protected override void PopulatePreLoopBody()
         {
             // Induction variables to be initialized outside the loop
-            loopBodyBuilder.AppendLine(GenerateIVInitCode(false));
+            loopBodyBuilder.AppendFormat("{0};", GenerateIVInitCode(false)).AppendLine();
 
             // induction variable initialization
-            loopBodyBuilder.Append($"for({GenerateIVInitCode(true)};");
+            loopBodyBuilder.AppendFormat("for({0};", GenerateIVInitCode(true));
 
             // condition
             string guardCode = GenerateIVLoopGuardCode();
@@ -53,7 +49,7 @@ namespace Antigen.Statements
             {
                 if (!string.IsNullOrEmpty(guardCode))
                     loopBodyBuilder.Append(" &&");
-                loopBodyBuilder.Append($" {LoopVar} < ({Bounds})");
+                loopBodyBuilder.AppendFormat(" {0} < ({1})", LoopVar, Bounds);
             }
             loopBodyBuilder.Append(';');
 
@@ -67,7 +63,7 @@ namespace Antigen.Statements
                 {
                     loopBodyBuilder.Append(" ,");
                 }
-                loopBodyBuilder.Append($" {LoopVar}++");
+                loopBodyBuilder.AppendFormat(" {0}++", LoopVar);
             }
             else if (LoopKind == Kind.ComplexLoop)
             {

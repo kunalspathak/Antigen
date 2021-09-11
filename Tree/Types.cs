@@ -68,28 +68,30 @@ namespace Antigen.Tree
             }
         }
 
+        private string _variableNameHint;
         private string _structTypeName;
         public Primitive PrimitiveType;
         //private TypeFlags Flags;
         public SpecialType DataType;
         public SyntaxKind TypeKind;
+        private string _displayText;
 
         private static readonly List<ValueType> types = new List<ValueType>()
         {
-            new ValueType(Primitive.Boolean, SpecialType.System_Boolean,    SyntaxKind.BoolKeyword),
-            new ValueType(Primitive.Byte, SpecialType.System_Byte,       SyntaxKind.ByteKeyword),
-            new ValueType(Primitive.Char, SpecialType.System_Char,       SyntaxKind.CharKeyword),
-            new ValueType(Primitive.Decimal, SpecialType.System_Decimal,    SyntaxKind.DecimalKeyword),
-            new ValueType(Primitive.Double, SpecialType.System_Double,     SyntaxKind.DoubleKeyword),
-            new ValueType(Primitive.Short, SpecialType.System_Int16,      SyntaxKind.ShortKeyword),
-            new ValueType(Primitive.Int, SpecialType.System_Int32,      SyntaxKind.IntKeyword),
-            new ValueType(Primitive.Long, SpecialType.System_Int64,      SyntaxKind.LongKeyword),
-            new ValueType(Primitive.SByte, SpecialType.System_SByte,      SyntaxKind.SByteKeyword),
-            new ValueType(Primitive.Float, SpecialType.System_Single,     SyntaxKind.FloatKeyword),
-            new ValueType(Primitive.String, SpecialType.System_String,     SyntaxKind.StringKeyword),
-            new ValueType(Primitive.UShort, SpecialType.System_UInt16,     SyntaxKind.UShortKeyword),
-            new ValueType(Primitive.UInt, SpecialType.System_UInt32,     SyntaxKind.UIntKeyword),
-            new ValueType(Primitive.ULong, SpecialType.System_UInt64,     SyntaxKind.ULongKeyword),
+            new ValueType(Primitive.Boolean,    "bool",     SpecialType.System_Boolean,    SyntaxKind.BoolKeyword),
+            new ValueType(Primitive.Byte,       "byte",     SpecialType.System_Byte,       SyntaxKind.ByteKeyword),
+            new ValueType(Primitive.Char,       "char",     SpecialType.System_Char,       SyntaxKind.CharKeyword),
+            new ValueType(Primitive.Decimal,    "decimal",  SpecialType.System_Decimal,    SyntaxKind.DecimalKeyword),
+            new ValueType(Primitive.Double,     "double",   SpecialType.System_Double,     SyntaxKind.DoubleKeyword),
+            new ValueType(Primitive.Short,      "short",    SpecialType.System_Int16,      SyntaxKind.ShortKeyword),
+            new ValueType(Primitive.Int,        "int",      SpecialType.System_Int32,      SyntaxKind.IntKeyword),
+            new ValueType(Primitive.Long,       "long",     SpecialType.System_Int64,      SyntaxKind.LongKeyword),
+            new ValueType(Primitive.SByte,      "sbyte",    SpecialType.System_SByte,      SyntaxKind.SByteKeyword),
+            new ValueType(Primitive.Float,      "float",    SpecialType.System_Single,     SyntaxKind.FloatKeyword),
+            new ValueType(Primitive.String,     "string",   SpecialType.System_String,     SyntaxKind.StringKeyword),
+            new ValueType(Primitive.UShort,     "ushort",   SpecialType.System_UInt16,     SyntaxKind.UShortKeyword),
+            new ValueType(Primitive.UInt,       "uint",     SpecialType.System_UInt32,     SyntaxKind.UIntKeyword),
+            new ValueType(Primitive.ULong,      "ulong",    SpecialType.System_UInt64,     SyntaxKind.ULongKeyword),
         };
 
         /// <summary>
@@ -168,22 +170,30 @@ namespace Antigen.Tree
 
         public static ValueType CreateStructType(string typeName)
         {
-            var structType = new ValueType(Primitive.Struct, SpecialType.None, SyntaxKind.None);
+            var structType = new ValueType(Primitive.Struct, typeName,/* $"struct {typeName}",*/ SpecialType.None, SyntaxKind.None);
             structType._structTypeName = typeName;
+            structType._variableNameHint = typeName.ToLower().Replace(".", "_").ToLower();
             return structType;
         }
 
-        private ValueType(Primitive valueType, SpecialType dataType, SyntaxKind typeKind)
+        private ValueType(Primitive valueType, string displayText, SpecialType dataType, SyntaxKind typeKind)
         {
             PrimitiveType = valueType;
             DataType = dataType;
             TypeKind = typeKind;
             _structTypeName = null;
+            _displayText = displayText;
+            _variableNameHint = displayText;
         }
 
         public static List<ValueType> GetTypes()
         {
             return types;
+        }
+
+        public static ValueType GetRandomType()
+        {
+            return types[PRNG.Next(types.Count)];
         }
 
         public override bool Equals(object obj)
@@ -210,7 +220,7 @@ namespace Antigen.Tree
             return types.First(t => t.PrimitiveType == primitiveType);
         }
 
-        private static ValueType voidType = new ValueType(Primitive.Void, SpecialType.System_Void, SyntaxKind.VoidKeyword);
+        private static ValueType voidType = new ValueType(Primitive.Void, "void", SpecialType.System_Void, SyntaxKind.VoidKeyword);
         public static ValueType ForVoid()
         {
             return voidType;
@@ -218,14 +228,15 @@ namespace Antigen.Tree
 
         public string VariableNameHint()
         {
-            if (PrimitiveType != Primitive.Struct)
-            {
-                return Enum.GetName(typeof(SpecialType), DataType).Replace("System_", "").ToLower();
-            }
-            else
-            {
-                return TypeName.ToLower().Replace(".", "_").ToLower();
-            }
+            //if (PrimitiveType != Primitive.Struct)
+            //{
+            //    return _displayText; // Enum.GetName(typeof(SpecialType), DataType).Replace("System_", "").ToLower();
+            //}
+            //else
+            //{
+            //    return TypeName.ToLower().Replace(".", "_").ToLower();
+            //}
+            return _variableNameHint;
         }
 
         public static IDictionary<Type, CatchDeclarationSyntax> AllExceptions =>
@@ -236,14 +247,7 @@ namespace Antigen.Tree
 
         public override string ToString()
         {
-            if (PrimitiveType != Primitive.Struct)
-            {
-                return Enum.GetName(typeof(Primitive), PrimitiveType);
-            }
-            else
-            {
-                return $"struct {_structTypeName}";
-            }
+            return _displayText;
         }
     }
 }
