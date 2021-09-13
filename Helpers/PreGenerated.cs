@@ -7,15 +7,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.CSharp;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+//using Microsoft.CodeAnalysis.CSharp.Syntax;
+//using Microsoft.CodeAnalysis.CSharp;
+//using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 using Antigen.Statements;
 
 namespace Antigen
 {
     public static class PreGenerated
     {
+        public static readonly string MainClassName = "TestClass";
         private static ArbitraryCodeStatement s_usingStmts = null;
         /// <summary>
         ///     Returns code related to using directives.
@@ -63,7 +64,10 @@ using System.Runtime.CompilerServices;
                 StringBuilder staticMethodBuilder = new StringBuilder();
 
                 // Main method
-                staticMethodBuilder.AppendLine("public static void Main(string[] args) {  }");
+                staticMethodBuilder.AppendLine("public static void Main(string[] args) { ");
+                staticMethodBuilder.AppendLine($"new {MainClassName}().Method0();");
+                staticMethodBuilder.AppendLine("PrintLog();");
+                staticMethodBuilder.AppendLine("}");
 
                 // Log method
                 staticMethodBuilder.AppendLine("[MethodImpl(MethodImplOptions.NoInlining)]");
@@ -82,24 +86,5 @@ using System.Runtime.CompilerServices;
                 return s_staticMethods;
             }
         }
-
-        private static MemberDeclarationSyntax loggerVarDecl = null;
-
-        /// <summary>
-        ///     Returns declaration of logger variable
-        /// </summary>
-        public static MemberDeclarationSyntax LoggerVariableDecl
-        {
-            get
-            {
-                if (loggerVarDecl == null)
-                {
-                    loggerVarDecl = ParseMemberDeclaration("private static List<string> toPrint = new List<string>();");
-                }
-                return loggerVarDecl;
-            }
-        }
-
-        public static InvocationExpressionSyntax LogInvocationExpression = SyntaxFactory.InvocationExpression(IdentifierName("Log"));
     }
 }

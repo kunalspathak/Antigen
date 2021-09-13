@@ -1,5 +1,5 @@
 {
-    "Seed": 1,
+    "Seed": -1,
     "OutputDirectory": ".",
     "NumTestCases": 1000,
     "HoursToRun": 10,
@@ -49,7 +49,6 @@
                     "Name": "JitAlignLoopAdaptive",
                     "Weight": 0.01,
                     "Values": [
-                        "0",
                         "1"
                     ]
                 },

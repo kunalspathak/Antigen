@@ -26,7 +26,8 @@ namespace Antigen
     {
         RoslynException,
         CompileError,
-        KnownErrors,
+        Overflow,
+        DivideByZero,
         OutputMismatch,
         Assertion,
         Pass,
@@ -42,9 +43,6 @@ namespace Antigen
             Debug, Release
         };
 
-        #endregion
-
-        #region PreComputed roslyn syntax tress
         #endregion
 
         private readonly List<string> _knownDiffs = new List<string>()
@@ -75,23 +73,6 @@ namespace Antigen
 
         private static readonly ConcurrentDictionary<string, ExpressionSyntax> _variableExpressions = new();
 
-        public static ExpressionSyntax GetExpressionSyntax(string variableName)
-        {
-            // Cache max 1000 expressions after which recycle them.
-            if (_variableExpressions.Count > 1000)
-            {
-                _variableExpressions.Clear();
-            }
-
-            if (!_variableExpressions.TryGetValue(variableName, out var exprSyntax))
-            {
-                exprSyntax = Helpers.GetVariableAccessExpression(variableName);
-                _variableExpressions[variableName] = exprSyntax;
-            }
-
-            return exprSyntax;
-        }
-
         //private List<SyntaxNode> classesList;
         //private List<SyntaxNode> methodsList;
         //private List<SyntaxNode> propertiesList;
@@ -116,18 +97,10 @@ namespace Antigen
 
         public void Generate()
         {
-            var klass = new TestClass(this, Name).Generate();
+            var klass = new TestClass(this, PreGenerated.MainClassName).Generate();
             var finalCode = PreGenerated.UsingDirective + klass.ToString();
 
             testCaseRoot = CSharpSyntaxTree.ParseText(finalCode).GetRoot();
-
-            //string formattedContents = testCaseRoot.NormalizeWhitespace().SyntaxTree.GetText().ToString();
-
-            File.WriteAllText(@"e:\perfinvestigation\minibench\Antigen.cs", finalCode);
-            //File.WriteAllText(@"e:\perfinvestigation\minibench\Antigen.cs", testCaseRoot.ToFullString());
-            //var _1 = CSharpSyntaxTree.ParseText(finalCode).GetRoot();
-            //var _2 = CSharpSyntaxTree.ParseText(CSharpSyntaxTree.ParseText(finalCode).GetRoot().ToFullString());
-            Console.WriteLine();
         }
 
         public TestResult Verify()
@@ -155,17 +128,16 @@ namespace Antigen
 #if UNREACHABLE
             else
             {
-                string workingFile = Path.Combine(RunOptions.OutputDirectory, $"{Name}-working.g.cs");
+                string workingFile = Path.Combine(s_runOptions.OutputDirectory, $"{Name}-working.g.cs");
                 File.WriteAllText(workingFile, testCaseRoot.ToFullString());
             }
 #endif
-
             var baselineVariables = EnvVarOptions.BaseLineVars();
             var testVariables = EnvVarOptions.TestVars();
 
             // Execute test first and see if we have any errors/asserts
-            string test = s_testRunner.Execute(compileResult, testVariables, 30);
-            string testAssertion = RslnUtilities.ParseAssertionError(test);
+            var test = s_testRunner.Execute(compileResult, testVariables, 30);
+            var testAssertion = RslnUtilities.ParseAssertionError(test);
 
             // If OOM, skip
             if (test.Contains("Out of memory"))
@@ -188,19 +160,8 @@ namespace Antigen
                 {
                     if (test.Contains(knownError))
                     {
-                        try
-                        {
-                            File.Delete(compileResult.AssemblyFullPath);
-                        }
-                        catch (Exception)
-                        {
-                            // ignore errors 
-                        }
-#if UNREACHABLE
-                        SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, test, testVariables, testAssertion, $"{Name}-knownerrors");
-
-#endif
-                        return TheTestResult(compileResult.AssemblyFullPath, TestResult.KnownErrors);
+                        return TheTestResult(compileResult.AssemblyFullPath, test.StartsWith("System.OverflowException:") ? 
+                            TestResult.Overflow : TestResult.DivideByZero);
                     }
                 }
             }
@@ -239,9 +200,10 @@ namespace Antigen
             {
                 File.Delete(assemblyPath);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // ignore errors 
+                Console.WriteLine($"Error deleting {assemblyPath} : {ex}");
             }
             return result;
         }
@@ -289,7 +251,7 @@ namespace Antigen
                 fileContents.AppendLine($"// TestVars: {string.Join("|", testVars.ToList().Select(x => $"{x.Key}={x.Value}"))}");
             }
             fileContents.AppendLine("//");
-            fileContents.AppendLine(testCaseRoot.NormalizeWhitespace().ToFullString());
+            fileContents.AppendLine(testCaseRoot.NormalizeWhitespace().SyntaxTree.GetText().ToString());
             fileContents.AppendLine("/*");
 
             fileContents.AppendFormat("Config: {0}", Config.Name).AppendLine();

@@ -79,8 +79,8 @@ namespace Antigen
 #endif
                 }
 
-                //ms.Seek(0, SeekOrigin.Begin);
-                //File.WriteAllBytes(assemblyFullPath, ms.ToArray());
+                ms.Seek(0, SeekOrigin.Begin);
+                File.WriteAllBytes(assemblyFullPath, ms.ToArray());
                 //Console.WriteLine($"{ms.Length} bytes");
 
                 return new CompileResult(assemblyName, assemblyFullPath);
@@ -167,12 +167,18 @@ namespace Antigen
                     StringBuilder output = new StringBuilder();
                     proc.OutputDataReceived += new DataReceivedEventHandler((s, e) =>
                     {
-                        output.AppendLine(e.Data);
+                        if (!string.IsNullOrEmpty(e.Data))
+                        {
+                            output.AppendLine(e.Data);
+                        }
                     });
 
                     proc.ErrorDataReceived += new DataReceivedEventHandler((s, e) =>
                     {
-                        output.AppendLine(e.Data);
+                        if (!string.IsNullOrEmpty(e.Data))
+                        {
+                            output.AppendLine(e.Data);
+                        }
                     });
 
                     proc.BeginOutputReadLine();

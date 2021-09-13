@@ -220,27 +220,6 @@ namespace Antigen
                     CurrentScope.AddLocal(paramType, paramName);
                 }
 
-                ParameterSyntax parameterNode = Helpers.GetParameterSyntax(paramType, paramName);
-                if (passingWay != ParamValuePassing.None)
-                {
-                    SyntaxToken passingWayToken = Token(SyntaxKind.None);
-                    switch (passingWay)
-                    {
-                        //case ParamValuePassing.In:
-                        //    passingWayToken = Token(SyntaxKind.InKeyword);
-                        //    break;
-                        case ParamValuePassing.Out:
-                            passingWayToken = Token(SyntaxKind.OutKeyword);
-                            break;
-                        case ParamValuePassing.Ref:
-                            passingWayToken = Token(SyntaxKind.RefKeyword);
-                            break;
-                        default:
-                            Debug.Assert(false, "invalid value for passingway!");
-                            break;
-                    }
-                }
-
                 parameters.Add(new MethodParam()
                 {
                     ParamName = paramName,

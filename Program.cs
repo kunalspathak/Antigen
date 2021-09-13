@@ -19,7 +19,8 @@ namespace Antigen
             { TestResult.RoslynException, 0 },
             { TestResult.CompileError, 0 },
             { TestResult.Assertion, 0 },
-            { TestResult.KnownErrors, 0 },
+            { TestResult.DivideByZero, 0 },
+            { TestResult.Overflow, 0 },
             { TestResult.OutputMismatch, 0 },
             { TestResult.Pass, 0 },
             { TestResult.OOM, 0 },
@@ -57,7 +58,7 @@ namespace Antigen
                 //    return;
                 //}
 
-                Parallel.For(0, 4, (p) => RunTest());
+                Parallel.For(0, 2, (p) => RunTest());
 
             }
             catch (OutOfMemoryException oom)
@@ -115,7 +116,8 @@ namespace Antigen
                 { TestResult.RoslynException, 0 },
                 { TestResult.CompileError, 0 },
                 { TestResult.Assertion, 0 },
-                { TestResult.KnownErrors, 0 },
+                { TestResult.DivideByZero, 0 },
+                { TestResult.Overflow, 0 },
                 { TestResult.OutputMismatch, 0 },
                 { TestResult.Pass, 0 },
                 { TestResult.OOM, 0 },

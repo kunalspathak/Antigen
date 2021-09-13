@@ -8,7 +8,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Antigen.Tree;
-using Microsoft.CodeAnalysis.CSharp;
 
 namespace Antigen.Expressions
 {
