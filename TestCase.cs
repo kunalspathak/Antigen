@@ -71,8 +71,6 @@ namespace Antigen
             new Weights<int>(int.MaxValue, (double) PRNG.Next(1, 10) / 10000 ),
         };
 
-        private static readonly ConcurrentDictionary<string, ExpressionSyntax> _variableExpressions = new();
-
         //private List<SyntaxNode> classesList;
         //private List<SyntaxNode> methodsList;
         //private List<SyntaxNode> propertiesList;
@@ -137,10 +135,15 @@ namespace Antigen
 
             // Execute test first and see if we have any errors/asserts
             var test = s_testRunner.Execute(compileResult, testVariables, 30);
-            var testAssertion = RslnUtilities.ParseAssertionError(test);
+
+            // If timeout, skip
+            if (test == "TIMEOUT")
+            {
+                return TheTestResult(compileResult.AssemblyFullPath, TestResult.Pass);
+            }
 
             // If OOM, skip
-            if (test.Contains("Out of memory"))
+            else if (test.Contains("Out of memory"))
             {
 #if UNREACHABLE
                 SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, test, testVariables, "Out of memory", $"{Name}-test-oom");
@@ -148,8 +151,11 @@ namespace Antigen
 #endif
                 return TheTestResult(compileResult.AssemblyFullPath, TestResult.OOM);
             }
+
+            var testAssertion = RslnUtilities.ParseAssertionError(test);
+
             // If test assertion
-            else if (!string.IsNullOrEmpty(testAssertion))
+            if (!string.IsNullOrEmpty(testAssertion))
             {
                 SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, test, testVariables, testAssertion, $"{Name}-test-assertion");
                 return TheTestResult(compileResult.AssemblyFullPath, TestResult.Assertion);
@@ -167,18 +173,26 @@ namespace Antigen
             }
 
             string baseline = s_testRunner.Execute(compileResult, baselineVariables, 30);
-            string baselineAssertion = RslnUtilities.ParseAssertionError(baseline);
+
+            // If timeout, skip
+            if (baseline == "TIMEOUT")
+            {
+                return TheTestResult(compileResult.AssemblyFullPath, TestResult.Pass);
+            }
 
             // If OOM, ignore this diff
-            if (baseline.Contains("Out of memory"))
+            else if (baseline.Contains("Out of memory"))
             {
 #if UNREACHABLE
                 SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, baseline, baselineVariables, null, null, "Out of memory", $"{Name}-base-oom"); ;
 #endif
                 return TheTestResult(compileResult.AssemblyFullPath, TestResult.OOM);
             }
+
+            string baselineAssertion = RslnUtilities.ParseAssertionError(baseline);
+
             // Is there assertion in baseline?
-            else if (!string.IsNullOrEmpty(baselineAssertion))
+            if (!string.IsNullOrEmpty(baselineAssertion))
             {
 
                 SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, baseline, baselineVariables, null, null, baselineAssertion, $"{Name}-base-assertion");
