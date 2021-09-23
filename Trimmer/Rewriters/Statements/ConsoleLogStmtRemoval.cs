@@ -22,7 +22,7 @@ namespace Antigen.Trimmer.Rewriters.Statements
         {
             if (removeAll)
             {
-                if (node.ToFullString().Trim().StartsWith("Console.WriteLine"))
+                if ((node.ToFullString().Trim().StartsWith("Console.WriteLine")) || (node.ToFullString().Trim().StartsWith("Log")))
                 {
                     isAnyNodeVisited = true;
                     return null;

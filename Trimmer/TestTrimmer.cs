@@ -48,22 +48,23 @@ namespace Antigen.Trimmer
         /// <returns></returns>
         private void ParseEnvironment()
         {
-            var fileContents = File.ReadAllText(_testFileToTrim);
-            string[] fileContentLines = fileContents.Split(Environment.NewLine);
+            var fileContents = File.ReadAllText(_testFileToTrim.Replace(Environment.NewLine, "\n"));
+            string[] fileContentLines = fileContents.Split("\n");
             _originalTestAssertion = RslnUtilities.ParseAssertionError(fileContents);
 
             foreach (var line in fileContentLines)
             {
-                if (line.StartsWith("// BaselineVars: "))
+                var lineContent = line.Trim();
+                if (lineContent.StartsWith("// BaselineVars: "))
                 {
-                    var baselineContents = line.Replace("// BaselineVars: ", string.Empty);
+                    var baselineContents = lineContent.Replace("// BaselineVars: ", string.Empty).Trim();
                     _baselineVariables = baselineContents.Split("|").ToList().ToDictionary(x => x.Split("=")[0], x => x.Split("=")[1]);
                     continue;
                 }
 
-                else if (line.StartsWith("// TestVars: "))
+                else if (lineContent.StartsWith("// TestVars: "))
                 {
-                    var testContents = line.Replace("// TestVars: ", string.Empty);
+                    var testContents = lineContent.Replace("// TestVars: ", string.Empty).Trim();
                     _testVariables = testContents.Split("|").ToList().ToDictionary(x => x.Split("=")[0], x => x.Split("=")[1]);
                     return;
                 }
@@ -91,7 +92,7 @@ namespace Antigen.Trimmer
             do
             {
                 trimmedAtleastOne = false;
-                trimmedAtleastOne |= TrimEnvVars();
+                //trimmedAtleastOne |= TrimEnvVars();
                 trimmedAtleastOne |= TrimStatements();
                 trimmedAtleastOne |= TrimExpressions();
 
@@ -180,11 +181,15 @@ namespace Antigen.Trimmer
         public bool TrimEnvVars()
         {
             bool trimmedAtleastOne = false;
-            SyntaxNode recentTree = CSharpSyntaxTree.ParseText(File.ReadAllText(_testFileToTrim)).GetRoot();
+            SyntaxNode recentTree = CSharpSyntaxTree.ParseText(File.ReadAllText( _testFileToTrim)).GetRoot();
             var keys = _testVariables.Keys.ToList();
 
             foreach(var envVar in keys)
             {
+                if (envVar.Contains("AltJit"))
+                {
+                    continue;
+                }
                 string value = _testVariables[envVar];
 
                 _testVariables.Remove(envVar);
@@ -219,6 +224,10 @@ namespace Antigen.Trimmer
             bool trimmedAtleastOne = false;
             bool trimmedInCurrIter;
             TestResult expectedResult = string.IsNullOrEmpty(_originalTestAssertion) ? TestResult.OutputMismatch : TestResult.Assertion;
+            if (Verify($"trim{s_iterId++}", recentTree, _baselineVariables, _testVariables) != expectedResult)
+            {
+                return false;
+            }
 
             do
             {
@@ -373,7 +382,7 @@ namespace Antigen.Trimmer
             //}
 
             string currRunBaselineOutput = hasAssertion ? string.Empty :_testRunner.Execute(compileResult, EnvVarOptions.BaseLineVars(), 10);
-            string currRunTestOutput = _testRunner.Execute(compileResult, testEnvVars, 10);
+            string currRunTestOutput = _testRunner.Execute(compileResult, testEnvVars, 40);
 
             TestResult verificationResult = string.IsNullOrEmpty(_originalTestAssertion) ? TestResult.OutputMismatch : TestResult.Assertion;
 
@@ -432,7 +441,7 @@ namespace Antigen.Trimmer
             {
                 foreach (var envVars in baselineEnvVars)
                 {
-                    fileContents.AppendFormat("{0}={1}", envVars.Key, envVars.Value).AppendLine();
+                    fileContents.AppendFormat("set {0}={1}", envVars.Key, envVars.Value).AppendLine();
                 }
             }
             fileContents.AppendLine();
@@ -444,7 +453,7 @@ namespace Antigen.Trimmer
             fileContents.AppendLine();
             foreach (var envVars in testEnvVars)
             {
-                fileContents.AppendFormat("{0}={1}", envVars.Key, envVars.Value).AppendLine();
+                fileContents.AppendFormat("set {0}={1}", envVars.Key, envVars.Value).AppendLine();
             }
             fileContents.AppendLine();
             fileContents.AppendLine(currRunTestOutput);
