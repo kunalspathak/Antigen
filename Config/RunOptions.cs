@@ -22,7 +22,7 @@ namespace Antigen.Config
         public long NumTestCases = 0;
 
         // Duration to execute tests for (overrides number specified in each XML config file)
-        public int HoursToRun = 0;
+        public int RunDuration = 0;
 
         [NonSerialized()]
         public string CoreRun = null;

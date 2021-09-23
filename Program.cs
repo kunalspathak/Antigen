@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Antigen.Config;
 using Antigen.Trimmer;
+using CommandLine;
 
 namespace Antigen
 {
@@ -14,7 +15,7 @@ namespace Antigen
     {
         static readonly object s_spinLock = new object();
         private static readonly RunOptions s_runOptions = RunOptions.Initialize();
-        private static readonly Dictionary<TestResult, int> s_stats = new Dictionary<TestResult, int>()
+        private static readonly Dictionary<TestResult, int> s_stats = new()
         {
             { TestResult.RoslynException, 0 },
             { TestResult.CompileError, 0 },
@@ -27,29 +28,41 @@ namespace Antigen
         };
 
         private static int s_testId = 0;
-        private static bool done = false;
-        private static readonly DateTime s_StartTime = DateTime.Now;
+        private static readonly DateTime s_startTime = DateTime.Now;
 
-        static void Main(string[] args)
+        static int Main(string[] args)
+        {
+            return Parser.Default.ParseArguments<CommandLineOptions>(args).MapResult(Run, err => 1);
+        }
+
+        private static int Run(CommandLineOptions opts)
         {
             try
             {
                 PRNG.Initialize(s_runOptions.Seed);
-                s_runOptions.CoreRun = args[0];
+                s_runOptions.CoreRun = opts.CoreRunPath;
+                s_runOptions.OutputDirectory = opts.IssuesFolder;
+                if (opts.NumTestCases > 0)
+                {
+                    s_runOptions.NumTestCases = opts.NumTestCases;
+                }
+
+                if (opts.RunDuration > 0)
+                {
+                    s_runOptions.RunDuration = opts.RunDuration;
+                }
 
                 if (!File.Exists(s_runOptions.CoreRun))
                 {
-                    throw new Exception($"{s_runOptions.CoreRun} doesn't exist");
+                    throw new FileNotFoundException($"{s_runOptions.CoreRun} doesn't exist");
                 }
 
-                s_runOptions.OutputDirectory = args[1];
                 if (!Directory.Exists(s_runOptions.OutputDirectory))
                 {
-                    Console.WriteLine($"Creating {s_runOptions.OutputDirectory}");
                     Directory.CreateDirectory(s_runOptions.OutputDirectory);
                 }
 
-                //// trimmer
+                // trimmer
                 //if (args.Length > 1)
                 //{
                 //    string testCaseToTrim = args[1];
@@ -57,8 +70,8 @@ namespace Antigen
                 //    testTrimmer.Trim();
                 //    return;
                 //}
-
                 Parallel.For(0, 2, (p) => RunTest());
+                Console.WriteLine($"Executed {s_testId} test cases.");
 
             }
             catch (OutOfMemoryException oom)
@@ -73,21 +86,43 @@ namespace Antigen
                 Console.WriteLine($"  Total processor time      : {myProcess.TotalProcessorTime}");
                 Console.WriteLine($"  Paged system memory size  : {myProcess.PagedSystemMemorySize64}");
                 Console.WriteLine($"  Paged memory size         : {myProcess.PagedMemorySize64}");
+                return 1;
             }
+            return 0;
         }
 
         private static int GetNextTestId()
         {
             lock (s_spinLock)
             {
-                if (s_testId >= s_runOptions.NumTestCases)
-                {
-                    done = true;
-                }
                 return ++s_testId;
             }
         }
 
+        /// <summary>
+        ///     Are we done yet?
+        /// </summary>
+        private static bool Done
+        {
+            get
+            {
+                if ((DateTime.Now - s_startTime).Minutes >= s_runOptions.RunDuration)
+                {
+                    return true;
+                }
+                if (s_testId >= s_runOptions.NumTestCases)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
+        /// <summary>
+        ///     Save the result.
+        /// </summary>
+        /// <param name="localStats"></param>
         private static void SaveResult(Dictionary<TestResult, int> localStats)
         {
             lock (s_spinLock)
@@ -123,18 +158,18 @@ namespace Antigen
                 { TestResult.OOM, 0 },
             };
 
-            while (!done)
+            while (!Done)
             {
-                int currTestId = GetNextTestId();
-                TestCase testCase = new TestCase(currTestId, s_runOptions);
+                var currTestId = GetNextTestId();
+                var testCase = new TestCase(currTestId, s_runOptions);
                 testCase.Generate();
-                TestResult result = testCase.Verify();
+                var result = testCase.Verify();
                 Console.WriteLine("[{4}] Test# {0, -5} [{1, -25}] - {2, -15} {3, -10} MB ",
                     currTestId,
                     testCase.Config.Name,
                     Enum.GetName(typeof(TestResult), result),
                     (double)Process.GetCurrentProcess().WorkingSet64 / 1000000,
-                    (DateTime.Now - s_StartTime).ToString());
+                    (DateTime.Now - s_startTime).ToString());
 
 
                 localStats[result]++;
@@ -147,5 +182,20 @@ namespace Antigen
                 GC.Collect();
             }
         }
+    }
+
+    public class CommandLineOptions
+    {
+        [Option(shortName: 'c', longName: "CoreRun", Required = true, HelpText = "Path to CoreRun/CoreRun.exe.")]
+        public string CoreRunPath { get; set; }
+
+        [Option(shortName: 'o', longName: "IssuesFolder", Required = true, HelpText = "Path to folder where issues will be copied.")]
+        public string IssuesFolder { get; set; }
+
+        [Option(shortName: 'n', longName: "NumTestCases", Required = false, HelpText = "Number of test cases to execute. By default, 1000.")]
+        public int NumTestCases { get; set; }
+
+        [Option(shortName: 'd', longName: "RunDuration", Required = false, HelpText = "Duration in minutes to run. By default until NumTestCases, but if Duration is given, will override the NumTestCases.")]
+        public int RunDuration { get; set; }
     }
 }

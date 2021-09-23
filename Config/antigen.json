@@ -1,707 +1,707 @@
 {
-    "Seed": -1,
-    "OutputDirectory": ".",
-    "NumTestCases": 500,
-    "HoursToRun": 10,
-    "BaselineEnvVars": [
+  "Seed": -1,
+  "OutputDirectory": ".",
+  "NumTestCases": 500,
+  "RunDuration": 2147483647,
+  "BaselineEnvVars": [
+    {
+      "Name": "Default",
+      "Variables": [
         {
-            "Name": "Default",
-            "Variables": [
-                {
-                    "Name": "JITMinOpts",
-                    "Weight": 1.0,
-                    "Values": [
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "TieredCompilation",
-                    "Weight": 1.0,
-                    "Values": [
-                        "1"
-                    ]
-                }
-            ]
+          "Name": "JITMinOpts",
+          "Weight": 1.0,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "TieredCompilation",
+          "Weight": 1.0,
+          "Values": [
+            "1"
+          ]
         }
-    ],
-    "TestEnvVars": [
+      ]
+    }
+  ],
+  "TestEnvVars": [
+    {
+      "Name": "Default",
+      "Weight": 0,
+      "Variables": [
         {
-            "Name": "Default",
-            "Weight": 0,
-            "Variables": [
-                {
-                    "Name": "JitCloneLoops",
-                    "Weight": 0.04,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitAlignLoops",
-                    "Weight": 0.02,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitAlignLoopAdaptive",
-                    "Weight": 0.01,
-                    "Values": [
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitAlignLoopMinBlockWeight",
-                    "Weight": 0.01,
-                    "Values": [
-                        "0",
-                        "1",
-                        "2",
-                        "10",
-                        "20"
-                    ]
-                },
-                {
-                    "Name": "JitDoubleAlign",
-                    "Weight": 0.01,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitEnableDevirtualization",
-                    "Weight": 0.01,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitEnableLateDevirtualization",
-                    "Weight": 0.01,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitForceFallback",
-                    "Weight": 0.01,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JITInlineDepth",
-                    "Weight": 0.01,
-                    "Values": [
-                        "0",
-                        "1",
-                        "2",
-                        "10",
-                        "20"
-                    ]
-                },
-                {
-                    "Name": "JitNoCMOV",
-                    "Weight": 0.04,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitNoCSE",
-                    "Weight": 0.03,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitNoCSE2",
-                    "Weight": 0.05,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitNoForceFallback",
-                    "Weight": 0.01,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitNoHoist",
-                    "Weight": 0.05,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitNoInline",
-                    "Weight": 0.04,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitNoMemoryBarriers",
-                    "Weight": 0.02,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitNoStructPromotion",
-                    "Weight": 0.02,
-                    "Values": [
-                        "0",
-                        "1",
-                        "2"
-                    ]
-                },
-                {
-                    "Name": "JitNoUnroll",
-                    "Weight": 0.02,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitStackAllocToLocalSize",
-                    "Weight": 0.01,
-                    "Values": [
-                        "0",
-                        "1",
-                        "2",
-                        "4",
-                        "10",
-                        "16",
-                        "100"
-                    ]
-                },
-                {
-                    "Name": "JitSkipArrayBoundCheck",
-                    "Weight": 0.0002,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitSlowDebugChecksEnabled",
-                    "Weight": 0.002,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitSplitFunctionSize",
-                    "Weight": 0.01,
-                    "Values": [
-                        "0",
-                        "1",
-                        "2",
-                        "4",
-                        "10",
-                        "16",
-                        "100"
-                    ]
-                },
-                {
-                    "Name": "JitStackChecks",
-                    "Weight": 0.01,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "InjectFault",
-                    "Weight": 0.01,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitNoRngChks",
-                    "Weight": 0.01,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitEnableNoWayAssert",
-                    "Weight": 0.01,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitAggressiveInlining",
-                    "Weight": 0.05,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitMaxLocalsToTrack",
-                    "Weight": 0.05,
-                    "Values": [
-                        "0",
-                        "0x10",
-                        "0x400",
-                        "0x800",
-                        "0x1000"
-                    ]
-                },
-                {
-                    "Name": "JitDoAssertionProp",
-                    "Weight": 0.05,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitDoCopyProp",
-                    "Weight": 0.05,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitDoEarlyProp",
-                    "Weight": 0.05,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitDoLoopHoisting",
-                    "Weight": 0.05,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitDoLoopInversion",
-                    "Weight": 0.05,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitDoRangeAnalysis",
-                    "Weight": 0.05,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitDoRedundantBranchOpts",
-                    "Weight": 0.05,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitDoSsa",
-                    "Weight": 0.05,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitDoValueNumber",
-                    "Weight": 0.05,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitOptRepeat",
-                    "Weight": 0.0005,
-                    "Values": [
-                        "*"
-                    ]
-                },
-                {
-                    "Name": "JitOptRepeatCount",
-                    "Weight": 0.0003,
-                    "Values": [
-                        "1",
-                        "2",
-                        "5"
-                    ]
-                },
-                {
-                    "Name": "TailCallLoopOpt",
-                    "Weight": 0.03,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "FastTailCalls",
-                    "Weight": 0.03,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitEnableFinallyCloning",
-                    "Weight": 0.03,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitEnableRemoveEmptyTry",
-                    "Weight": 0.03,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitEnableGuardedDevirtualization",
-                    "Weight": 0.03,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "JitExpandCallsEarly",
-                    "Weight": 0.03,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                }
-            ]
+          "Name": "JitCloneLoops",
+          "Weight": 0.04,
+          "Values": [
+            "0",
+            "1"
+          ]
         },
         {
-            "Name": "JitStress",
-            "Weight": 0.3,
-            "Variables": [
-                {
-                    "Name": "JitStress",
-                    "Weight": 0.04,
-                    "Values": [
-                        "0",
-                        "1",
-                        "2"
-                    ]
-                },
-                {
-                    "Name": "TailcallStress",
-                    "Weight": 0.02,
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                }
-            ]
+          "Name": "JitAlignLoops",
+          "Weight": 0.02,
+          "Values": [
+            "0",
+            "1"
+          ]
         },
         {
-            "Name": "JitStressRegs",
-            "Weight": 0.3,
-            "Variables": [
-                {
-                    "Name": "JitStressRegs",
-                    "Weight": 0.04,
-                    "Values": [
-                        "0",
-                        "1",
-                        "2",
-                        "3",
-                        "4",
-                        "8",
-                        "0x10",
-                        "0x80",
-                        "0x1000"
-                    ]
-                }
-            ]
+          "Name": "JitAlignLoopAdaptive",
+          "Weight": 0.01,
+          "Values": [
+            "1"
+          ]
         },
         {
-            "Name": "GCStress",
-            "Weight": 0.3,
-            "Variables": [
-                {
-                    "Name": "GCStress",
-                    "Weight": 0.04,
-                    "Values": [
-                        "0x3",
-                        "0xC",
-                        "0xF"
-                    ]
-                }
-            ]
+          "Name": "JitAlignLoopMinBlockWeight",
+          "Weight": 0.01,
+          "Values": [
+            "0",
+            "1",
+            "2",
+            "10",
+            "20"
+          ]
         },
         {
-            "Name": "Hardware",
-            "Weight": 0.2,
-            "Variables": [
-                {
-                    "Name": "EnableAES",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "EnableAVX",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "EnableAVX2",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "EnableBMI1",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "EnableBMI2",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "EnableFMA",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "EnableHWIntrinsic",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "EnableIncompleteISAClass",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "EnableLZCNT",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "EnablePCLMULQDQ",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "EnablePOPCNT",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "EnableSSE",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "EnableSSE2",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "EnableSSE3",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "EnableSSE3_4",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "EnableSSE41",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "EnableSSE42",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "EnableSSSE3",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                },
-                {
-                    "Name": "FeatureSIMD",
-                    "Weight": "0.02",
-                    "Values": [
-                        "0",
-                        "1"
-                    ]
-                }
-            ]
+          "Name": "JitDoubleAlign",
+          "Weight": 0.01,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitEnableDevirtualization",
+          "Weight": 0.01,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitEnableLateDevirtualization",
+          "Weight": 0.01,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitForceFallback",
+          "Weight": 0.01,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JITInlineDepth",
+          "Weight": 0.01,
+          "Values": [
+            "0",
+            "1",
+            "2",
+            "10",
+            "20"
+          ]
+        },
+        {
+          "Name": "JitNoCMOV",
+          "Weight": 0.04,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitNoCSE",
+          "Weight": 0.03,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitNoCSE2",
+          "Weight": 0.05,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitNoForceFallback",
+          "Weight": 0.01,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitNoHoist",
+          "Weight": 0.05,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitNoInline",
+          "Weight": 0.04,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitNoMemoryBarriers",
+          "Weight": 0.02,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitNoStructPromotion",
+          "Weight": 0.02,
+          "Values": [
+            "0",
+            "1",
+            "2"
+          ]
+        },
+        {
+          "Name": "JitNoUnroll",
+          "Weight": 0.02,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitStackAllocToLocalSize",
+          "Weight": 0.01,
+          "Values": [
+            "0",
+            "1",
+            "2",
+            "4",
+            "10",
+            "16",
+            "100"
+          ]
+        },
+        {
+          "Name": "JitSkipArrayBoundCheck",
+          "Weight": 0.0002,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitSlowDebugChecksEnabled",
+          "Weight": 0.002,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitSplitFunctionSize",
+          "Weight": 0.01,
+          "Values": [
+            "0",
+            "1",
+            "2",
+            "4",
+            "10",
+            "16",
+            "100"
+          ]
+        },
+        {
+          "Name": "JitStackChecks",
+          "Weight": 0.01,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "InjectFault",
+          "Weight": 0.01,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitNoRngChks",
+          "Weight": 0.01,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitEnableNoWayAssert",
+          "Weight": 0.01,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitAggressiveInlining",
+          "Weight": 0.05,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitMaxLocalsToTrack",
+          "Weight": 0.05,
+          "Values": [
+            "0",
+            "0x10",
+            "0x400",
+            "0x800",
+            "0x1000"
+          ]
+        },
+        {
+          "Name": "JitDoAssertionProp",
+          "Weight": 0.05,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitDoCopyProp",
+          "Weight": 0.05,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitDoEarlyProp",
+          "Weight": 0.05,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitDoLoopHoisting",
+          "Weight": 0.05,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitDoLoopInversion",
+          "Weight": 0.05,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitDoRangeAnalysis",
+          "Weight": 0.05,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitDoRedundantBranchOpts",
+          "Weight": 0.05,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitDoSsa",
+          "Weight": 0.05,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitDoValueNumber",
+          "Weight": 0.05,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitOptRepeat",
+          "Weight": 0.0005,
+          "Values": [
+            "*"
+          ]
+        },
+        {
+          "Name": "JitOptRepeatCount",
+          "Weight": 0.0003,
+          "Values": [
+            "1",
+            "2",
+            "5"
+          ]
+        },
+        {
+          "Name": "TailCallLoopOpt",
+          "Weight": 0.03,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "FastTailCalls",
+          "Weight": 0.03,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitEnableFinallyCloning",
+          "Weight": 0.03,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitEnableRemoveEmptyTry",
+          "Weight": 0.03,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitEnableGuardedDevirtualization",
+          "Weight": 0.03,
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitExpandCallsEarly",
+          "Weight": 0.03,
+          "Values": [
+            "0",
+            "1"
+          ]
         }
-    ],
-    "Configs": [
+      ]
+    },
+    {
+      "Name": "JitStress",
+      "Weight": 0.3,
+      "Variables": [
         {
-            "Name": "Basic",
-            "MaxStmtDepth": 2,
-            "MaxExprDepth": 3,
-            "MethodCount": 5,
-            "TryCatchFinallyStatementWeight": 0
+          "Name": "JitStress",
+          "Weight": 0.04,
+          "Values": [
+            "0",
+            "1",
+            "2"
+          ]
         },
         {
-            "Name": "Structs",
-            "StructCount": 5,
-            "StructFieldCount": 5,
-            "NestedStructDepth": 3,
-            "NestedStructProbability": 0.4,
-            "StructFieldTypeProbability": 0.5,
-            "StructAliasProbability": 0.5,
-            "StructUsageProbability": 0.8
-        },
-        {
-            "Name": "MethodCalls",
-            "MethodCount": 100,
-            "MaxStatementCount": 3,
-            "MaxStmtDepth": 2,
-            "MaxExprDepth": 3,
-            "MethodCallStatementWeight": 0.7,
-            "MethodCallWeight": "0.4",
-            "ParamPassingRefProbability": 0.5,
-            "ParamPassingOutProbability": 0.4,
-            "LeafMethodsNoInlineProbability": 0.8,
-            "MaxMethodParametersCount": 20,
-            "StructUsageProbability": 0.7
-        },
-        {
-            "Name": "Full",
-            "MaxStmtDepth": 5,
-            "MaxExprDepth": 5,
-            "VariablesCount": 10,
-            "MethodCount": 5,
-            "MaxStatementCount": 10,
-            "TryCatchFinallyStatementWeight": 0.03,
-            "LocalVariablesLogProbability": 1.0
-        },
-        {
-            "Name": "ExceptionHandler",
-            "MaxStmtDepth": 5,
-            "MethodCount": 2,
-            "TryCatchFinallyStatementWeight": 0.5,
-            "CatchClausesCount": 5,
-            "FinallyClauseProbability": 0.7
-        },
-        {
-            "Name": "Loops",
-            "MaxStmtDepth": 5,
-            "MethodCount": 2,
-            "ForStatementWeight": 0.5,
-            "DoWhileStatementWeight": 0.5,
-            "WhileStatementWeight": 0.5,
-            "LoopParametersRemovalProbability": 0.4,
-            "LoopForwardProbability": 0.5,
-            "LoopStartFromInvariantProbabilty": 0.3,
-            "LoopStepPreBreakCondProbability": 0.6,
-            "UseLoopInvariantVariableProbability": 1.0,
-            "AllowLoopCondAtEnd": false
-        },
-        {
-            "Name": "ControlFlow",
-            "MaxCaseCounts": 10,
-            "MaxStmtDepth": 6,
-            "MaxStatementCount": 4,
-            "IfElseStatementWeight": 0.4,
-            "ForStatementWeight": 0.5,
-            "DoWhileStatementWeight": 0.5,
-            "WhileStatementWeight": 0.5,
-            "SwitchStatementWeight": 0.45
+          "Name": "TailcallStress",
+          "Weight": 0.02,
+          "Values": [
+            "0",
+            "1"
+          ]
         }
-    ]
+      ]
+    },
+    {
+      "Name": "JitStressRegs",
+      "Weight": 0.3,
+      "Variables": [
+        {
+          "Name": "JitStressRegs",
+          "Weight": 0.04,
+          "Values": [
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "8",
+            "0x10",
+            "0x80",
+            "0x1000"
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "GCStress",
+      "Weight": 0.3,
+      "Variables": [
+        {
+          "Name": "GCStress",
+          "Weight": 0.04,
+          "Values": [
+            "0x3",
+            "0xC",
+            "0xF"
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "Hardware",
+      "Weight": 0.2,
+      "Variables": [
+        {
+          "Name": "EnableAES",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "EnableAVX",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "EnableAVX2",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "EnableBMI1",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "EnableBMI2",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "EnableFMA",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "EnableHWIntrinsic",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "EnableIncompleteISAClass",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "EnableLZCNT",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "EnablePCLMULQDQ",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "EnablePOPCNT",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "EnableSSE",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "EnableSSE2",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "EnableSSE3",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "EnableSSE3_4",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "EnableSSE41",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "EnableSSE42",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "EnableSSSE3",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "FeatureSIMD",
+          "Weight": "0.02",
+          "Values": [
+            "0",
+            "1"
+          ]
+        }
+      ]
+    }
+  ],
+  "Configs": [
+    {
+      "Name": "Basic",
+      "MaxStmtDepth": 2,
+      "MaxExprDepth": 3,
+      "MethodCount": 5,
+      "TryCatchFinallyStatementWeight": 0
+    },
+    {
+      "Name": "Structs",
+      "StructCount": 5,
+      "StructFieldCount": 5,
+      "NestedStructDepth": 3,
+      "NestedStructProbability": 0.4,
+      "StructFieldTypeProbability": 0.5,
+      "StructAliasProbability": 0.5,
+      "StructUsageProbability": 0.8
+    },
+    {
+      "Name": "MethodCalls",
+      "MethodCount": 100,
+      "MaxStatementCount": 3,
+      "MaxStmtDepth": 2,
+      "MaxExprDepth": 3,
+      "MethodCallStatementWeight": 0.7,
+      "MethodCallWeight": "0.4",
+      "ParamPassingRefProbability": 0.5,
+      "ParamPassingOutProbability": 0.4,
+      "LeafMethodsNoInlineProbability": 0.8,
+      "MaxMethodParametersCount": 20,
+      "StructUsageProbability": 0.7
+    },
+    {
+      "Name": "Full",
+      "MaxStmtDepth": 5,
+      "MaxExprDepth": 5,
+      "VariablesCount": 10,
+      "MethodCount": 5,
+      "MaxStatementCount": 10,
+      "TryCatchFinallyStatementWeight": 0.03,
+      "LocalVariablesLogProbability": 1.0
+    },
+    {
+      "Name": "ExceptionHandler",
+      "MaxStmtDepth": 5,
+      "MethodCount": 2,
+      "TryCatchFinallyStatementWeight": 0.5,
+      "CatchClausesCount": 5,
+      "FinallyClauseProbability": 0.7
+    },
+    {
+      "Name": "Loops",
+      "MaxStmtDepth": 5,
+      "MethodCount": 2,
+      "ForStatementWeight": 0.5,
+      "DoWhileStatementWeight": 0.5,
+      "WhileStatementWeight": 0.5,
+      "LoopParametersRemovalProbability": 0.4,
+      "LoopForwardProbability": 0.5,
+      "LoopStartFromInvariantProbabilty": 0.3,
+      "LoopStepPreBreakCondProbability": 0.6,
+      "UseLoopInvariantVariableProbability": 1.0,
+      "AllowLoopCondAtEnd": false
+    },
+    {
+      "Name": "ControlFlow",
+      "MaxCaseCounts": 10,
+      "MaxStmtDepth": 6,
+      "MaxStatementCount": 4,
+      "IfElseStatementWeight": 0.4,
+      "ForStatementWeight": 0.5,
+      "DoWhileStatementWeight": 0.5,
+      "WhileStatementWeight": 0.5,
+      "SwitchStatementWeight": 0.45
+    }
+  ]
 }
