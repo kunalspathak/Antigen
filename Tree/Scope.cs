@@ -7,15 +7,14 @@ namespace Antigen.Tree
 {
     /*
      * Scopes need information about their "kind" - which construct pushed a new scope
-     * This information is used in parts of ExprGen that need to do backtracking - ex.
+     * This information is used in parts of Antigen that need to do backtracking - ex.
      * the logic behind generating new label names
      */
     public enum ScopeKind
     {
         ConditionalScope,               //introduced by any "conditional" construct - try/catch, loops, if, switch
         LoopScope,                      //introduced by any  loops
-        GetterSetterScope,              //introduced by getters, setters and other ImplicitCallKind
-        FunctionScope,                  //default, scope introduced by a new function
+        MethodScope,                    //default, scope introduced by a method
         BracesScope                     //introduced by { }
     }
 
@@ -53,7 +52,7 @@ namespace Antigen.Tree
         public Scope(TestCase tc)
         {
             TestCase = tc;
-            ScopeType = ScopeKind.FunctionScope;
+            ScopeType = ScopeKind.MethodScope;
         }
 
         public Scope(TestCase tc, ScopeKind t, Scope parentScope)

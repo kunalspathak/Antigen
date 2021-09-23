@@ -71,7 +71,7 @@ namespace Antigen
         {
             _testClass = enclosingClass;
             Name = methodName;
-            MethodScope = new Scope(enclosingClass.TC, ScopeKind.FunctionScope, enclosingClass.ClassScope);
+            MethodScope = new Scope(enclosingClass.TC, ScopeKind.MethodScope, enclosingClass.ClassScope);
         }
 
         /// <summary>
@@ -84,7 +84,7 @@ namespace Antigen
         {
             _testClass = enclosingClass;
             Name = methodName;
-            MethodScope = new Scope(enclosingClass.TC, ScopeKind.FunctionScope, enclosingClass.ClassScope);
+            MethodScope = new Scope(enclosingClass.TC, ScopeKind.MethodScope, enclosingClass.ClassScope);
             _isMainInvocation = isMainInvocation;
             _valuePassing = new()
             {
