@@ -7,6 +7,7 @@ using Antigen.Config;
 using CommandLine;
 using Utils;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace Antigen
 {
@@ -72,7 +73,7 @@ namespace Antigen
 
                 Parallel.For(0, 2, (p) => RunTest());
                 Console.WriteLine($"Executed {s_testId} test cases.");
-
+                DisplayStats();
             }
             catch (OutOfMemoryException oom)
             {
@@ -138,10 +139,16 @@ namespace Antigen
 
                 if ((totalTestCount % 100) == 0)
                 {
-                    var nonZeroStats = s_stats.Where(stat => stat.Value > 0);
-                    Console.WriteLine($"*** {string.Join(", ", nonZeroStats.Select(stat => $"{Enum.GetName(typeof(TestResult), stat.Key)}={stat.Value}"))}");
+                    DisplayStats();
                 }
             }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void DisplayStats()
+        {
+            var nonZeroStats = s_stats.Where(stat => stat.Value > 0);
+            Console.WriteLine($"*** {string.Join(", ", nonZeroStats.Select(stat => $"{Enum.GetName(typeof(TestResult), stat.Key)}={stat.Value}"))}");
         }
 
         static void RunTest()
