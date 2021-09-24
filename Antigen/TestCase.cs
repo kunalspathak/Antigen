@@ -191,10 +191,9 @@ namespace Antigen
             {
                 File.Delete(assemblyPath);
             }
-            catch (Exception ex)
+            catch
             {
                 // ignore errors 
-                Console.WriteLine($"Error deleting {assemblyPath} : {ex}");
             }
             return result;
         }
