@@ -6,12 +6,14 @@ using System.Threading.Tasks;
 using Antigen.Config;
 using CommandLine;
 using Utils;
+using System.Linq;
 
 namespace Antigen
 {
     class Program
     {
-        static readonly object s_spinLock = new object();
+        private static readonly object s_spinLock = new object();
+        private static int totalTestCount = 0;
         private static readonly RunOptions s_runOptions = RunOptions.Initialize();
         private static readonly Dictionary<TestResult, int> s_stats = new()
         {
@@ -123,23 +125,21 @@ namespace Antigen
         ///     Save the result.
         /// </summary>
         /// <param name="localStats"></param>
-        private static void SaveResult(Dictionary<TestResult, int> localStats)
+        private static void SaveResult(Dictionary<TestResult, int> localStats, int localTestCount)
         {
             lock (s_spinLock)
             {
+                totalTestCount += localTestCount;
                 foreach (var resultStat in localStats)
                 {
                     s_stats[resultStat.Key] += resultStat.Value;
+                    localStats[resultStat.Key] = 0;
                 }
 
-                if ((s_stats.Count % 50) == 0)
+                if ((totalTestCount % 100) == 0)
                 {
-                    Console.Write("** ");
-                    foreach (var st in s_stats)
-                    {
-                        Console.Write($"{Enum.GetName(typeof(TestResult), st.Key)}={st.Value}, ");
-                    }
-                    Console.WriteLine();
+                    var nonZeroStats = s_stats.Where(stat => stat.Value > 0);
+                    Console.WriteLine($"*** {string.Join(", ", nonZeroStats.Select(stat => $"{Enum.GetName(typeof(TestResult), stat.Key)}={stat.Value}"))}");
                 }
             }
         }
@@ -158,6 +158,7 @@ namespace Antigen
                 { TestResult.OOM, 0 },
             };
 
+            int testCount = 0;
             while (!Done)
             {
                 var currTestId = GetNextTestId();
@@ -171,12 +172,12 @@ namespace Antigen
                     (double)Process.GetCurrentProcess().WorkingSet64 / 1000000,
                     (DateTime.Now - s_startTime).ToString());
 
-
+                testCount++;
                 localStats[result]++;
-                if (localStats.Count == 10)
+                if (testCount == 50)
                 {
-                    SaveResult(localStats);
-                    localStats.Clear();
+                    SaveResult(localStats, testCount);
+                    testCount = 0;
                 }
 
                 GC.Collect();
