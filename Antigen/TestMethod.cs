@@ -501,7 +501,8 @@ namespace Antigen
 
                         List<Tuple<Type, List<Statement>>> catchClauses = new ();
 
-                        var allExceptions = Tree.ValueType.AllExceptions.Select(x => x.Key).ToList();
+                        // Clone 
+                        var allExceptions = Tree.ValueType.AllExceptions.Select(x => x).ToList();
                         var caughtExceptions = new List<Type>();
 
                         for (int catchId = 0; catchId < catchCounts; catchId++)

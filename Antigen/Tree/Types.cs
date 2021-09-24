@@ -239,11 +239,10 @@ namespace Antigen.Tree
             return _variableNameHint;
         }
 
-        public static IDictionary<Type, CatchDeclarationSyntax> AllExceptions =>
+        public static IReadOnlyList<Type> AllExceptions =>
             typeof(Exception).Assembly.GetTypes()
                 .Where(x => x.IsSubclassOf(typeof(Exception)))
-                .Where(n => n.FullName.StartsWith("System.") && n.FullName.LastIndexOf(".") == 6)
-                .ToDictionary(t => t, t => CatchDeclaration(IdentifierName(t.Name)));
+                .Where(n => n.FullName.StartsWith("System.") && n.FullName.LastIndexOf(".") == 6).ToList();
 
         public override string ToString()
         {
