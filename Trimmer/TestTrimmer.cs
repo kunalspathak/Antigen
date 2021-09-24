@@ -2,42 +2,56 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using Antigen;
+using Antigen.Trimmer.Rewriters;
+using Antigen.Trimmer.Rewriters.Expressions;
+using Antigen.Trimmer.Rewriters.Statements;
+using CommandLine;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Antigen.Config;
-using Antigen.Trimmer.Rewriters;
-using Antigen.Trimmer.Rewriters.Expressions;
-using Antigen.Trimmer.Rewriters.Statements;
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
+using Utils;
 
-namespace Antigen.Trimmer
+namespace Trimmer
 {
     public class TestTrimmer
     {
-        RunOptions _runOptions;
         private string _testFileToTrim;
+        private string _outputFolder;
         private static TestRunner _testRunner;
         private Dictionary<string, string> _baselineVariables;
         private Dictionary<string, string> _testVariables;
         private string _originalTestAssertion;
         static int s_iterId = 1;
 
-        public TestTrimmer(string testFileToTrim, RunOptions runOptions)
+        static int Main(string[] args)
+        {
+            return Parser.Default.ParseArguments<CommandLineOptions>(args).MapResult(Run, err => 1);
+        }
+
+        private static int Run(CommandLineOptions opts)
+        {
+            string testCaseToTrim = opts.ReproFile;
+            TestTrimmer testTrimmer = new TestTrimmer(testCaseToTrim, opts);
+            testTrimmer.Trim();
+            return 0;
+        }
+
+        public TestTrimmer(string testFileToTrim, CommandLineOptions opts)
         {
             if (!File.Exists(testFileToTrim))
             {
                 throw new Exception($"{testFileToTrim} doesn't exist.");
             }
-            _runOptions = runOptions;
             _testFileToTrim = testFileToTrim;
-            _testRunner = TestRunner.GetInstance(_runOptions);
+            _outputFolder = opts.IssuesFolder;
+            _testRunner = TestRunner.GetInstance(opts.CoreRunPath, opts.IssuesFolder);
 
             ParseEnvironment();
         }
@@ -181,10 +195,10 @@ namespace Antigen.Trimmer
         public bool TrimEnvVars()
         {
             bool trimmedAtleastOne = false;
-            SyntaxNode recentTree = CSharpSyntaxTree.ParseText(File.ReadAllText( _testFileToTrim)).GetRoot();
+            SyntaxNode recentTree = CSharpSyntaxTree.ParseText(File.ReadAllText(_testFileToTrim)).GetRoot();
             var keys = _testVariables.Keys.ToList();
 
-            foreach(var envVar in keys)
+            foreach (var envVar in keys)
             {
                 if (envVar.Contains("AltJit"))
                 {
@@ -309,7 +323,8 @@ namespace Antigen.Trimmer
                         try
                         {
                             treeAfterTrim = trimmer.Visit(recentTree);
-                        } catch (ArgumentNullException)
+                        }
+                        catch (ArgumentNullException)
                         {
                             gotException = true;
                         }
@@ -375,13 +390,8 @@ namespace Antigen.Trimmer
             {
                 return TestResult.CompileError;
             }
-            //else
-            //{
-            //    string workingFile = Path.Combine(RunOptions.OutputDirectory, $"{Name}-working.g.cs");
-            //    File.WriteAllText(workingFile, testCaseRoot.ToFullString());
-            //}
 
-            string currRunBaselineOutput = hasAssertion ? string.Empty :_testRunner.Execute(compileResult, EnvVarOptions.BaseLineVars(), 10);
+            string currRunBaselineOutput = hasAssertion ? string.Empty : _testRunner.Execute(compileResult, null, 10);
             string currRunTestOutput = _testRunner.Execute(compileResult, testEnvVars, 40);
 
             TestResult verificationResult = string.IsNullOrEmpty(_originalTestAssertion) ? TestResult.OutputMismatch : TestResult.Assertion;
@@ -467,8 +477,23 @@ namespace Antigen.Trimmer
             File.WriteAllText(failFile, fileContents.ToString());
             _testFileToTrim = failFile;
 
-            File.Move(compileResult.AssemblyFullPath, Path.Combine(_runOptions.OutputDirectory, $"{failedFileName}.exe"), overwrite: true);
+            File.Move(compileResult.AssemblyFullPath, Path.Combine(_outputFolder, $"{failedFileName}.exe"), overwrite: true);
             return verificationResult;
-         }
+        }
+    }
+
+    public class CommandLineOptions
+    {
+        [Option(shortName: 'c', longName: "CoreRun", Required = true, HelpText = "Path to CoreRun/CoreRun.exe.")]
+        public string CoreRunPath { get; set; }
+
+        [Option(shortName: 'f', longName: "ReproFile", Required = true, HelpText = "Full path of the repro file.")]
+        public string ReproFile { get; set; }
+
+        [Option(shortName: 'o', longName: "IssuesFolder", Required = true, HelpText = "Path to folder where trimmed issue will be copied.")]
+        public string IssuesFolder { get; set; }
+
+        [Option(shortName: 'j', longName: "AltJitName", Required = false, HelpText = "Name of altjit. By default, current OS/arch.")]
+        public string AltJitName { get; set; }
     }
 }
