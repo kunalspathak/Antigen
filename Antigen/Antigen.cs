@@ -40,14 +40,22 @@ namespace Antigen
                 PRNG.Initialize(s_runOptions.Seed);
                 s_runOptions.CoreRun = opts.CoreRunPath;
                 s_runOptions.OutputDirectory = opts.IssuesFolder;
+                if (opts.RunDuration > 0)
+                {
+                    s_runOptions.RunDuration = opts.RunDuration;
+                }
                 if (opts.NumTestCases > 0)
                 {
                     s_runOptions.NumTestCases = opts.NumTestCases;
                 }
 
-                if (opts.RunDuration > 0)
+                if (s_runOptions.RunDuration != -1)
                 {
-                    s_runOptions.RunDuration = opts.RunDuration;
+                    Console.WriteLine($"Starting Antigen for {s_runOptions.RunDuration} minutes.");
+                }
+                else
+                {
+                    Console.WriteLine($"Starting Antigen for {s_runOptions.NumTestCases} iterations.");
                 }
 
                 if (!File.Exists(s_runOptions.CoreRun))
@@ -96,11 +104,13 @@ namespace Antigen
         {
             get
             {
-                if ((DateTime.Now - s_startTime).Minutes >= s_runOptions.RunDuration)
+                // If RunDuration was specified, use that.
+                if (s_runOptions.RunDuration != -1)
                 {
-                    return true;
+                    return (DateTime.Now - s_startTime).Minutes >= s_runOptions.RunDuration;
                 }
-                if (s_testId >= s_runOptions.NumTestCases)
+                // Otherwise use number of test cases.
+                else if (s_testId >= s_runOptions.NumTestCases)
                 {
                     return true;
                 }
