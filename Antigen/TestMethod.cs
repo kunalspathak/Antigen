@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Antigen
 {

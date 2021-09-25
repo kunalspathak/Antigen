@@ -4,7 +4,6 @@
 
 using Antigen.Expressions;
 using Antigen.Tree;
-using Microsoft.CodeAnalysis.CSharp;
 
 namespace Antigen.Statements
 {

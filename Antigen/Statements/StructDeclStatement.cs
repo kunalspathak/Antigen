@@ -37,66 +37,6 @@ namespace Antigen.Statements
 
             return strBuilder.ToString();
         }
-
-        ///// <summary>
-        /////     Generate structs in this class
-        ///// </summary>
-        ///// <returns></returns>
-        //private static List<MemberDeclarationSyntax> GenerateStructs()
-        //{
-        //    List<MemberDeclarationSyntax> structs = new List<MemberDeclarationSyntax>();
-
-        //    for (int structIndex = 1; structIndex <= TC.Config.StructCount; structIndex++)
-        //    {
-        //        string structName = $"S{structIndex}";
-        //        var (structDecl, fields) = GenerateStruct(structName, structName, structIndex, 1);
-        //        structs.Add(structDecl);
-        //        CurrentScope.AddStructType(structName, fields);
-        //    }
-
-        //    (MemberDeclarationSyntax, List<StructField>) GenerateStruct(string structName, string structType, int structIndex, int depth)
-        //    {
-        //        StructDeclarationSyntax structDeclaration = StructDeclaration(structName)
-        //            .WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword)));
-
-        //        List<MemberDeclarationSyntax> fieldsTree = new List<MemberDeclarationSyntax>();
-        //        List<StructField> fieldsMetadata = new List<StructField>();
-        //        int fieldCount = PRNG.Next(1, TC.Config.StructFieldCount);
-        //        for (int fieldIndex = 1; fieldIndex <= fieldCount; fieldIndex++)
-        //        {
-        //            if (PRNG.Decide(TC.Config.NestedStructProbability) && depth < TC.Config.NestedStructDepth)
-        //            {
-        //                string nestedStructName = $"S{structIndex}_D{depth}_F{fieldIndex}";
-        //                string nestedStructType = structType + "." + nestedStructName;
-        //                var (structDecl, childFields) = GenerateStruct(nestedStructName, nestedStructType, structIndex, depth + 1);
-        //                fieldsTree.Add(structDecl);
-        //                CurrentScope.AddStructType(nestedStructType, childFields);
-        //                structName = nestedStructName;
-        //                continue;
-        //            }
-
-        //            Tree.ValueType fieldType;
-        //            string fieldName;
-
-        //            if (PRNG.Decide(TC.Config.StructFieldTypeProbability) && CurrentScope.NumOfStructTypes > 0)
-        //            {
-        //                fieldType = CurrentScope.AllStructTypes[PRNG.Next(CurrentScope.NumOfStructTypes)];
-        //            }
-        //            else
-        //            {
-        //                fieldType = GetASTUtils().GetRandomExprType();
-        //            }
-
-        //            fieldName = Helpers.GetVariableName(fieldType, fieldIndex);
-        //            fieldsTree.Add(FieldDeclaration(Helpers.GetVariableDeclaration(fieldType, fieldName)).WithModifiers(TokenList(Token(SyntaxKind.PublicKeyword))));
-        //            fieldsMetadata.Add(new StructField(fieldType, fieldName));
-        //        }
-
-        //        return (structDeclaration.WithMembers(fieldsTree.ToSyntaxList()), fieldsMetadata);
-        //    }
-
-        //    return structs;
-        //}
     }
 
     /// <summary>
