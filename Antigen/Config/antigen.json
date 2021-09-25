@@ -1,7 +1,7 @@
 {
   "Seed": -1,
   "OutputDirectory": ".",
-  "NumTestCases": 1000,
+  "NumTestCases": -1,
   "RunDuration": -1,
   "BaselineEnvVars": [
     {

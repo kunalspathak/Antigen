@@ -143,8 +143,7 @@ namespace Antigen
                 {
                     if (test.Contains(knownError))
                     {
-                        return TheTestResult(compileResult.AssemblyFullPath, test.StartsWith("System.OverflowException:") ? 
-                            TestResult.Overflow : TestResult.DivideByZero);
+                        return TheTestResult(compileResult.AssemblyFullPath, test.Contains("System.OverflowException:") ? TestResult.Overflow : TestResult.DivideByZero);
                     }
                 }
             }

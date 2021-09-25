@@ -4,6 +4,7 @@
 
 using Antigen.Expressions;
 using Antigen.Tree;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace Antigen.Statements
 {
@@ -13,11 +14,11 @@ namespace Antigen.Statements
         public readonly Operator Op;
         public readonly Expression Right;
 
-        public AssignStatement(TestCase testCase, Expression lhs, Operator op, Expression rhs) : base(testCase)
+        public AssignStatement(TestCase testCase, ValueType leftType, Expression lhs, Operator op, Expression rhs) : base(testCase)
         {
             Left = lhs;
             Op = op;
-            Right = rhs;
+            Right = Helper.FixDivideByZero(testCase, leftType, op, rhs);
         }
 
         public override string ToString()

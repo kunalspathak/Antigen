@@ -16,10 +16,10 @@ namespace Antigen.Config
         public string OutputDirectory = "." + Path.DirectorySeparatorChar;
 
         // Total number of test cases (overrides number specified in each XML config file)
-        public long NumTestCases = 0;
+        public long NumTestCases;
 
         // Duration to execute tests for (overrides number specified in each XML config file)
-        public int RunDuration = 0;
+        public int RunDuration;
 
         [NonSerialized()]
         public string CoreRun = null;

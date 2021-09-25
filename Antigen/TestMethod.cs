@@ -169,10 +169,11 @@ namespace Antigen
                     //TODO-future: Select any assignOper
                     //Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator();
 
-                    var lhs = ExprHelper(ExprKind.VariableExpression, nonLeafMethod.Data.ReturnType, 0);
+                    Tree.ValueType lhsType = nonLeafMethod.Data.ReturnType;
+                    var lhs = ExprHelper(ExprKind.VariableExpression, lhsType, 0);
                     var rhs = MethodCallHelper(nonLeafMethod.Data, 0);
 
-                    methodBody.Add(new AssignStatement(TC, lhs, Operator.ForSyntaxKind(SyntaxKind.SimpleAssignmentExpression), rhs));
+                    methodBody.Add(new AssignStatement(TC, lhsType, lhs, Operator.ForSyntaxKind(SyntaxKind.SimpleAssignmentExpression), rhs));
                 }
             }
 
@@ -342,7 +343,7 @@ namespace Antigen
                         Expression lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, 0);
                         Expression rhs = ExprHelper(rhsKind, rhsExprType, 0);
 
-                        return new AssignStatement(TC, lhs, assignOper, rhs);
+                        return new AssignStatement(TC, lhsExprType, lhs, assignOper, rhs);
                     }
                 case StmtKind.ForStatement:
                     {
@@ -792,7 +793,7 @@ namespace Antigen
             } while (noOfAttempts++ < 5);
             Debug.Assert(lhs.ToString() != rhs.ToString());
 
-            return new AssignStatement(TC, lhs, Operator.ForSyntaxKind(SyntaxKind.SimpleAssignmentExpression), rhs);
+            return new AssignStatement(TC, exprType, lhs, Operator.ForSyntaxKind(SyntaxKind.SimpleAssignmentExpression), rhs);
         }
 
         /// <summary>
