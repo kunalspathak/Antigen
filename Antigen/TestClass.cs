@@ -22,6 +22,12 @@ namespace Antigen
         public TestCase TC { get; private set; }
         public Stack<Scope> ScopeStack { get; private set; }
         private List<Weights<MethodSignature>> _methods { get; set; }
+        private int _variableId;
+
+        public string GetVariableName(Tree.ValueType variableType)
+        {
+            return variableType.VariableNameHint() + "_" + _variableId++;
+        }
 
         public AstUtils GetASTUtils()
         {
@@ -35,6 +41,7 @@ namespace Antigen
             ClassName = className;
             TC = tc;
             _methods = new List<Weights<MethodSignature>>();
+            _variableId = 0;
         }
 
         public void RegisterMethod(MethodSignature methodSignature)
@@ -179,7 +186,7 @@ namespace Antigen
                         fieldType = GetASTUtils().GetRandomExprType();
                     }
 
-                    fieldName = Helpers.GetVariableName(fieldType, fieldIndex);
+                    fieldName = GetVariableName(fieldType);
                     //fieldsTree.Add(new VarDeclStatement(TC, fieldType, fieldName, null));
                     fieldsMetadata.Add(new StructField(fieldType, fieldName));
                 }
@@ -236,10 +243,9 @@ namespace Antigen
             List<Statement> fields = new List<Statement>();
 
             // TODO-TEMP initialize one variable of each type
-            int _variablesCount = 0;
             foreach (Tree.ValueType variableType in Tree.ValueType.GetTypes())
             {
-                string variableName = (isStatic ? "s_" : string.Empty) + Helpers.GetVariableName(variableType, _variablesCount++);
+                string variableName = (isStatic ? "s_" : string.Empty) + GetVariableName(variableType);
 
                 Expression rhs = ConstantValue.GetConstantValue(variableType, TC._numerals);
 
@@ -251,7 +257,7 @@ namespace Antigen
             // TODO-TEMP initialize one variable of each struct type
             foreach (Tree.ValueType structType in CurrentScope.AllStructTypes)
             {
-                string variableName = (isStatic ? "s_" : string.Empty) + Helpers.GetVariableName(structType, _variablesCount++);
+                string variableName = (isStatic ? "s_" : string.Empty) + GetVariableName(structType);
 
                 Expression rhs = new CreationExpression(TC, structType.TypeName, null);
                 CurrentScope.AddLocal(structType, variableName);

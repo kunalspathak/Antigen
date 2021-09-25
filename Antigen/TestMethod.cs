@@ -28,7 +28,6 @@ namespace Antigen
         private readonly Dictionary<string, int> _statementsCount = new();
 #endif
 
-        private int _variablesCount = 0;
         private int _loopVarCount = 0;
 
         internal HashSet<string> callsFromThisMethod = new HashSet<string>();
@@ -103,7 +102,7 @@ namespace Antigen
             // TODO-TEMP initialize one variable of each type
             foreach (var variableType in Tree.ValueType.GetTypes())
             {
-                var variableName = Helpers.GetVariableName(variableType, _variablesCount++);
+                var variableName = _testClass.GetVariableName(variableType);
 
                 var rhs = ExprHelper(ExprKind.LiteralExpression, variableType, 0);
                 CurrentScope.AddLocal(variableType, variableName);
@@ -114,7 +113,7 @@ namespace Antigen
             // TODO-TEMP initialize one variable of each struct type
             foreach (var structType in CurrentScope.AllStructTypes)
             {
-                var variableName = Helpers.GetVariableName(structType, _variablesCount++);
+                var variableName = _testClass.GetVariableName(structType);
 
                 CurrentScope.AddLocal(structType, variableName);
 
@@ -132,7 +131,7 @@ namespace Antigen
                     continue;
                 }
 
-                var aliasVariableName = Helpers.GetVariableName(structType, _variablesCount++);
+                var aliasVariableName = _testClass.GetVariableName(structType);
 
                 CurrentScope.AddLocal(structType, aliasVariableName);
 
@@ -209,7 +208,7 @@ namespace Antigen
             {
                 var paramType = GetRandomExprType();
                 var passingWay = PRNG.WeightedChoice(_valuePassing);
-                string paramName = "p_" + Helpers.GetVariableName(paramType, paramIndex);
+                string paramName = "p_" + _testClass.GetVariableName(paramType);
 
                 // Add parameters to the scope except the one that is marked as OUT
                 // OUT parameters will be added once they are initialized.
@@ -245,7 +244,7 @@ namespace Antigen
                     {
                         Tree.ValueType variableType = GetRandomExprType();
 
-                        string variableName = Helpers.GetVariableName(variableType, _variablesCount++);
+                        string variableName = _testClass.GetVariableName(variableType);
 
                         Expression rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(variableType.PrimitiveType), variableType, 0);
                         CurrentScope.AddLocal(variableType, variableName);
