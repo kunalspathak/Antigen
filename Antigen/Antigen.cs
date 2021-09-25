@@ -107,10 +107,13 @@ namespace Antigen
         {
             get
             {
+                var now = DateTime.Now;
+                var diff = (now - s_startTime);
+                Console.WriteLine($"----- start: {s_startTime}, now: {now}, diff: {diff}, minutes: {diff.Minutes}, duration: {s_runOptions.RunDuration}, s_testId: {s_testId}, numTestCases: {s_runOptions.NumTestCases}");
                 // If RunDuration was specified, use that.
                 if (s_runOptions.RunDuration != -1)
                 {
-                    return (DateTime.Now - s_startTime).Minutes >= s_runOptions.RunDuration;
+                    return diff.Minutes >= s_runOptions.RunDuration;
                 }
                 // Otherwise use number of test cases.
                 else if (s_testId >= s_runOptions.NumTestCases)
@@ -194,10 +197,10 @@ namespace Antigen
 
     public class CommandLineOptions
     {
-        [Option(shortName: 'c', longName: "CoreRun", Required = true, HelpText = "Path to CoreRun/CoreRun.exe.")]
+        [Option(shortName: 'c', longName: "CoreRun", Required = true, HelpText = "Full path to CoreRun/CoreRun.exe.")]
         public string CoreRunPath { get; set; }
 
-        [Option(shortName: 'o', longName: "IssuesFolder", Required = true, HelpText = "Path to folder where issues will be copied.")]
+        [Option(shortName: 'o', longName: "IssuesFolder", Required = true, HelpText = "Full path to folder where issues will be copied.")]
         public string IssuesFolder { get; set; }
 
         [Option(shortName: 'n', longName: "NumTestCases", Required = false, HelpText = "Number of test cases to execute. By default, 1000.")]
