@@ -107,13 +107,10 @@ namespace Antigen
         {
             get
             {
-                var now = DateTime.Now;
-                var diff = (now - s_startTime);
-                Console.WriteLine($"----- start: {s_startTime}, now: {now}, diff: {diff}, minutes: {diff.Minutes}, duration: {s_runOptions.RunDuration}, s_testId: {s_testId}, numTestCases: {s_runOptions.NumTestCases}");
                 // If RunDuration was specified, use that.
                 if (s_runOptions.RunDuration != -1)
                 {
-                    return diff.Minutes >= s_runOptions.RunDuration;
+                    return (DateTime.Now - s_startTime).TotalMinutes >= s_runOptions.RunDuration;
                 }
                 // Otherwise use number of test cases.
                 else if (s_testId >= s_runOptions.NumTestCases)
