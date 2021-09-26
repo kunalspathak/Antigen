@@ -913,35 +913,35 @@ namespace Antigen
             }
         }
 
-        private ExpressionSyntax Annotate(ExpressionSyntax expression, string comment)
-        {
-#if DEBUG
-            string typeName = expression.GetType().Name;
-            if (!_expressionsCount.ContainsKey(typeName))
-            {
-                _expressionsCount[typeName] = 0;
-            }
-            _expressionsCount[typeName]++;
-            return expression.WithTrailingTrivia(TriviaList(Comment($"/* E#{_expressionsCount[typeName]}: {comment} */")));
-#else
-            return expression;
-#endif
-        }
+//        private ExpressionSyntax Annotate(ExpressionSyntax expression, string comment)
+//        {
+//#if DEBUG
+//            string typeName = expression.GetType().Name;
+//            if (!_expressionsCount.ContainsKey(typeName))
+//            {
+//                _expressionsCount[typeName] = 0;
+//            }
+//            _expressionsCount[typeName]++;
+//            return expression.WithTrailingTrivia(TriviaList(Comment($"/* E#{_expressionsCount[typeName]}: {comment} */")));
+//#else
+//            return expression;
+//#endif
+//        }
 
-        private StatementSyntax Annotate(StatementSyntax statement, string comment, int depth)
-        {
-#if DEBUG
-            string typeName = statement.GetType().Name;
-            if (!_statementsCount.ContainsKey(typeName))
-            {
-                _statementsCount[typeName] = 0;
-            }
-            _statementsCount[typeName]++;
-            return statement.WithTrailingTrivia(TriviaList(Comment($"/* {depth}: S#{_statementsCount[typeName]}: {comment} */")));
-#else
-            return statement;
-#endif
-        }
+//        private StatementSyntax Annotate(StatementSyntax statement, string comment, int depth)
+//        {
+//#if DEBUG
+//            string typeName = statement.GetType().Name;
+//            if (!_statementsCount.ContainsKey(typeName))
+//            {
+//                _statementsCount[typeName] = 0;
+//            }
+//            _statementsCount[typeName]++;
+//            return statement.WithTrailingTrivia(TriviaList(Comment($"/* {depth}: S#{_statementsCount[typeName]}: {comment} */")));
+//#else
+//            return statement;
+//#endif
+//        }
 
 
         /// <summary>
