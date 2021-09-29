@@ -1,10 +1,3 @@
----
-layout: post
-title: Antigen
-subtitle: A fuzzer to test .NET's RyuJIT
-tags: [fuzzing, RyuJIT]
----
-
 ## What is it?
 
 Antigen is a fuzzer that generates random C# programs on the fly to test [.NET's RyuJIT](https://github.com/Potapy4/dotnet-coreclr/blob/master/Documentation/botr/ryujit-overview.md).
