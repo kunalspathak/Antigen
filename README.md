@@ -121,14 +121,10 @@ Below are some of the examples of .NET issues found by Antigen:
 
 Antigen also comes with a component called `Trimmer` which would trim the C# code as much as possible while still making sure that the original issue reproduces. Currently, it has very limited capability and is slow, but there are plans to improve it going forward.
 
-## Where is the source code?
-
-The source code is in [https://github.com/kunalspathak/antigen](https://github.com/kunalspathak/antigen) and contributions are welcome.
-
 ## What's up with the name "Antigen"?
 
 "Antigen" name was chosen as a reminder that this tool was developed during Covid era. The name comes from one of the Covid-19 testing methodology "Rapid Antigen test (RAT)". Just as RAT was used to detect covid symptoms, Antigen tool is used to detect any issues in .NET.
 
-## Other tools
+## Are there any other fuzzers?
 
-[Jakob Botsch Nielsen](https://jakobbotsch.com/) has developed [Fuzzlyn](https://github.com/jakobbotsch/Fuzzlyn) which fuzzes C# code and find issues in .NET code.
+There are lot of fuzzers to test compilers. One of them is [Fuzzlyn](https://github.com/jakobbotsch/Fuzzlyn) developed by [Jakob Botsch Nielsen](https://jakobbotsch.com/).
