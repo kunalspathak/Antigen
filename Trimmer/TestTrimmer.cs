@@ -22,12 +22,12 @@ namespace Trimmer
     public class TestTrimmer
     {
         private string _testFileToTrim;
-        private string _outputFolder;
         private static TestRunner _testRunner;
         private Dictionary<string, string> _baselineVariables;
         private Dictionary<string, string> _testVariables;
         private string _originalTestAssertion;
         static int s_iterId = 1;
+        private CommandLineOptions _opts = null;
 
         static int Main(string[] args)
         {
@@ -49,7 +49,7 @@ namespace Trimmer
                 throw new Exception($"{testFileToTrim} doesn't exist.");
             }
             _testFileToTrim = testFileToTrim;
-            _outputFolder = opts.IssuesFolder;
+            _opts = opts;
             _testRunner = TestRunner.GetInstance(opts.CoreRunPath, opts.IssuesFolder);
 
             ParseEnvironment();
@@ -79,6 +79,16 @@ namespace Trimmer
                 {
                     var testContents = lineContent.Replace("// TestVars: ", string.Empty).Trim();
                     _testVariables = testContents.Split("|").ToList().ToDictionary(x => x.Split("=")[0], x => x.Split("=")[1]);
+
+                    if (!string.IsNullOrEmpty(_opts.AltJitName))
+                    {
+                        _testVariables["COMPlus_AltJitName"] = _opts.AltJitName;
+                    }
+
+                    if (!string.IsNullOrEmpty(_opts.AltJitMethodName))
+                    {
+                        _testVariables["COMPlus_AltJit"] = _opts.AltJitMethodName;
+                    }
                     return;
                 }
 
@@ -177,18 +187,17 @@ namespace Trimmer
 
             };
 
-            //bool trimmedAtleastOne = false;
-            //bool trimmedInCurrIter;
+            bool trimmedAtleastOne = false;
+            bool trimmedInCurrIter;
 
-            //do
-            //{
-            //    trimmedInCurrIter = false;
-            //    trimmedInCurrIter |= Trim(trimmerList);
-            //    trimmedAtleastOne |= trimmedInCurrIter;
-            //} while (trimmedInCurrIter);
+            do
+            {
+                trimmedInCurrIter = false;
+                trimmedInCurrIter |= Trim(trimmerList);
+                trimmedAtleastOne |= trimmedInCurrIter;
+            } while (trimmedInCurrIter);
 
-            //return trimmedAtleastOne;
-            return Trim(trimmerList);
+            return trimmedAtleastOne;
         }
 
         public bool TrimEnvVars()
@@ -476,7 +485,7 @@ namespace Trimmer
             File.WriteAllText(failFile, fileContents.ToString());
             _testFileToTrim = failFile;
 
-            File.Move(compileResult.AssemblyFullPath, Path.Combine(_outputFolder, $"{failedFileName}.exe"), overwrite: true);
+            File.Move(compileResult.AssemblyFullPath, Path.Combine(_opts.IssuesFolder, $"{failedFileName}.exe"), overwrite: true);
             return verificationResult;
         }
     }
@@ -494,5 +503,8 @@ namespace Trimmer
 
         [Option(shortName: 'j', longName: "AltJitName", Required = false, HelpText = "Name of altjit. By default, current OS/arch.")]
         public string AltJitName { get; set; }
+
+        [Option(shortName: 'm', longName: "AltJitMethodName", Required = false, HelpText = "Name of method for altjit. By default, current OS/arch.")]
+        public string AltJitMethodName { get; set; }
     }
 }
