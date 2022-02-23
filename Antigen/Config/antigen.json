@@ -626,6 +626,224 @@
           ]
         }
       ]
+    },
+    {
+      "Name": "OSR",
+      "Weight": 0.2,
+      "Variables": [
+        {
+          "Name": "TC_OnStackReplacement",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TC_QuickJitForLoops",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TieredCompilation",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        }
+      ]
+    },
+    {
+      "Name": "OSR_Stress",
+      "Weight": 0.295,
+      "Variables": [
+        {
+          "Name": "TC_OnStackReplacement",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TC_QuickJitForLoops",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TieredCompilation",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TC_OnStackReplacement_InitialCounter",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "OSR_HitLimit",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        }
+      ]
+    },
+    {
+      "Name": "OSR_Stress_Random",
+      "Weight": 0.28,
+      "Variables": [
+        {
+          "Name": "TC_OnStackReplacement",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TC_QuickJitForLoops",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TieredCompilation",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TC_OnStackReplacement_InitialCounter",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "OSR_HitLimit",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "2" ]
+        },
+        {
+          "Name": "JitRandomOnStackReplacement",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "15" ]
+        }
+      ]
+    },
+    {
+      "Name": "OSR_PGO",
+      "Weight": 0.25,
+      "Variables": [
+        {
+          "Name": "TC_OnStackReplacement",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TC_QuickJitForLoops",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TieredCompilation",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TieredPGO",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        }
+      ]
+    },
+    {
+      "Name": "PartialCompile",
+      "Weight": 0.25,
+      "Variables": [
+        {
+          "Name": "TC_PartialCompilation",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TC_QuickJitForLoops",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TieredCompilation",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        }
+      ]
+    },
+    {
+      "Name": "PartialCompile_PGO",
+      "Weight": 0.25,
+      "Variables": [
+        {
+          "Name": "TC_PartialCompilation",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TC_QuickJitForLoops",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TieredCompilation",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TieredPGO",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        }
+      ]
+    },
+    {
+      "Name": "OSR_PartialCompile",
+      "Weight": 0.258,
+      "Variables": [
+        {
+          "Name": "TC_OnStackReplacement",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TC_PartialCompilation",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TC_QuickJitForLoops",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TieredCompilation",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        }
+      ]
+    },
+    {
+      "Name": "OSR_PartialCompile_PGO",
+      "Weight": 0.256,
+      "Variables": [
+        {
+          "Name": "TC_OnStackReplacement",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TC_PartialCompilation",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TC_QuickJitForLoops",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TieredCompilation",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        },
+        {
+          "Name": "TieredPGO",
+          "Weight": "0", /* intentially zero */
+          "Values": [ "1" ]
+        }
+      ]
     }
   ],
   "Configs": [

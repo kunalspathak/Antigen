@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace Antigen.Config
@@ -36,9 +37,18 @@ namespace Antigen.Config
         ///     Returns a random EnvVarGroup depending on the weight.
         /// </summary>
         /// <returns></returns>
-        private static ComplusEnvVarGroup GetRandomTestGroup()
+        private static ComplusEnvVarGroup GetRandomOsrTestGroup()
         {
-            return PRNG.WeightedChoice(s_testGroupWeight);
+            return PRNG.WeightedChoice(s_testGroupWeight.Where(tg => tg.Data.IsOsrSwitchGroup()));
+        }
+
+        /// <summary>
+        ///     Returns a random EnvVarGroup depending on the weight.
+        /// </summary>
+        /// <returns></returns>
+        private static ComplusEnvVarGroup GetRandomNonOsrTestGroup()
+        {
+            return PRNG.WeightedChoice(s_testGroupWeight.Where(tg => !tg.Data.IsOsrSwitchGroup()));
         }
 
         /// <summary>
@@ -62,14 +72,12 @@ namespace Antigen.Config
         ///     Returns random set of test environment variables.
         /// </summary>
         /// <returns></returns>
-        public static Dictionary<string, string> TestVars()
+        public static Dictionary<string, string> TestVars(bool includeOsrSwitches)
         {
-            var envVars = new Dictionary<string, string>()
-            {
-                { "COMPlus_TieredCompilation", "0"}
-            };
+            var envVars = new Dictionary<string, string>();
 
             var defaultGroup = s_testGroups.First(tg => tg.Name == "Default");
+
             // default variables
             var usedEnvVars = new HashSet<string>();
             var defaultVariablesCount = PRNG.Next(1, 8);
@@ -86,6 +94,23 @@ namespace Antigen.Config
                 envVars[$"COMPlus_{envVar.Name}"] = envVar.Values[PRNG.Next(envVar.Values.Length)];
             }
 
+            // OSR switches
+            if (includeOsrSwitches)
+            {
+                var osrstressGroup = GetRandomOsrTestGroup();
+                // Unique OSR group found. Add all switches and move on.
+                foreach (var osrSwitch in osrstressGroup.Variables)
+                {
+                    Debug.Assert(osrSwitch.Values.Length == 1);
+                    envVars[$"COMPlus_{osrSwitch.Name}"] = osrSwitch.Values[0];
+                }
+            }
+            else
+            {
+                envVars["COMPlus_TieredCompilation"] = "0";
+            }
+
+            // stress switches
             var stressVariablesCount = PRNG.Next(1, 4);
             for (var i = 0; i < stressVariablesCount; i++)
             {
@@ -94,7 +119,7 @@ namespace Antigen.Config
                 // Avoid duplicate variables
                 do
                 {
-                    var stressGroup = GetRandomTestGroup();
+                    var stressGroup = GetRandomNonOsrTestGroup();
                     envVar = stressGroup.GetRandomVariable();
                 } while (!usedEnvVars.Add(envVar.Name));
 
@@ -164,6 +189,11 @@ namespace Antigen.Config
         public override string ToString()
         {
             return $"{Name}: {Variables.Count}";
+        }
+
+        public bool IsOsrSwitchGroup()
+        {
+            return Name.Contains("OSR") || Name.Contains("PartialCompile");
         }
     }
 }

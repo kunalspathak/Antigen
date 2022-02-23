@@ -107,7 +107,7 @@ namespace Antigen
             }
 #endif
             var baselineVariables = EnvVarOptions.BaseLineVars();
-            var testVariables = EnvVarOptions.TestVars();
+            var testVariables = EnvVarOptions.TestVars(includeOsrSwitches: PRNG.Decide(0.3));
 
             // Execute test first and see if we have any errors/asserts
             var test = s_testRunner.Execute(compileResult, testVariables, 30);
