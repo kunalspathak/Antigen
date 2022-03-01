@@ -2,6 +2,7 @@
 using Antigen.Tree;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -28,7 +29,21 @@ namespace Antigen
         };
 
         private SyntaxNode testCaseRoot;
-        private static readonly Dictionary<int, int> s_uniqueIssues = new();
+
+        private struct UniqueIssueFile
+        {
+            public readonly int UniqueIssueId;
+            public readonly int FileSize;
+            public readonly string FileName;
+
+            public UniqueIssueFile(int _uniqueIssueId, int _fileSize, string _fileName)
+            {
+                UniqueIssueId = _uniqueIssueId;
+                FileSize = _fileSize;
+                FileName = _fileName;
+            }
+        }
+        private static readonly Dictionary<int, UniqueIssueFile> s_uniqueIssues = new();
 
         internal IList<Weights<int>> _numerals = new List<Weights<int>>()
         {
@@ -206,26 +221,7 @@ namespace Antigen
             string failureText,
             string testFileName)
         {
-
-            string output = string.IsNullOrEmpty(baselineOutput) ? testOutput : baselineOutput;
-            string uniqueIssueDirName = null;
-            int assertionHashCode = failureText.GetHashCode();
-            lock (this)
-            {
-                if (!s_uniqueIssues.ContainsKey(assertionHashCode))
-                {
-                    s_uniqueIssues[assertionHashCode] = s_uniqueIssues.Count;
-                }
-
-                // Create hash of testAssertion and copy files in respective bucket.
-                uniqueIssueDirName = Path.Combine(s_runOptions.OutputDirectory, $"UniqueIssue{s_uniqueIssues[assertionHashCode] }");
-                if (!Directory.Exists(uniqueIssueDirName))
-                {
-                    Directory.CreateDirectory(uniqueIssueDirName);
-                    File.WriteAllText(Path.Combine(uniqueIssueDirName, "summary.txt"), output);
-                }
-            }
-#if DEBUG
+#if UNREACHABLE
             File.Move(assemblyPath, Path.Combine(s_runOptions.OutputDirectory, $"{Name}-fail.exe"), overwrite: true);
 #endif
 
@@ -272,8 +268,43 @@ namespace Antigen
             fileContents.AppendLine(testOutput);
             fileContents.AppendLine("*/");
 
-            string failFile = Path.Combine(uniqueIssueDirName, $"{testFileName}.g.cs");
-            File.WriteAllText(failFile, fileContents.ToString());
+            string output = string.IsNullOrEmpty(baselineOutput) ? testOutput : baselineOutput;
+            string uniqueIssueDirName = null;
+            int assertionHashCode = failureText.GetHashCode();
+            string currentReproFile = $"{testFileName}.g.cs";
+            lock (this)
+            {
+                if (!s_uniqueIssues.ContainsKey(assertionHashCode))
+                {
+                    s_uniqueIssues[assertionHashCode] = new UniqueIssueFile(s_uniqueIssues.Count, int.MaxValue, currentReproFile);
+                }
+
+                // Create hash of testAssertion and copy files in respective bucket.
+                uniqueIssueDirName = Path.Combine(s_runOptions.OutputDirectory, $"UniqueIssue{s_uniqueIssues[assertionHashCode].UniqueIssueId}");
+                if (!Directory.Exists(uniqueIssueDirName))
+                {
+                    Directory.CreateDirectory(uniqueIssueDirName);
+                    File.WriteAllText(Path.Combine(uniqueIssueDirName, "summary.txt"), output);
+                }
+
+                // Only cache 1 file of smallest possible size.
+                if (s_uniqueIssues[assertionHashCode].FileSize > fileContents.Length)
+                {
+                    string largerReproFile = Path.Combine(uniqueIssueDirName, s_uniqueIssues[assertionHashCode].FileName);
+                    if (File.Exists(largerReproFile))
+                    {
+                        File.Delete(largerReproFile);
+                    }
+
+
+                    // Write the smallest file
+                    string failFile = Path.Combine(uniqueIssueDirName, currentReproFile);
+                    File.WriteAllText(failFile, fileContents.ToString());
+
+                    // Update the file size
+                    s_uniqueIssues[assertionHashCode] = new UniqueIssueFile(s_uniqueIssues.Count, fileContents.Length, currentReproFile);
+                }
+            }
         }
 
     }
