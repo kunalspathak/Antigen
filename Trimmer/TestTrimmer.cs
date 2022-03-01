@@ -27,6 +27,7 @@ namespace Trimmer
         private Dictionary<string, string> _testVariables;
         private string _originalTestAssertion;
         static int s_iterId = 1;
+        static int TRIMMER_RESET_COUNT = 10;
         private CommandLineOptions _opts = null;
 
         static int Main(string[] args)
@@ -115,7 +116,7 @@ namespace Trimmer
             do
             {
                 trimmedAtleastOne = false;
-                //trimmedAtleastOne |= TrimEnvVars();
+                trimmedAtleastOne |= TrimEnvVars();
                 trimmedAtleastOne |= TrimStatements();
                 trimmedAtleastOne |= TrimExpressions();
 
@@ -218,12 +219,12 @@ namespace Trimmer
                 Console.Write($"{s_iterId}. Removing {envVar}={value}");
                 if (Verify($"trim{s_iterId++}", recentTree, _baselineVariables, _testVariables) == TestResult.Pass)
                 {
-                    Console.WriteLine(" - Success");
+                    Console.WriteLine(" - Revert");
                     _testVariables[envVar] = value;
                 }
                 else
                 {
-                    Console.WriteLine(" - Revert");
+                    Console.WriteLine(" - Success");
                     trimmedAtleastOne = true;
                 }
             }
@@ -254,10 +255,14 @@ namespace Trimmer
             do
             {
                 trimmedInCurrIter = false;
+                int trimCount = 0;
+                int trimmerId = 0;
 
                 // pick category
-                foreach (var trimmer in trimmerList)
+                while (trimmerId < trimmerList.Count)
                 {
+TRIMMER_LOOP:
+                    var trimmer = trimmerList[trimmerId];
                     SyntaxNode treeBeforeTrim = recentTree, treeAfterTrim = null;
 
                     // remove all
@@ -366,6 +371,16 @@ namespace Trimmer
                             Console.WriteLine(" - Success");
                             trimmedInCurrIter = true;
                             trimmedAtleastOne = true;
+                            trimCount++;
+
+                            if ((trimmerId != 0) && (trimCount > TRIMMER_RESET_COUNT))
+                            {
+                                // If we have seen enough trimming for lower/smaller trimmer, reset to
+                                // try out higher trimmer.
+                                trimCount = 0;
+                                trimmerId = 0;
+                                goto TRIMMER_LOOP;
+                            }
                         }
                         else
                         {
@@ -377,6 +392,7 @@ namespace Trimmer
                             Console.WriteLine(" - Revert");
                         }
                     }
+                    trimmerId++;
                 }
             } while (trimmedInCurrIter);
 
