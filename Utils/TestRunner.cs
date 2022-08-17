@@ -218,7 +218,7 @@ namespace Utils
                         return "TIMEOUT";
                     }
 
-                    string finalOutput = "";
+                    string finalOutput = String.Empty;
                     try
                     {
                         finalOutput = output.ToString();

@@ -167,7 +167,7 @@ namespace Antigen
             string baseline = s_testRunner.Execute(compileResult, baselineVariables);
 
             // If timeout, skip
-            if (baseline == "TIMEOUT")
+            if (baseline == "TIMEOUT" || string.IsNullOrEmpty(baseline) || string.IsNullOrEmpty(test))
             {
                 return TheTestResult(compileResult.AssemblyFullPath, TestResult.Pass);
             }
