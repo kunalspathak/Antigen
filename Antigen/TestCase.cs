@@ -99,11 +99,11 @@ namespace Antigen
             CompileResult compileResult = s_testRunner.Compile(syntaxTree, Name);
             if (compileResult.AssemblyFullPath == null)
             {
-                // StringBuilder fileContents = new StringBuilder();
+                //StringBuilder fileContents = new StringBuilder();
 
                 //fileContents.AppendLine(testCaseRoot.NormalizeWhitespace().ToFullString());
                 //fileContents.AppendLine("/*");
-                //fileContents.AppendLine($"Got {compileResult.CompileErrors.Length} compiler error(s):");
+                //fileContents.AppendLine($"Got {compileResult.CompileErrors.Count()} compiler error(s):");
                 //foreach (var error in compileResult.CompileErrors)
                 //{
                 //    fileContents.AppendLine(error.ToString());
@@ -125,7 +125,7 @@ namespace Antigen
             var testVariables = EnvVarOptions.TestVars(includeOsrSwitches: PRNG.Decide(0.3));
 
             // Execute test first and see if we have any errors/asserts
-            var test = s_testRunner.Execute(compileResult, testVariables, 30);
+            var test = s_testRunner.Execute(compileResult, testVariables);
 
             // If timeout, skip
             if (test == "TIMEOUT")
@@ -157,12 +157,14 @@ namespace Antigen
                 {
                     if (test.Contains(knownError))
                     {
+                        //SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, test, testVariables, "Out of memory", $"{Name}-test-divbyzero");
+
                         return TheTestResult(compileResult.AssemblyFullPath, test.Contains("System.OverflowException:") ? TestResult.Overflow : TestResult.DivideByZero);
                     }
                 }
             }
 
-            string baseline = s_testRunner.Execute(compileResult, baselineVariables, 30);
+            string baseline = s_testRunner.Execute(compileResult, baselineVariables);
 
             // If timeout, skip
             if (baseline == "TIMEOUT")

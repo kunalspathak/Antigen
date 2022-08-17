@@ -316,11 +316,18 @@ namespace Antigen
                     {
                         Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator();
                         Tree.ValueType lhsExprType, rhsExprType;
-                        //TODO-cleanup: Somehow combine GetRandomExprType() and GetRandomStructType() functionality
-                        // Currently the only problem is AllStructTypes is in scope object but GetRandomExprType() is
-                        // in AstUtils.
-                        if (((assignOper.InputTypes & Primitive.Struct) != 0) && PRNG.Decide(0.2) && CurrentScope.NumOfStructTypes > 0)
+
+                        if (assignOper.HasFlag(OpFlags.Divide))
                         {
+                            // For divide, just use 'int` type.
+                            lhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
+                            rhsExprType = lhsExprType;
+                        }
+                        else if (((assignOper.InputTypes & Primitive.Struct) != 0) && PRNG.Decide(0.2) && CurrentScope.NumOfStructTypes > 0)
+                        {
+                            //TODO-cleanup: Somehow combine GetRandomExprType() and GetRandomStructType() functionality
+                            // Currently the only problem is AllStructTypes is in scope object but GetRandomExprType() is
+                            // in AstUtils.
                             lhsExprType = CurrentScope.AllStructTypes[PRNG.Next(CurrentScope.NumOfStructTypes)];
                         }
                         else
@@ -682,19 +689,30 @@ namespace Antigen
 
                         Operator op = GetASTUtils().GetRandomBinaryOperator(returnPrimitiveType: returnType);
 
-                        // If the return type is boolean, then take any ExprType that returns boolean.
-                        // However for other types, choose the same type for BinOp expression as the one used to store the result on LHS.
-                        //TODO-future: Consider doing GetRandomExprType(op.InputTypes) below. Currently, if this is done,
-                        // we end up getting code like (short)(1233342432.5M + 35435435.5M), where "short" is the exprType and
-                        // the literals are selected of different type ("decimal" in this example) and we get compilation error
-                        // because they can't be casted to short.
-                        Tree.ValueType lhsExprType = GetASTUtils().GetRandomExprType(returnType == Primitive.Boolean ? op.InputTypes : returnType);
-                        //Tree.ValueType lhsExprType = GetASTUtils().GetRandomExprType(op.InputTypes);
-                        Tree.ValueType rhsExprType = lhsExprType;
+                        Tree.ValueType lhsExprType, rhsExprType;
 
-                        if (op.HasFlag(OpFlags.Shift))
+                        if (op.HasFlag(OpFlags.Divide))
                         {
-                            rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
+                            // For '/' or '%' operations, just use int as dividend and divisor
+                            lhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
+                            rhsExprType = lhsExprType;
+                        }
+                        else
+                        {
+                            // If the return type is boolean, then take any ExprType that returns boolean.
+                            // However for other types, choose the same type for BinOp expression as the one used to store the result on LHS.
+                            //TODO-future: Consider doing GetRandomExprType(op.InputTypes) below. Currently, if this is done,
+                            // we end up getting code like (short)(1233342432.5M + 35435435.5M), where "short" is the exprType and
+                            // the literals are selected of different type ("decimal" in this example) and we get compilation error
+                            // because they can't be casted to short.
+                            lhsExprType = GetASTUtils().GetRandomExprType(returnType == Primitive.Boolean ? op.InputTypes : returnType);
+                            //Tree.ValueType lhsExprType = GetASTUtils().GetRandomExprType(op.InputTypes);
+                            rhsExprType = lhsExprType;
+
+                            if (op.HasFlag(OpFlags.Shift))
+                            {
+                                rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
+                            }
                         }
 
                         ExprKind lhsExprKind, rhsExprKind;
@@ -730,7 +748,13 @@ namespace Antigen
                         Tree.ValueType lhsExprType, rhsExprType;
                         lhsExprType = rhsExprType = exprType;
 
-                        if (assignOper.HasFlag(OpFlags.Shift))
+                        if (assignOper.HasFlag(OpFlags.Divide))
+                        {
+                            // For divide, just use 'int` type.
+                            lhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
+                            rhsExprType = lhsExprType;
+                        }
+                        else if (assignOper.HasFlag(OpFlags.Shift))
                         {
                             rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
                         }

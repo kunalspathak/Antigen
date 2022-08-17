@@ -105,7 +105,7 @@ namespace Utils
         ///     Execute the compiled assembly in an environment that has <paramref name="environmentVariables"/>.
         /// </summary>
         /// <returns></returns>
-        internal string Execute(CompileResult compileResult, Dictionary<string, string> environmentVariables, int timeoutInSecs)
+        internal string Execute(CompileResult compileResult, Dictionary<string, string> environmentVariables, int timeoutInSecs = 30)
         {
             Debug.Assert(compileResult.AssemblyFullPath != null);
 

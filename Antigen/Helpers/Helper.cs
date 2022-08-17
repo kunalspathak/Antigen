@@ -19,14 +19,14 @@ namespace Antigen
                 (op.Oper == SyntaxKind.ModuloExpression))
             {
                 // To avoid divide by zero errors
-                var addExpression = new AssignExpression(
+                var bitwiseOrExpression = new AssignExpression(
                     testCase,
                     leftType,
                     new ParenthsizedExpression(testCase, rhs),
-                    Operator.ForSyntaxKind(SyntaxKind.AddExpression),
+                    Operator.ForSyntaxKind(SyntaxKind.BitwiseOrExpression),
                     ConstantValue.GetRandomConstantInt(1, 100));
 
-                return new CastExpression(testCase, addExpression, leftType);
+                return new CastExpression(testCase, bitwiseOrExpression, leftType);
             }
             else
             {

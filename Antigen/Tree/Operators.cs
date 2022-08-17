@@ -62,7 +62,7 @@ namespace Antigen.Tree
             new Operator(SyntaxKind.SubtractExpression,                 "-",    "i-j",  Primitive.Numeric, Primitive.Numeric,           OpFlags.Binary | OpFlags.Math),
             new Operator(SyntaxKind.MultiplyExpression,                 "*",    "i*j",  Primitive.Numeric, Primitive.Numeric,           OpFlags.Binary | OpFlags.Math),
             new Operator(SyntaxKind.DivideExpression,                   "/",    "i/j",   Primitive.Numeric, Primitive.Numeric,          OpFlags.Binary | OpFlags.Math | OpFlags.Divide),
-            new Operator(SyntaxKind.ModuloExpression,                   "%",    "i%j",    Primitive.Numeric, Primitive.Numeric,        OpFlags.Binary | OpFlags.Math),
+            new Operator(SyntaxKind.ModuloExpression,                   "%",    "i%j",    Primitive.Numeric, Primitive.Numeric,        OpFlags.Binary | OpFlags.Math | OpFlags.Divide),
             new Operator(SyntaxKind.LeftShiftExpression,                "<<",   "i<<j", /*TODO-future: different for lhs, rhs*/  Primitive.SignedInteger | Primitive.Char, Primitive.SignedInteger,            OpFlags.Binary | OpFlags.Math | OpFlags.Shift),
             new Operator(SyntaxKind.RightShiftExpression,               ">>",   "i>>j",  Primitive.SignedInteger| Primitive.Char, Primitive.SignedInteger,            OpFlags.Binary | OpFlags.Math | OpFlags.Shift),
 
@@ -71,7 +71,7 @@ namespace Antigen.Tree
             new Operator(SyntaxKind.SubtractAssignmentExpression,       "-=",    "i-=j", Primitive.Numeric, Primitive.Numeric,     OpFlags.Binary | OpFlags.Math | OpFlags.Assignment),
             new Operator(SyntaxKind.MultiplyAssignmentExpression,       "*=",    "i*=j",  Primitive.Numeric, Primitive.Numeric,    OpFlags.Binary | OpFlags.Math | OpFlags.Assignment),
             new Operator(SyntaxKind.DivideAssignmentExpression,         "/=",    "i/=j", Primitive.Numeric, Primitive.Numeric,     OpFlags.Binary | OpFlags.Math | OpFlags.Divide | OpFlags.Assignment),
-            new Operator(SyntaxKind.ModuloAssignmentExpression,         "%=",    "i%=j", Primitive.Numeric, Primitive.Numeric,    OpFlags.Binary | OpFlags.Math | OpFlags.Assignment),
+            new Operator(SyntaxKind.ModuloAssignmentExpression,         "%=",    "i%=j", Primitive.Numeric, Primitive.Numeric,    OpFlags.Binary | OpFlags.Math | OpFlags.Divide | OpFlags.Assignment),
             new Operator(SyntaxKind.LeftShiftAssignmentExpression,      "<<=",   "i<<=j", Primitive.Integer, Primitive.Integer,   OpFlags.Binary | OpFlags.Math | OpFlags.Shift | OpFlags.Assignment),
             new Operator(SyntaxKind.RightShiftAssignmentExpression,     ">>=",  "i>>=j", Primitive.Integer, Primitive.Integer,    OpFlags.Binary | OpFlags.Math | OpFlags.Shift | OpFlags.Assignment),
 
