@@ -344,22 +344,22 @@
             "1"
           ]
         },
-        {
-          "Name": "JitOptRepeat",
-          "Weight": 0.0005,
-          "Values": [
-            "*"
-          ]
-        },
-        {
-          "Name": "JitOptRepeatCount",
-          "Weight": 0.0003,
-          "Values": [
-            "1",
-            "2",
-            "5"
-          ]
-        },
+        //{
+        //  "Name": "JitOptRepeat",
+        //  "Weight": 0.0005,
+        //  "Values": [
+        //    "*"
+        //  ]
+        //},
+        //{
+        //  "Name": "JitOptRepeatCount",
+        //  "Weight": 0.0003,
+        //  "Values": [
+        //    "1",
+        //    "2",
+        //    "5"
+        //  ]
+        //},
         {
           "Name": "TailCallLoopOpt",
           "Weight": 0.03,
