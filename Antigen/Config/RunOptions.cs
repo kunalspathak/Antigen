@@ -21,6 +21,9 @@ namespace Antigen.Config
         // Duration to execute tests for (overrides number specified in each XML config file)
         public int RunDuration;
 
+        // Percent of time to execute baseline
+        public double ExecuteBaseline;
+
         [NonSerialized()]
         public string CoreRun = null;
 

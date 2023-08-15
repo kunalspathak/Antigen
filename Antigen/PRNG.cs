@@ -18,6 +18,7 @@ namespace Antigen
         }
     };
 
+#pragma warning disable SYSLIB0023
     public class PRNG
     {
         private static System.Security.Cryptography.RNGCryptoServiceProvider SecureRand;
@@ -223,4 +224,5 @@ namespace Antigen
             return default(T);
         }
     };
+#pragma warning restore SYSLIB0023
 }

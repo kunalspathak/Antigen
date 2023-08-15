@@ -164,6 +164,11 @@ namespace Antigen
                 }
             }
 
+            if (!PRNG.Decide(s_runOptions.ExecuteBaseline))
+            {
+                return TheTestResult(compileResult.AssemblyFullPath, TestResult.Pass);
+            }
+
             string baseline = s_testRunner.Execute(compileResult, baselineVariables);
 
             // If timeout, skip

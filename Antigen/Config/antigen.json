@@ -3,6 +3,7 @@
   "OutputDirectory": ".",
   "NumTestCases": -1,
   "RunDuration": -1,
+  "ExecuteBaseline": 0.3,
   "BaselineEnvVars": [
     {
       "Name": "Default",
