@@ -35,6 +35,11 @@ namespace Antigen.Tree
                 AllTypes.Add(new Weights<ValueType>(type, ConfigOptions.Lookup(type)));
             }
 
+            foreach (ValueType type in ValueType.GetVectorTypes())
+            {
+                AllTypes.Add(new Weights<ValueType>(type, ConfigOptions.Lookup(type)));
+            }
+
             // Initialize statements
             foreach (StmtKind stmt in (StmtKind[])Enum.GetValues(typeof(StmtKind)))
             {
@@ -57,7 +62,7 @@ namespace Antigen.Tree
             // Initialize expressions
             foreach (ExprKind expr in (ExprKind[])Enum.GetValues(typeof(ExprKind)))
             {
-                var weight = new Weights<ExprKind>(expr, ConfigOptions.Lookup(expr)); ;
+                var weight = new Weights<ExprKind>(expr, ConfigOptions.Lookup(expr));
                 if (expr == ExprKind.MethodCallExpression)
                 {
                     MethodCallWeight = weight;
@@ -76,7 +81,7 @@ namespace Antigen.Tree
                     AllStructExpressions.Add(weight);
                 }
 
-                if (expr == ExprKind.LiteralExpression || expr == ExprKind.VariableExpression || expr == ExprKind.MethodCallExpression)
+                if (expr == ExprKind.LiteralExpression || expr == ExprKind.VariableExpression)
                 {
                     AllTerminalExpressions.Add(weight);
                 }
@@ -103,7 +108,7 @@ namespace Antigen.Tree
         }
 
         #region Random type methods
-        public ValueType GetRandomExprType()
+        public ValueType GetRandomValueType()
         {
             // Select all appropriate types
             IEnumerable<Weights<ValueType>> types =
@@ -114,12 +119,24 @@ namespace Antigen.Tree
             return PRNG.WeightedChoice(types);
         }
 
-        public ValueType GetRandomExprType(Primitive valueType)
+        public ValueType GetRandomPrimitiveType(Primitive valueType)
         {
             // Select all appropriate types
             IEnumerable<Weights<ValueType>> types =
                                         from z in AllTypes
                                         where z.Data.AllowedPrimitive(valueType)
+                                        select z;
+
+            // Do a weighted random choice.
+            return PRNG.WeightedChoice(types);
+        }
+
+        public ValueType GetRandomVectorTypeForOperator(Operator operatorForExpr)
+        {
+            // Select all appropriate types
+            IEnumerable<Weights<ValueType>> types =
+                                        from z in AllTypes
+                                        where z.Data.AllowedVector(operatorForExpr)
                                         select z;
 
             // Do a weighted random choice.
@@ -150,16 +167,116 @@ namespace Antigen.Tree
             return PRNG.WeightedChoice(exprs);
         }
 
-        public ExprKind GetRandomExpressionReturningPrimitive(Primitive returnPrimitiveType)
+        public ExprKind GetRandomExpressionReturningValueType(Primitive primitiveType)
         {
             IEnumerable<Weights<ExprKind>> exprs;
+
             // Select all appropriate expressions
-            if (returnPrimitiveType == Primitive.Char)
+            if (primitiveType == Primitive.Char)
             {
                 exprs = from z in AllNonNumericExpressions
                         select z;
             }
-            else if (returnPrimitiveType == Primitive.Struct)
+            else if (primitiveType == Primitive.Struct)
+            {
+                exprs = from z in AllStructExpressions
+                        select z;
+            }
+            else
+            {
+                exprs = from z in AllExpressions
+                        select z;
+            }
+
+            // Do a weighted random choice.
+            return PRNG.WeightedChoice(exprs);
+        }
+
+
+        /// <summary>
+        ///     Makes sure to pick either  a method call that has valid return type
+        ///     or one of the variable or literal expression.
+        /// </summary>
+        /// <param name="exprType"></param>
+        /// <returns></returns>
+        public ExprKind GetRandomTerminalExpression(TestClass testClass, Tree.ValueType exprType)
+        {
+            ExprKind kind;
+
+            int noOfAttempts = ConfigOptions.NumOfAttemptsForExpression;
+            bool found = false;
+
+            do
+            {
+                kind = GetRandomTerminalExpression();
+                switch (kind)
+                {
+                    case ExprKind.LiteralExpression:
+                        {
+                            if (exprType.PrimitiveType != Primitive.Struct)
+                            {
+                                found = true;
+                            }
+                            break;
+                        }
+                    case ExprKind.VariableExpression:
+                        {
+                            found = true;
+                            break;
+                        }
+                    //case ExprKind.MethodCallExpression:
+                    //    {
+                    //        // If terminal expression is a method call, make sure we have a method that 
+                    //        // returns value of "exprType"
+                    //        if (testClass.GetRandomMethod(exprType) != null)
+                    //        {
+                    //            found = true;
+                    //            break;
+                    //        }
+                    //        break;
+                    //    }
+                    default:
+                        throw new Exception("Unsupported terminal expression");
+                }
+
+                if (found)
+                {
+                    break;
+                }
+            } while (noOfAttempts++ < 5);
+
+            if (!found)
+            {
+                if (exprType.PrimitiveType == Primitive.Struct)
+                {
+                    kind = ExprKind.VariableExpression;
+                }
+                else
+                {
+                    kind = PRNG.Decide(0.7) ? ExprKind.VariableExpression : ExprKind.LiteralExpression;
+                }
+            }
+
+            return kind;
+        }
+
+        public ExprKind GetRandomExpressionReturningValueType(ValueType returningType)
+        {
+            IEnumerable<Weights<ExprKind>> exprs;
+
+            // Select all appropriate expressions
+
+            if (returningType.IsVectorType)
+            {
+                exprs = from z in AllExpressions
+                        select z;
+            }
+            else if (returningType.PrimitiveType == Primitive.Char)
+            {
+                exprs = from z in AllNonNumericExpressions
+                        select z;
+            }
+            else if (returningType.PrimitiveType == Primitive.Struct)
             {
                 exprs = from z in AllStructExpressions
                         select z;
@@ -211,12 +328,12 @@ namespace Antigen.Tree
 
         #region Random operator methods
 
-        public Operator GetRandomBinaryOperator(Primitive returnPrimitiveType)
+        public Operator GetRandomBinaryOperator(ValueType returnType)
         {
             // Select all appropriate operators
             IEnumerable<Weights<Operator>> ops =
                                         from z in AllOperators
-                                        where z.Data.HasFlag(OpFlags.Binary) && !z.Data.HasFlag(OpFlags.Assignment) && z.Data.HasReturnType(returnPrimitiveType)
+                                        where z.Data.HasFlag(OpFlags.Binary) && !z.Data.HasFlag(OpFlags.Assignment) && z.Data.HasReturnType(returnType)
                                         select z;
 
             // Do a weighted random choice.
@@ -261,14 +378,32 @@ namespace Antigen.Tree
             return PRNG.WeightedChoice(ops);
         }
 
-        public Operator GetRandomAssignmentOperator(Primitive returnPrimitiveType = Primitive.Any)
+        public Operator GetRandomAssignmentOperator(ValueType returnType)
         {
-            // Select all appropriate operators
-            IEnumerable<Weights<Operator>> ops =
-                                        from z in AllOperators
-                                        where z.Data.HasFlag(OpFlags.Assignment) && z.Data.HasReturnType(returnPrimitiveType)
-                                        select z;
+            IEnumerable<Weights<Operator>> ops = from z in AllOperators
+                                                 where z.Data.HasFlag(OpFlags.Assignment) && z.Data.HasReturnType(returnType)
+                                                 select z;
+            // Do a weighted random choice.
+            return PRNG.WeightedChoice(ops);
+        }
 
+        public Operator GetRandomAssignmentOperator()
+        {
+            IEnumerable<Weights<Operator>> ops;
+
+            //TODO:Vector
+            if (PRNG.Decide(0.5))
+            {
+                ops = from z in AllOperators
+                      where z.Data.HasFlag(OpFlags.Assignment) && z.Data.HasAnyPrimitiveType()
+                      select z;
+            }
+            else
+            {
+                ops = from z in AllOperators
+                      where z.Data.HasFlag(OpFlags.Assignment) && z.Data.HasAnyVectorType()
+                      select z;
+            }
             // Do a weighted random choice.
             return PRNG.WeightedChoice(ops);
         }
@@ -309,14 +444,14 @@ namespace Antigen.Tree
             {
                 case 0:
                 case 1:
-                    Ret.LoopBreakOperator = Operator.ForSyntaxKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.GreaterThanExpression);
+                    Ret.LoopBreakOperator = Operator.ForOperation(Operation.GreaterThan);
                     break;
                 case 2:
                 case 3:
-                    Ret.LoopBreakOperator = Operator.ForSyntaxKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.GreaterThanOrEqualExpression);
+                    Ret.LoopBreakOperator = Operator.ForOperation(Operation.GreaterThanOrEqual);
                     break;
                 case 4:
-                    Ret.LoopBreakOperator = Operator.ForSyntaxKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.EqualsExpression);
+                    Ret.LoopBreakOperator = Operator.ForOperation(Operation.Equals);
                     // variation doesn't guarantee rounding which is needed with == operator. So make invariant as 0.
                     // eg. ChangeFactor = 2, __loopvar = 3; __loopvar != (3 * 2); __loopvar += 2; We will break in 3 iterations without invariation
                     // eg. ChangeFactor = 2, __loopvar = 3 + 1; __loopvar != (3 * 2); __loopvar += 2; We will go to infinite loop because condition is never true

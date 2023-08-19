@@ -31,9 +31,12 @@ namespace Antigen
 // This file is auto-generated.
 // Seed: -1
 //
-                using System;
+
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Numerics;
 ";
                 s_usingStmts = new ArbitraryCodeStatement(null, usingCode);
                 return s_usingStmts;

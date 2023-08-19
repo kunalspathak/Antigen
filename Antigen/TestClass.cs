@@ -2,13 +2,19 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
+using System.Reflection;
+using System.Reflection.Metadata;
+using System.Runtime.Intrinsics;
 using Antigen.Expressions;
 using Antigen.Statements;
 using Antigen.Tree;
 using Microsoft.CodeAnalysis;
-
+using ValueType = Antigen.Tree.ValueType;
 
 namespace Antigen
 {
@@ -22,6 +28,8 @@ namespace Antigen
         public TestCase TC { get; private set; }
         public Stack<Scope> ScopeStack { get; private set; }
         private List<Weights<MethodSignature>> _methods { get; set; }
+        private static List<MethodSignature> vectorMethods = null;
+        private static bool isVectorMethodsInitialized = false;
         private int _variableId;
 
         public string GetVariableName(Tree.ValueType variableType)
@@ -44,6 +52,10 @@ namespace Antigen
             _variableId = 0;
         }
 
+        /// <summary>
+        ///     Register method
+        /// </summary>
+        /// <param name="methodSignature"></param>
         public void RegisterMethod(MethodSignature methodSignature)
         {
             _methods.Add(new Weights<MethodSignature>(methodSignature, (double)PRNG.Next(1, 100) / 100));
@@ -60,6 +72,16 @@ namespace Antigen
         public IEnumerable<Weights<MethodSignature>> AllLeafMethods => _methods.Where(m => m.Data.IsLeaf);
 
         /// <summary>
+        ///     Returns all vector methods
+        /// </summary>
+        public IEnumerable<Weights<MethodSignature>> AllVectorMethods => _methods.Where(m => m.Data.IsVectorMethod);
+
+        /// <summary>
+        ///     Returns all vector create methods
+        /// </summary>
+        public IEnumerable<Weights<MethodSignature>> AllVectorCreateMethods => _methods.Where(m => m.Data.IsVectorCreateMethod);
+
+        /// <summary>
         ///     Get random method that returns specfic returnType. Null if no such
         ///     method is generated yet.
         /// </summary>
@@ -74,6 +96,39 @@ namespace Antigen
         }
 
         /// <summary>
+        ///     Get random vector create method that returns specific returnType.
+        /// </summary>
+        /// <param name="returnType"></param>
+        /// <returns></returns>
+        public MethodSignature GetRandomVectorCreateMethod(Tree.ValueType returnType)
+        {
+            var matchingMethods = AllVectorCreateMethods.Where(m => m.Data.ReturnType.Equals(returnType)).ToList();
+            if (matchingMethods.Count == 0)
+            {
+                return null;
+            }
+            return PRNG.WeightedChoice(matchingMethods);
+        }
+
+        /// <summary>
+        ///     Get random vector create method that returns specific returnType.
+        /// </summary>
+        /// <param name="returnType"></param>
+        /// <returns></returns>
+        public MethodSignature GetRandomVectorMethod(Tree.ValueType returnType)
+        {
+            var matchingMethods = AllVectorMethods.Where(m => m.Data.ReturnType.Equals(returnType)).ToList();
+
+            if (matchingMethods.Count == 0)
+            {
+                return null;
+            }
+            var x = PRNG.WeightedChoice(matchingMethods);
+            Console.WriteLine(x.MethodName);
+            return x;
+        }
+
+        /// <summary>
         ///     Gets random leaf method that returns specific returnType. Null if no such
         ///     method is generated yet.
         /// </summary>
@@ -81,6 +136,12 @@ namespace Antigen
         /// <returns></returns>
         public MethodSignature GetRandomLeafMethod(Tree.ValueType returnType)
         {
+            if (returnType.IsVectorType)
+            {
+                // VectorType is not marked as leaf-method. So just return from overall methods list.
+                return GetRandomVectorMethod(returnType);
+            }
+
             var matchingMethods = AllLeafMethods.Where(m => m.Data.ReturnType.Equals(returnType));
             if (matchingMethods.Count() == 0)
             {
@@ -121,6 +182,14 @@ namespace Antigen
             PushScope(ClassScope);
 
             List<Statement> classMembers = new List<Statement>();
+
+            //TODO-vector
+            if (true /*vector supported*/)
+            {
+                GenerateVectors();
+                GenerateVectorMethods();
+            }
+
             classMembers.AddRange(GenerateStructs());
             classMembers.AddRange(GenerateFields(isStatic: true));
             classMembers.AddRange(GenerateFields(isStatic: false));
@@ -183,7 +252,7 @@ namespace Antigen
                     }
                     else
                     {
-                        fieldType = GetASTUtils().GetRandomExprType();
+                        fieldType = GetASTUtils().GetRandomValueType();
                     }
 
                     fieldName = GetVariableName(fieldType);
@@ -194,6 +263,180 @@ namespace Antigen
             }
 
             return structs;
+        }
+
+        /// <summary>
+        ///     Generate Vectors in this class
+        /// </summary>
+        /// <returns></returns>
+        private List<Statement> GenerateVectors()
+        {
+            if (Vector64<byte>.IsSupported)
+            {
+
+            }
+            if (Vector128<byte>.IsSupported)
+            {
+
+            }
+            if (Vector256<byte>.IsSupported)
+            {
+
+            }
+            //if (Vector512<byte>.IsSupported)
+            //{
+
+            //}
+            return null;
+        }
+
+        private void GenerateVectorMethods()
+        {
+            if (!isVectorMethodsInitialized)
+            {
+                vectorMethods = new List<MethodSignature>();
+
+                RecordVectorMethods(typeof(Vector2));
+                RecordVectorMethods(typeof(Vector3));
+                RecordVectorMethods(typeof(Vector4));
+                RecordVectorCtors(typeof(Vector2));
+                RecordVectorCtors(typeof(Vector3));
+                RecordVectorCtors(typeof(Vector4));
+
+                if (Vector64<byte>.IsSupported)
+                {
+                    RecordVectorMethods(typeof(Vector64));
+                }
+                if (Vector128<byte>.IsSupported)
+                {
+                    RecordVectorMethods(typeof(Vector128));
+                }
+                if (Vector256<byte>.IsSupported)
+                {
+                    RecordVectorMethods(typeof(Vector256));
+                }
+                //if (Vector512<byte>.IsSupported)
+                //{
+                //    RecordVectorMethods(typeof(Vector512));
+                //}
+                isVectorMethodsInitialized = true;
+            }
+
+            foreach (var vectorMethod in vectorMethods)
+            {
+                //if (PRNG.Decide(0.3))
+                {
+                    RegisterMethod(vectorMethod);
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Record the vector methods as well as the ones that creates the Vector.
+        ///     Applicable for Vector64, Vector128, Vector256, Vector512.
+        /// </summary>
+        /// <param name="vectorType"></param>
+        private static void RecordVectorMethods(Type vectorType)
+        {
+            var methods = vectorType.GetMethods(BindingFlags.Public | BindingFlags.Static);
+
+            foreach (var method in methods)
+            {
+                if (method.IsSpecialName)
+                {
+                    // special methods like properties / operators
+                    continue;
+                }
+
+                string fullMethodName = method.ToString();
+
+                if (fullMethodName.Contains("IntPtr") || fullMethodName.Contains("ValueTuple") ||
+                    fullMethodName.Contains("Matrix") || fullMethodName.Contains("Span") ||
+                    fullMethodName.Contains("Quaternion"))
+                {
+                    continue;
+                }
+
+                if (method.IsGenericMethod)
+                {
+                    //TODO-vector
+                    if (method.GetGenericArguments().Count() > 1)
+                    {
+                        Console.WriteLine(method);
+                    }
+                }
+                else
+                {
+                    var ms = new MethodSignature($"{vectorType.Name}.{method.Name}", isVectorGeneric: method.IsGenericMethod, isVectorMethod: true)
+                    {
+                        ReturnType = Tree.ValueType.ParseType(method.ReturnType.ToString())
+                    };
+                    var containsVectorParam = false;
+
+                    foreach (var methodParameter in method.GetParameters())
+                    {
+                        if (methodParameter.ParameterType.Name.StartsWith("Vector"))
+                        {
+                            containsVectorParam = true;
+                        }
+                        ms.Parameters.Add(new MethodParam()
+                        {
+                            ParamName = methodParameter.Name,
+                            ParamType = Tree.ValueType.ParseType(methodParameter.ParameterType.ToString()),
+                            PassingWay = ParamValuePassing.None
+                        });
+                    }
+
+                    vectorMethods.Add(ms);
+
+                    if ((method.Name == "Create" || method.Name == "CreateScalar") && !containsVectorParam)
+                    {
+                        // Ignore vector param for Create methods because we might not have those variables
+                        // available.
+                        ms.IsVectorCreateMethod = true;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        ///     Record the vector methods as well as the ones that creates the Vector.
+        ///     Applicable for Vector2, Vector3, Vector4.
+        /// </summary>
+        /// <param name="vectorType"></param>
+        private static void RecordVectorCtors(Type vectorType)
+        {
+            var ctors = vectorType.GetConstructors();
+
+            foreach (var ctor in ctors)
+            {
+                string fullMethodName = ctor.ToString();
+
+                if (fullMethodName.Contains("IntPtr") || fullMethodName.Contains("ValueTuple") ||
+                    fullMethodName.Contains("Matrix") || fullMethodName.Contains("Span") ||
+                    fullMethodName.Contains("Quaternion") || fullMethodName.Contains("Vector"))
+                {
+                    continue;
+                }
+
+                var ms = new MethodSignature($"new {vectorType.Name}", isVectorGeneric: false, isVectorMethod: true, isVectorCreateMethod: true)
+                {
+                    ReturnType = Tree.ValueType.ParseType(vectorType.ToString())
+                };
+
+                foreach (var methodParameter in ctor.GetParameters())
+                {
+                    ms.Parameters.Add(new MethodParam()
+                    {
+                        ParamName = methodParameter.Name,
+                        ParamType = Tree.ValueType.ParseType(methodParameter.ParameterType.ToString()),
+                        PassingWay = ParamValuePassing.None
+                    });
+                }
+
+                vectorMethods.Add(ms);
+                //vectorCreateMethods.Add(ms);
+            }
         }
 
         /// <summary>
@@ -246,11 +489,51 @@ namespace Antigen
             foreach (Tree.ValueType variableType in Tree.ValueType.GetTypes())
             {
                 string variableName = (isStatic ? "s_" : string.Empty) + GetVariableName(variableType);
-
                 Expression rhs = ConstantValue.GetConstantValue(variableType, TC._numerals);
-
                 CurrentScope.AddLocal(variableType, variableName);
 
+                fields.Add(new FieldDeclStatement(TC, variableType, variableName, rhs, isStatic));
+            }
+
+            foreach (Tree.ValueType variableType in Tree.ValueType.GetVectorTypes())
+            {
+                Debug.Assert(variableType.IsVectorType);
+                string variableName = (isStatic ? "s_" : string.Empty) + GetVariableName(variableType);
+
+                Expression rhs;
+                if (PRNG.Decide(0.8))
+                {
+                    MethodSignature createSig = GetRandomVectorCreateMethod(variableType);
+
+                    List<Expression> argumentNodes = new List<Expression>();
+                    List<ParamValuePassing> passingWays = new List<ParamValuePassing>();
+
+                    int parametersCount = createSig.Parameters.Count;
+
+                    for (int i = 0; i < parametersCount; i++)
+                    {
+                        MethodParam methodParam = createSig.Parameters[i];
+                        Tree.ValueType argType = methodParam.ParamType;
+                        Debug.Assert(!argType.IsVectorType);
+
+                        Expression parameterValue = ConstantValue.GetConstantValue(argType, TC._numerals);
+                        if (i == 0)
+                        {
+                            parameterValue = new CastExpression(TC, parameterValue, argType);
+                        }
+
+                        argumentNodes.Add(parameterValue);
+                        passingWays.Add(ParamValuePassing.None);
+                    }
+
+                    rhs = new MethodCallExpression(createSig.MethodName, argumentNodes, passingWays);
+                }
+                else
+                {
+                    rhs = ConstantValue.GetConstantValue(variableType, TC._numerals);
+                }
+
+                CurrentScope.AddLocal(variableType, variableName);
                 fields.Add(new FieldDeclStatement(TC, variableType, variableName, rhs, isStatic));
             }
 

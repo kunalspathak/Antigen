@@ -16,8 +16,12 @@ namespace Antigen
             Data = data_;
             Weight = Weight_;
         }
-    };
 
+        public override string ToString()
+        {
+            return $"{Data.ToString()} : {Weight.ToString()}";
+        }
+    }
 #pragma warning disable SYSLIB0023
     public class PRNG
     {
@@ -72,14 +76,14 @@ namespace Antigen
         static public int Next(int min, int max)
         {
             int ret;
-            
+
             if (min > max)
             {
                 int temp = max;
                 max = min;
                 min = temp;
             }
-            
+
             if (isFixSeed)
             {
                 ret = PerThreadRand[Thread.CurrentThread.ManagedThreadId].Next(min, max);

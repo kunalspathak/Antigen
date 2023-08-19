@@ -317,7 +317,11 @@ namespace Antigen
                         Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator();
                         Tree.ValueType lhsExprType, rhsExprType;
 
-                        if (assignOper.HasFlag(OpFlags.Divide))
+                        if (assignOper.IsVectorOper)
+                        {
+                            lhsExprType = GetASTUtils().GetRandomVectorTypeForOperator(assignOper);
+                        }
+                        else if (assignOper.HasFlag(OpFlags.Divide))
                         {
                             // For divide, just use 'int` type.
                             lhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
