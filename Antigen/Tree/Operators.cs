@@ -19,18 +19,74 @@ namespace Antigen.Tree
         String = 0x400,
     }
 
+    public enum Operation
+    {
+        UnaryPlus,
+        UnaryMinus,
+        PreIncrement,
+        PreDecrement,
+        PostIncrement,
+        PostDecrement,
+        LogicalNot,
+        BitwiseNot,
+        Add,
+        Subtract,
+        Multiply,
+        Divide,
+        Modulo,
+        LeftShift,
+        RightShift,
+        SimpleAssignment,
+        AddAssignment,
+        SubtractAssignment,
+        MultiplyAssignment,
+        DivideAssignment,
+        ModuloAssignment,
+        LeftShiftAssignment,
+        RightShiftAssignment,
+        LogicalAnd,
+        LogicalOr,
+        BitwiseAnd,
+        BitwiseOr,
+        ExclusiveOr,
+        AndAssignment,
+        OrAssignment,
+        ExclusiveOrAssignment,
+        LessThan,
+        LessThanOrEqual,
+        GreaterThan,
+        GreaterThanOrEqual,
+        Equals,
+        NotEquals,
+        // vector operations
+        VectorAdd,
+        VectorSubtract,
+        VectorMultiply,
+        VectorDivide,
+        VectorBitwiseAnd,
+        VectorBitwiseOr,
+        VectorExclusiveOr,
+        VectorUnaryPlus,
+        VectorUnaryMinus,
+        VectorBitwiseNot,
+        VectorSimpleAssignment,
+        VectorAddAssignment,
+        VectorSubtractAssignment,
+        VectorMultiplyAssignment,
+        VectorDivideAssignment,
+
+    }
+
     public struct Operator
     {
-
-        //public string Name => Oper.ToString();
-
-
-
         public OpFlags Flags;
         public Primitive InputTypes;
         public Primitive ReturnType;
-        public SyntaxKind Oper;
+        public bool IsVectorIntrinsics;
+        public bool IsVectorNumerics;
+        public Operation Oper;
         private readonly string renderText;
+        public readonly bool IsVectorOper;
         private readonly string sampleOperation;
 
         public bool HasFlag(OpFlags flag)
@@ -39,63 +95,98 @@ namespace Antigen.Tree
             return val;
         }
 
-        public bool HasReturnType(Primitive valueType)
+        public bool HasReturnType(ValueType valueType)
         {
-            bool val = (ReturnType & valueType) != 0;
-            return val;
+            if (valueType.IsVectorType)
+            {
+                return valueType.AllowedVector(this);
+            }
+            else
+            {
+                return (ReturnType & valueType.PrimitiveType) != 0;
+            }
+        }
+
+        public bool HasAnyPrimitiveType()
+        {
+            return (ReturnType & Primitive.Any) != 0;
+        }
+
+        public bool HasAnyVectorType()
+        {
+            return IsVectorIntrinsics || IsVectorNumerics;
         }
 
         private static readonly List<Operator> operators = new List<Operator>()
         {
-            new Operator(SyntaxKind.UnaryPlusExpression,                "+",    "+i",  Primitive.Numeric, Primitive.Numeric,          OpFlags.Unary | OpFlags.Math),
-            new Operator(SyntaxKind.UnaryMinusExpression,               "-",    "-i",  Primitive.Numeric, Primitive.Numeric,          OpFlags.Unary | OpFlags.Math),
-            new Operator(SyntaxKind.PreIncrementExpression,             "++",   "++i", Primitive.Numeric | Primitive.Char, Primitive.Numeric| Primitive.Char,           OpFlags.Unary | OpFlags.Math | OpFlags.IncrementDecrement),
-            new Operator(SyntaxKind.PreDecrementExpression,             "--",   "--i", Primitive.Numeric| Primitive.Char, Primitive.Numeric| Primitive.Char,           OpFlags.Unary | OpFlags.Math | OpFlags.IncrementDecrement),
-            new Operator(SyntaxKind.PostIncrementExpression,            "++",   "i++", Primitive.Numeric| Primitive.Char, Primitive.Numeric| Primitive.Char,          OpFlags.Unary | OpFlags.Math | OpFlags.IncrementDecrement),
-            new Operator(SyntaxKind.PostDecrementExpression,            "--",   "i--", Primitive.Numeric | Primitive.Char, Primitive.Numeric| Primitive.Char,          OpFlags.Unary | OpFlags.Math | OpFlags.IncrementDecrement),
-            new Operator(SyntaxKind.LogicalNotExpression,               "!",    "!i",  Primitive.Boolean, Primitive.Boolean,         OpFlags.Unary | OpFlags.Logical),
-            new Operator(SyntaxKind.BitwiseNotExpression,               "~",    "~i",  Primitive.Integer | Primitive.Char, Primitive.Integer,         OpFlags.Unary | OpFlags.Math | OpFlags.Bitwise),
-            //new Operator(SyntaxKind.TypeOfExpression,        "typeof(i)",           OpFlags.Unary),
+            new Operator(Operation.UnaryPlus,                "+",    "+i",  Primitive.Numeric, Primitive.Numeric,          OpFlags.Unary | OpFlags.Math),
+            new Operator(Operation.UnaryMinus,               "-",    "-i",  Primitive.Numeric, Primitive.Numeric,          OpFlags.Unary | OpFlags.Math),
+            new Operator(Operation.PreIncrement,             "++",   "++i", Primitive.Numeric | Primitive.Char, Primitive.Numeric| Primitive.Char,           OpFlags.Unary | OpFlags.Math | OpFlags.IncrementDecrement),
+            new Operator(Operation.PreDecrement,             "--",   "--i", Primitive.Numeric| Primitive.Char, Primitive.Numeric| Primitive.Char,           OpFlags.Unary | OpFlags.Math | OpFlags.IncrementDecrement),
+            new Operator(Operation.PostIncrement,            "++",   "i++", Primitive.Numeric| Primitive.Char, Primitive.Numeric| Primitive.Char,          OpFlags.Unary | OpFlags.Math | OpFlags.IncrementDecrement),
+            new Operator(Operation.PostDecrement,            "--",   "i--", Primitive.Numeric | Primitive.Char, Primitive.Numeric| Primitive.Char,          OpFlags.Unary | OpFlags.Math | OpFlags.IncrementDecrement),
+            new Operator(Operation.LogicalNot,               "!",    "!i",  Primitive.Boolean, Primitive.Boolean,         OpFlags.Unary | OpFlags.Logical),
+            new Operator(Operation.BitwiseNot,               "~",    "~i",  Primitive.Integer | Primitive.Char, Primitive.Integer,         OpFlags.Unary | OpFlags.Math | OpFlags.Bitwise),
+            //new Operator(Operation.TypeOf,        "typeof(i)",           OpFlags.Unary),
 
-            new Operator(SyntaxKind.AddExpression,                      "+",    "i+j",   Primitive.Numeric, Primitive.Numeric,           OpFlags.Binary | OpFlags.Math | OpFlags.String),
-            new Operator(SyntaxKind.AddExpression,                      "+",    "i concat j",   Primitive.String, Primitive.String,           OpFlags.Binary | OpFlags.String),
-            new Operator(SyntaxKind.SubtractExpression,                 "-",    "i-j",  Primitive.Numeric, Primitive.Numeric,           OpFlags.Binary | OpFlags.Math),
-            new Operator(SyntaxKind.MultiplyExpression,                 "*",    "i*j",  Primitive.Numeric, Primitive.Numeric,           OpFlags.Binary | OpFlags.Math),
-            new Operator(SyntaxKind.DivideExpression,                   "/",    "i/j",   Primitive.Numeric, Primitive.Numeric,          OpFlags.Binary | OpFlags.Math | OpFlags.Divide),
-            new Operator(SyntaxKind.ModuloExpression,                   "%",    "i%j",    Primitive.Numeric, Primitive.Numeric,        OpFlags.Binary | OpFlags.Math | OpFlags.Divide),
-            new Operator(SyntaxKind.LeftShiftExpression,                "<<",   "i<<j", /*TODO-future: different for lhs, rhs*/  Primitive.SignedInteger | Primitive.Char, Primitive.SignedInteger,            OpFlags.Binary | OpFlags.Math | OpFlags.Shift),
-            new Operator(SyntaxKind.RightShiftExpression,               ">>",   "i>>j",  Primitive.SignedInteger| Primitive.Char, Primitive.SignedInteger,            OpFlags.Binary | OpFlags.Math | OpFlags.Shift),
+            new Operator(Operation.Add,                      "+",    "i+j",   Primitive.Numeric, Primitive.Numeric,           OpFlags.Binary | OpFlags.Math | OpFlags.String),
+            new Operator(Operation.Add,                      "+",    "i concat j",   Primitive.String, Primitive.String,           OpFlags.Binary | OpFlags.String),
+            new Operator(Operation.Subtract,                 "-",    "i-j",  Primitive.Numeric, Primitive.Numeric,           OpFlags.Binary | OpFlags.Math),
+            new Operator(Operation.Multiply,                 "*",    "i*j",  Primitive.Numeric, Primitive.Numeric,           OpFlags.Binary | OpFlags.Math),
+            new Operator(Operation.Divide,                   "/",    "i/j",   Primitive.Numeric, Primitive.Numeric,          OpFlags.Binary | OpFlags.Math | OpFlags.Divide),
+            new Operator(Operation.Modulo,                   "%",    "i%j",    Primitive.Numeric, Primitive.Numeric,        OpFlags.Binary | OpFlags.Math | OpFlags.Divide),
+            new Operator(Operation.LeftShift,                "<<",   "i<<j", /*TODO-future: different for lhs, rhs*/  Primitive.SignedInteger | Primitive.Char, Primitive.SignedInteger,            OpFlags.Binary | OpFlags.Math | OpFlags.Shift),
+            new Operator(Operation.RightShift,               ">>",   "i>>j",  Primitive.SignedInteger| Primitive.Char, Primitive.SignedInteger,            OpFlags.Binary | OpFlags.Math | OpFlags.Shift),
 
-            new Operator(SyntaxKind.SimpleAssignmentExpression,         "=",      "i=j",  Primitive.Any | Primitive.Struct, Primitive.Any | Primitive.Struct,    OpFlags.Binary | OpFlags.Math | OpFlags.Assignment),
-            new Operator(SyntaxKind.AddAssignmentExpression,            "+=",     "i+=j",  Primitive.Numeric | Primitive.String, Primitive.Numeric | Primitive.String,     OpFlags.Binary | OpFlags.Math | OpFlags.Assignment | OpFlags.String),
-            new Operator(SyntaxKind.SubtractAssignmentExpression,       "-=",    "i-=j", Primitive.Numeric, Primitive.Numeric,     OpFlags.Binary | OpFlags.Math | OpFlags.Assignment),
-            new Operator(SyntaxKind.MultiplyAssignmentExpression,       "*=",    "i*=j",  Primitive.Numeric, Primitive.Numeric,    OpFlags.Binary | OpFlags.Math | OpFlags.Assignment),
-            new Operator(SyntaxKind.DivideAssignmentExpression,         "/=",    "i/=j", Primitive.Numeric, Primitive.Numeric,     OpFlags.Binary | OpFlags.Math | OpFlags.Divide | OpFlags.Assignment),
-            new Operator(SyntaxKind.ModuloAssignmentExpression,         "%=",    "i%=j", Primitive.Numeric, Primitive.Numeric,    OpFlags.Binary | OpFlags.Math | OpFlags.Divide | OpFlags.Assignment),
-            new Operator(SyntaxKind.LeftShiftAssignmentExpression,      "<<=",   "i<<=j", Primitive.Integer, Primitive.Integer,   OpFlags.Binary | OpFlags.Math | OpFlags.Shift | OpFlags.Assignment),
-            new Operator(SyntaxKind.RightShiftAssignmentExpression,     ">>=",  "i>>=j", Primitive.Integer, Primitive.Integer,    OpFlags.Binary | OpFlags.Math | OpFlags.Shift | OpFlags.Assignment),
+            new Operator(Operation.SimpleAssignment,         "=",      "i=j",  Primitive.Any | Primitive.Struct, Primitive.Any | Primitive.Struct,    OpFlags.Binary | OpFlags.Math | OpFlags.Assignment),
+            new Operator(Operation.AddAssignment,            "+=",     "i+=j",  Primitive.Numeric | Primitive.String, Primitive.Numeric | Primitive.String,     OpFlags.Binary | OpFlags.Math | OpFlags.Assignment | OpFlags.String),
+            new Operator(Operation.SubtractAssignment,       "-=",    "i-=j", Primitive.Numeric, Primitive.Numeric,     OpFlags.Binary | OpFlags.Math | OpFlags.Assignment),
+            new Operator(Operation.MultiplyAssignment,       "*=",    "i*=j",  Primitive.Numeric, Primitive.Numeric,    OpFlags.Binary | OpFlags.Math | OpFlags.Assignment),
+            new Operator(Operation.DivideAssignment,         "/=",    "i/=j", Primitive.Numeric, Primitive.Numeric,     OpFlags.Binary | OpFlags.Math | OpFlags.Divide | OpFlags.Assignment),
+            new Operator(Operation.ModuloAssignment,         "%=",    "i%=j", Primitive.Numeric, Primitive.Numeric,    OpFlags.Binary | OpFlags.Math | OpFlags.Divide | OpFlags.Assignment),
+            new Operator(Operation.LeftShiftAssignment,      "<<=",   "i<<=j", Primitive.Integer, Primitive.Integer,   OpFlags.Binary | OpFlags.Math | OpFlags.Shift | OpFlags.Assignment),
+            new Operator(Operation.RightShiftAssignment,     ">>=",  "i>>=j", Primitive.Integer, Primitive.Integer,    OpFlags.Binary | OpFlags.Math | OpFlags.Shift | OpFlags.Assignment),
 
-            new Operator(SyntaxKind.LogicalAndExpression,               "&&",   "i&&j", Primitive.Boolean,Primitive.Boolean,            OpFlags.Binary | OpFlags.Logical),
-            new Operator(SyntaxKind.LogicalOrExpression,                "||",   "i||j",  Primitive.Boolean,Primitive.Boolean,           OpFlags.Binary | OpFlags.Logical),
+            new Operator(Operation.LogicalAnd,               "&&",   "i&&j", Primitive.Boolean,Primitive.Boolean,            OpFlags.Binary | OpFlags.Logical),
+            new Operator(Operation.LogicalOr,                "||",   "i||j",  Primitive.Boolean,Primitive.Boolean,           OpFlags.Binary | OpFlags.Logical),
 
             //TODO: below can also be logical as per https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/operators/boolean-logical-operators
-            new Operator(SyntaxKind.BitwiseAndExpression,               "&",    "i&j",   Primitive.Integer | Primitive.Char, Primitive.Integer,           OpFlags.Binary | OpFlags.Math | OpFlags.Bitwise),
-            new Operator(SyntaxKind.BitwiseOrExpression,                "|",    "i|j",    Primitive.Integer | Primitive.Char, Primitive.Integer,          OpFlags.Binary | OpFlags.Math | OpFlags.Bitwise),
-            new Operator(SyntaxKind.ExclusiveOrExpression,              "^",    "i^j",    Primitive.Integer | Primitive.Char, Primitive.Integer,         OpFlags.Binary | OpFlags.Math | OpFlags.Bitwise),
+            new Operator(Operation.BitwiseAnd,               "&",    "i&j",   Primitive.Integer | Primitive.Char, Primitive.Integer,           OpFlags.Binary | OpFlags.Math | OpFlags.Bitwise),
+            new Operator(Operation.BitwiseOr,                "|",    "i|j",    Primitive.Integer | Primitive.Char, Primitive.Integer,          OpFlags.Binary | OpFlags.Math | OpFlags.Bitwise),
+            new Operator(Operation.ExclusiveOr,              "^",    "i^j",    Primitive.Integer | Primitive.Char, Primitive.Integer,         OpFlags.Binary | OpFlags.Math | OpFlags.Bitwise),
 
-            new Operator(SyntaxKind.AndAssignmentExpression,            "&=",   "i&=j",   Primitive.Integer,Primitive.Integer,         OpFlags.Binary | OpFlags.Math | OpFlags.Bitwise | OpFlags.Assignment),
-            new Operator(SyntaxKind.OrAssignmentExpression,             "|=",   "i|=j",   Primitive.Integer,Primitive.Integer,        OpFlags.Binary | OpFlags.Math | OpFlags.Bitwise | OpFlags.Assignment),
-            new Operator(SyntaxKind.ExclusiveOrAssignmentExpression,    "^=",   "i^=j", Primitive.Integer,Primitive.Integer,   OpFlags.Binary | OpFlags.Math | OpFlags.Bitwise | OpFlags.Assignment),
+            new Operator(Operation.AndAssignment,            "&=",   "i&=j",   Primitive.Integer,Primitive.Integer,         OpFlags.Binary | OpFlags.Math | OpFlags.Bitwise | OpFlags.Assignment),
+            new Operator(Operation.OrAssignment,             "|=",   "i|=j",   Primitive.Integer,Primitive.Integer,        OpFlags.Binary | OpFlags.Math | OpFlags.Bitwise | OpFlags.Assignment),
+            new Operator(Operation.ExclusiveOrAssignment,    "^=",   "i^=j", Primitive.Integer,Primitive.Integer,   OpFlags.Binary | OpFlags.Math | OpFlags.Bitwise | OpFlags.Assignment),
 
-            new Operator(SyntaxKind.LessThanExpression,                 "<",    "i<j",    Primitive.Numeric  | Primitive.Char, Primitive.Boolean,         OpFlags.Binary | OpFlags.Comparison),
-            new Operator(SyntaxKind.LessThanOrEqualExpression,          "<=",   "i<=j",  Primitive.Numeric | Primitive.Char, Primitive.Boolean,        OpFlags.Binary | OpFlags.Comparison),
-            new Operator(SyntaxKind.GreaterThanExpression,              ">",    "i>j",    Primitive.Numeric | Primitive.Char, Primitive.Boolean,       OpFlags.Binary | OpFlags.Comparison),
-            new Operator(SyntaxKind.GreaterThanOrEqualExpression,       ">=",   "i>=j", Primitive.Numeric | Primitive.Char, Primitive.Boolean,        OpFlags.Binary | OpFlags.Comparison),
-            new Operator(SyntaxKind.EqualsExpression,                   "==",   "i==j",     Primitive.Any, Primitive.Boolean,         OpFlags.Binary | OpFlags.Comparison | OpFlags.String),
-            new Operator(SyntaxKind.NotEqualsExpression,                "!=",   "i!=j",      Primitive.Any, Primitive.Boolean,         OpFlags.Binary | OpFlags.Comparison | OpFlags.String)
+            new Operator(Operation.LessThan,                 "<",    "i<j",    Primitive.Numeric  | Primitive.Char, Primitive.Boolean,         OpFlags.Binary | OpFlags.Comparison),
+            new Operator(Operation.LessThanOrEqual,          "<=",   "i<=j",  Primitive.Numeric | Primitive.Char, Primitive.Boolean,        OpFlags.Binary | OpFlags.Comparison),
+            new Operator(Operation.GreaterThan,              ">",    "i>j",    Primitive.Numeric | Primitive.Char, Primitive.Boolean,       OpFlags.Binary | OpFlags.Comparison),
+            new Operator(Operation.GreaterThanOrEqual,       ">=",   "i>=j", Primitive.Numeric | Primitive.Char, Primitive.Boolean,        OpFlags.Binary | OpFlags.Comparison),
+            new Operator(Operation.Equals,                   "==",   "i==j",     Primitive.Any, Primitive.Boolean,         OpFlags.Binary | OpFlags.Comparison | OpFlags.String),
+            new Operator(Operation.NotEquals,                "!=",   "i!=j",      Primitive.Any, Primitive.Boolean,         OpFlags.Binary | OpFlags.Comparison | OpFlags.String),
+
+            // vector operators
+            new Operator(Operation.VectorAdd,                      "+",    "i+j",   true, true,            OpFlags.Binary | OpFlags.Math),
+            new Operator(Operation.VectorSubtract,                 "-",    "i-j",   true, true,            OpFlags.Binary | OpFlags.Math),
+            new Operator(Operation.VectorMultiply,                 "*",    "i*j",   true, true,            OpFlags.Binary | OpFlags.Math),
+            //new Operator(Operation.VectorDivide,                   "/",    "i/j",   true, true,            OpFlags.Binary | OpFlags.Math),
+            new Operator(Operation.VectorBitwiseAnd,               "&",    "i&j",   true, false,           OpFlags.Binary | OpFlags.Math | OpFlags.Bitwise),
+            new Operator(Operation.VectorBitwiseOr,                "|",    "i|j",   true, false,           OpFlags.Binary | OpFlags.Math | OpFlags.Bitwise),
+            new Operator(Operation.VectorExclusiveOr,              "^",    "i^j",   true, false,           OpFlags.Binary | OpFlags.Math | OpFlags.Bitwise),
+            //new Operator(Operation.VectorEquals,                   "==",   "i==j",  VectorType.VectorT, Primitive.Boolean,            OpFlags.Binary | OpFlags.Comparison),
+            //new Operator(Operation.VectorNotEquals,                "!=",   "i!=j",  VectorType.VectorT, Primitive.Boolean,            OpFlags.Binary | OpFlags.Comparison),
+            new Operator(Operation.VectorUnaryPlus,                "+",    "+i",    true, false,           OpFlags.Unary | OpFlags.Math),
+            new Operator(Operation.VectorUnaryMinus,               "-",    "-i",    true, false,           OpFlags.Unary | OpFlags.Math),
+            new Operator(Operation.VectorBitwiseNot,               "~",    "~i",    true, false,           OpFlags.Unary | OpFlags.Math | OpFlags.Bitwise),
+            new Operator(Operation.VectorSimpleAssignment,         "=",      "i=j",  true, true,    OpFlags.Binary | OpFlags.Math | OpFlags.Assignment),
+            new Operator(Operation.VectorAddAssignment,            "+=",     "i+=j", true, true,     OpFlags.Binary | OpFlags.Math | OpFlags.Assignment),
+            new Operator(Operation.VectorSubtractAssignment,       "-=",    "i-=j",  true, true,     OpFlags.Binary | OpFlags.Math | OpFlags.Assignment),
+            new Operator(Operation.VectorMultiplyAssignment,       "*=",    "i*=j",  true, true,    OpFlags.Binary | OpFlags.Math | OpFlags.Assignment),
+            //new Operator(Operation.VectorDivideAssignment,         "/=",    "i/=j",  true, true,     OpFlags.Binary | OpFlags.Math | OpFlags.Divide | OpFlags.Assignment),
         };
 
-        private Operator(SyntaxKind oper, string operatorText, string operation, Primitive inputTypes, Primitive outputType, OpFlags flags)
+        private Operator(Operation oper, string operatorText, string operation, Primitive inputTypes, Primitive outputType, OpFlags flags)
         {
             Oper = oper;
             renderText = operatorText;
@@ -103,6 +194,20 @@ namespace Antigen.Tree
             InputTypes = inputTypes;
             ReturnType = outputType;
             Flags = flags;
+            IsVectorOper = false;
+            IsVectorIntrinsics = false;
+            IsVectorNumerics = false;
+        }
+
+        private Operator(Operation oper, string operatorText, string operation, bool isVectorIntrinsics, bool isVectorNumerics, OpFlags flags)
+        {
+            Oper = oper;
+            renderText = operatorText;
+            sampleOperation = operation;
+            IsVectorIntrinsics = isVectorIntrinsics;
+            IsVectorNumerics = isVectorNumerics;
+            Flags = flags;
+            IsVectorOper = true;
         }
 
         public static List<Operator> GetOperators()
@@ -110,7 +215,7 @@ namespace Antigen.Tree
             return operators;
         }
 
-        public static Operator ForSyntaxKind(SyntaxKind operKind)
+        public static Operator ForOperation(Operation operKind)
         {
             return operators.First(o => o.Oper == operKind);
         }

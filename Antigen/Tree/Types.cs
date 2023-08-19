@@ -1,45 +1,36 @@
-﻿using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.RegularExpressions;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace Antigen.Tree
 {
-    //public enum TypeFlags : ulong
-    //{
-    //    Void = 0x0,
-    //    Numeric = Primitive.Byte | Primitive.Decimal | Primitive.Double | Primitive.Int16 | Primitive.Int32 | Primitive.Int64 | Primitive.SByte | Primitive.Single | Primitive.UInt16 | Primitive.UInt32 | Primitive.UInt64,
-    //    Integer = Primitive.Byte | Primitive.SByte | Primitive.Int16 | Primitive.Int32 | Primitive.Int64 | Primitive.UInt16 | Primitive.UInt32 | Primitive.UInt64,
-    //    Decimal = Primitive.Single | Primitive.Double | Primitive.Decimal,
-    //    Char = Primitive.Char,
-    //    String = Primitive.String,
-    //    Bool = Primitive.Boolean,
-    //    Any = Numeric | Char | String | Bool,
-    //}
-
     public enum Primitive : ulong
     {
         Void = 0x0,
 
         Boolean = 0x1,
         Byte = 0x2,
-        Char = 0x4,
-        Decimal = 0x8,
-        Double = 0x10,
-        Short = 0x20,
-        Int = 0x40,
+        SByte = 0x4,
+        Short = 0x8,
+        UShort = 0x10,
+        Int = 0x20,
+        UInt = 0x40,
         Long = 0x80,
-        SByte = 0x100,
+        ULong = 0x100,
+
         Float = 0x200,
-        String = 0x400,
-        UShort = 0x800,
-        UInt = 0x1000,
-        ULong = 0x2000,
+        Double = 0x400,
+        Decimal = 0x800,
+
+        Char = 0x1000,
+        String = 0x2000,
         Struct = 0x4000,
 
-        Numeric = Byte | Decimal | Double | Short | Int | Long | SByte | Float | UShort | UInt | ULong,
+        Numeric = Byte | SByte | Short | UShort | Int | UInt | Long | ULong | Float | Double | Decimal,
         SignedInteger = SByte | Short | Int | Long,
         UnsignedInteger = Byte | UShort | UInt | ULong,
         Integer = SignedInteger | UnsignedInteger,
@@ -423,25 +414,20 @@ namespace Antigen.Tree
 
         public static ValueType CreateStructType(string typeName)
         {
-            var structType = new ValueType(Primitive.Struct, typeName,/* $"struct {typeName}",*/ SpecialType.None, SyntaxKind.None);
+            var structType = new ValueType(Primitive.Struct, typeName, SyntaxKind.None);
             structType._structTypeName = typeName;
             structType._variableNameHint = typeName.ToLower().Replace(".", "_").ToLower();
             return structType;
         }
 
-        private ValueType(Primitive valueType, string displayText, SpecialType dataType, SyntaxKind typeKind)
-        {
-            PrimitiveType = valueType;
-            DataType = dataType;
-            TypeKind = typeKind;
-            _structTypeName = null;
-            _displayText = displayText;
-            _variableNameHint = displayText;
-        }
-
         public static List<ValueType> GetTypes()
         {
             return types;
+        }
+
+        public static List<ValueType> GetVectorTypes()
+        {
+            return vectorTypes;
         }
 
         public static ValueType GetRandomType()
@@ -473,7 +459,7 @@ namespace Antigen.Tree
             return types.First(t => t.PrimitiveType == primitiveType);
         }
 
-        private static ValueType voidType = new ValueType(Primitive.Void, "void", SpecialType.System_Void, SyntaxKind.VoidKeyword);
+        private static ValueType voidType = new ValueType(Primitive.Void, "void", SyntaxKind.VoidKeyword);
         public static ValueType ForVoid()
         {
             return voidType;

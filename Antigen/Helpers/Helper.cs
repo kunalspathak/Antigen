@@ -13,17 +13,17 @@ namespace Antigen
         public static Expression FixDivideByZero(TestCase testCase, Tree.ValueType leftType, Operator op, Expression rhs)
         {
             if (
-                (op.Oper == SyntaxKind.DivideAssignmentExpression) ||
-                (op.Oper == SyntaxKind.DivideExpression) ||
-                (op.Oper == SyntaxKind.ModuloAssignmentExpression) ||
-                (op.Oper == SyntaxKind.ModuloExpression))
+                (op.Oper == Operation.DivideAssignment) ||
+                (op.Oper == Operation.Divide) ||
+                (op.Oper == Operation.ModuloAssignment) ||
+                (op.Oper == Operation.Modulo))
             {
                 // To avoid divide by zero errors
                 var bitwiseOrExpression = new AssignExpression(
                     testCase,
                     leftType,
                     new ParenthsizedExpression(testCase, rhs),
-                    Operator.ForSyntaxKind(SyntaxKind.BitwiseOrExpression),
+                    Operator.ForOperation(Operation.BitwiseOr),
                     ConstantValue.GetRandomConstantInt(1, 100));
 
                 return new CastExpression(testCase, bitwiseOrExpression, leftType);
