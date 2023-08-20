@@ -58,7 +58,14 @@ namespace Antigen
         /// <param name="methodSignature"></param>
         public void RegisterMethod(MethodSignature methodSignature)
         {
-            _methods.Add(new Weights<MethodSignature>(methodSignature, (double)PRNG.Next(1, 100) / 100));
+            double methodProb = (double)PRNG.Next(1, 100) / 100;
+            if (methodSignature.IsVectorCreateMethod)
+            {
+                // Further reduce the probability of vector create methods because
+                // they are anyway used to create the vectors.
+                methodProb /= 10;
+            }
+            _methods.Add(new Weights<MethodSignature>(methodSignature, methodProb));
         }
 
         /// <summary>
