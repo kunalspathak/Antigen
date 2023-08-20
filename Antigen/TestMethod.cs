@@ -2,8 +2,6 @@
 using Antigen.Statements;
 using Antigen.Tree;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -166,6 +164,11 @@ namespace Antigen
                 {
                     //TODO-future: Select any assignOper
                     //Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator();
+
+                    if (nonLeafMethod.Data.IsVectorMethod && !PRNG.Decide(TC.Config.InvokeIntrinsicMethodsProbability))
+                    {
+                        continue;
+                    }
 
                     Tree.ValueType lhsType = nonLeafMethod.Data.ReturnType;
                     var lhs = ExprHelper(ExprKind.VariableExpression, lhsType, 0);
@@ -655,7 +658,7 @@ namespace Antigen
                         MethodSignature method = _testClass.GetRandomMethod();
                         Tree.ValueType methodReturnType = method.ReturnType;
 
-                        if (method.IsVectorMethod && PRNG.Decide(TC.Config.StoreVectorMethodCallResultProbability))
+                        if (method.IsVectorMethod && PRNG.Decide(TC.Config.StoreIntrinsicMethodCallResultProbability))
                         {
                             // For intrinsic methods, store the result in a variable.
                             if (!methodReturnType.IsVectorType && methodReturnType.PrimitiveType != Primitive.Void)
@@ -664,7 +667,12 @@ namespace Antigen
                                 Expression lhs = ExprHelper(ExprKind.VariableExpression, methodReturnType, 0);
                                 Operator assignOper = GetASTUtils().GetRandomAssignmentOperator(methodReturnType);
                                 Expression rhs = MethodCallHelper(method, 0);
-                                return new AssignStatement(TC, methodReturnType, lhs, assignOper, rhs);
+
+                                if (assignOper.HasFlag(OpFlags.Shift) && (methodReturnType.PrimitiveType != Primitive.Int))
+                                {
+                                    rhs = new CastExpression(TC, rhs, Tree.ValueType.ForPrimitive(Primitive.Int));
+                                }
+                                return new AssignStatement(TC, methodReturnType, lhs, assignOper, rhs, true);
                             }
                         }
 

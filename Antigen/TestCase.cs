@@ -73,13 +73,13 @@ namespace Antigen
         internal ConfigOptions Config { get; private set; }
         public string Name { get; private set; }
         public AstUtils AstUtils { get; private set; }
-        public bool ContainsVectorMethods { get; private set; }
+        public bool ContainsVectorData { get; private set; }
 
         public TestCase(int testId, RunOptions runOptions)
         {
             s_runOptions = runOptions;
             Config = s_runOptions.Configs[PRNG.Next(s_runOptions.Configs.Count)];
-            ContainsVectorMethods = PRNG.Decide(Config.VectorMethodsProbability);
+            ContainsVectorData = PRNG.Decide(Config.VectorDataProbability);
 
             AstUtils = new AstUtils(this, new ConfigOptions(), null);
             Name = "TestClass" + testId;

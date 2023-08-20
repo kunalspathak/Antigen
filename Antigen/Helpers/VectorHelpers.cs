@@ -8,10 +8,8 @@ using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.Intrinsics;
-using System.Text;
-using System.Threading.Tasks;
-using Antigen.Config;
-using Antigen.Tree;
+using System.Runtime.Intrinsics.Arm;
+using System.Runtime.Intrinsics.X86;
 
 namespace Antigen
 {
@@ -27,35 +25,138 @@ namespace Antigen
             {
                 vectorMethods = new List<MethodSignature>();
 
-                RecordVectorMethods(typeof(Vector2));
-                RecordVectorMethods(typeof(Vector3));
-                RecordVectorMethods(typeof(Vector4));
+                RecordIntrinsicMethods(typeof(Vector2));
+                RecordIntrinsicMethods(typeof(Vector3));
+                RecordIntrinsicMethods(typeof(Vector4));
                 RecordVectorCtors(typeof(Vector2));
                 RecordVectorCtors(typeof(Vector3));
                 RecordVectorCtors(typeof(Vector4));
 
                 if (Vector64<byte>.IsSupported)
                 {
-                    RecordVectorMethods(typeof(Vector64));
+                    RecordIntrinsicMethods(typeof(Vector64));
                 }
                 if (Vector128<byte>.IsSupported)
                 {
-                    RecordVectorMethods(typeof(Vector128));
+                    RecordIntrinsicMethods(typeof(Vector128));
                 }
                 if (Vector256<byte>.IsSupported)
                 {
-                    RecordVectorMethods(typeof(Vector256));
+                    RecordIntrinsicMethods(typeof(Vector256));
                 }
                 //if (Vector512<byte>.IsSupported)
                 //{
                 //    RecordVectorMethods(typeof(Vector512));
                 //}
+
+                if (PRNG.Decide(TC.Config.TraditionalMethodsProbability))
+                {
+                    if (System.Runtime.Intrinsics.X86.Aes.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(System.Runtime.Intrinsics.X86.Aes));
+                    }
+
+                    if (Bmi1.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Bmi1));
+                    }
+                    if (Bmi1.X64.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Bmi1.X64), "Bmi1.X64");
+                    }
+                    if (Bmi2.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Bmi2));
+                    }
+                    if (Bmi2.X64.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Bmi2.X64), "Bmi2.X64");
+                    }
+                    if (Fma.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Fma));
+                    }
+                    if (Lzcnt.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Lzcnt));
+                    }
+                    if (Lzcnt.X64.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Lzcnt.X64), "Lzcnt.X64");
+                    }
+                    if (Pclmulqdq.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Pclmulqdq));
+                    }
+                    if (Popcnt.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Popcnt));
+                    }
+                    if (Popcnt.X64.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Popcnt.X64), "Popcnt.X64");
+                    }
+                }
+
+                if (PRNG.Decide(TC.Config.AvxMethodsProbability))
+                {
+                    if (Avx.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Avx));
+                    }
+                    if (Avx2.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Avx2));
+                    }
+                }
+
+                if (PRNG.Decide(TC.Config.SSEMethodsProbability))
+                {
+                    if (Sse.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Sse));
+                    }
+                    if (Sse2.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Sse2));
+                    }
+                    if (Sse3.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Sse3));
+                    }
+                    if (Sse41.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Sse41));
+                    }
+                    if (Sse42.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Sse42));
+                    }
+                    if (Ssse3.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Sse));
+                    }
+                }
+
+                if (PRNG.Decide(TC.Config.AdvSimdMethodsProbability))
+                {
+                    if (AdvSimd.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(AdvSimd));
+                    }
+
+                    if (AdvSimd.Arm64.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(AdvSimd.Arm64), "AdvSimd.Arm64");
+                    }
+                }
+
                 isVectorMethodsInitialized = true;
             }
 
             foreach (var vectorMethod in vectorMethods)
             {
-                if (PRNG.Decide(TC.Config.NumberOfVectorMethodsProbability) || vectorMethod.IsVectorCreateMethod)
+                if (PRNG.Decide(TC.Config.RegisterIntrinsicMethodsProbability) || vectorMethod.IsVectorCreateMethod)
                 {
                     // Add all vector create methods
                     RegisterMethod(vectorMethod);
@@ -68,8 +169,12 @@ namespace Antigen
         ///     Applicable for Vector64, Vector128, Vector256, Vector512.
         /// </summary>
         /// <param name="vectorType"></param>
-        private static void RecordVectorMethods(Type vectorType)
+        private static void RecordIntrinsicMethods(Type vectorType, string vectorTypeName = null)
         {
+            if (string.IsNullOrEmpty(vectorTypeName))
+            {
+                vectorTypeName = vectorType.Name;
+            }
             var methods = vectorType.GetMethods(BindingFlags.Public | BindingFlags.Static);
 
             foreach (var method in methods)
@@ -86,7 +191,8 @@ namespace Antigen
                     fullMethodName.Contains("Matrix") || fullMethodName.Contains("Span") ||
                     fullMethodName.Contains("Quaternion") || fullMethodName.Contains("[]") ||
                     fullMethodName.Contains("*") || fullMethodName.Contains("ByRef") ||
-                    fullMethodName.Contains("Vector`1") || fullMethodName.Contains("Divide"))
+                    fullMethodName.Contains("Vector`1") || fullMethodName.Contains("Divide") ||
+                    fullMethodName.Contains("FloatComparisonMode"))
                 {
                     // We do not support these types, so ignore these methods.
                     continue;
@@ -100,13 +206,13 @@ namespace Antigen
                         foreach (var genericArgument in s_vectorGenericArgs)
                         {
                             var genericInitVectorMethod = method.MakeGenericMethod(genericArgument);
-                            vectorMethods.Add(CreateMethodSignature(vectorType.Name, genericInitVectorMethod));
+                            vectorMethods.Add(CreateMethodSignature(vectorTypeName, genericInitVectorMethod));
                         }
                     }
                 }
                 else
                 {
-                    vectorMethods.Add(CreateMethodSignature(vectorType.Name, method));
+                    vectorMethods.Add(CreateMethodSignature(vectorTypeName, method));
                 }
             }
         }

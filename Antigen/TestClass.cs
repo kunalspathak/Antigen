@@ -130,9 +130,7 @@ namespace Antigen
             {
                 return null;
             }
-            var x = PRNG.WeightedChoice(matchingMethods);
-            Console.WriteLine(x.MethodName);
-            return x;
+            return PRNG.WeightedChoice(matchingMethods);
         }
 
         /// <summary>
@@ -190,7 +188,7 @@ namespace Antigen
 
             List<Statement> classMembers = new List<Statement>();
 
-            if (TC.ContainsVectorMethods)
+            if (TC.ContainsVectorData)
             {
                 GenerateVectorMethods();
             }
@@ -326,7 +324,7 @@ namespace Antigen
                 fields.Add(new FieldDeclStatement(TC, variableType, variableName, rhs, isStatic));
             }
 
-            if (TC.ContainsVectorMethods)
+            if (TC.ContainsVectorData)
             {
                 foreach (Tree.ValueType variableType in Tree.ValueType.GetVectorTypes())
                 {

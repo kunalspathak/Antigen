@@ -277,19 +277,44 @@ namespace Antigen.Config
         public int MaxCaseCounts = 4;
 
         /// <summary>
+        ///     Avx/Avx2 methods probability
+        /// </summary>
+        public double TraditionalMethodsProbability = 0.089;
+
+        /// <summary>
+        ///     Avx/Avx2 methods probability
+        /// </summary>
+        public double AvxMethodsProbability = 0.29;
+
+        /// <summary>
+        ///     SSE* methods probability
+        /// </summary>
+        public double SSEMethodsProbability = 0.198;
+
+        /// <summary>
+        ///     AdvSimd methods probability
+        /// </summary>
+        public double AdvSimdMethodsProbability = 0.35;
+
+        /// <summary>
         ///     Probability in which vector methods will be included.
         /// </summary>
-        public double VectorMethodsProbability = 1; //0.3;
+        public double VectorDataProbability = 0.3;
 
         /// <summary>
         ///     Number of methods to be included. Only relevant ifVectorMethodsProbability is non-zero.
         /// </summary>
-        public double NumberOfVectorMethodsProbability = 0.1;
+        public double RegisterIntrinsicMethodsProbability = 0.1;
+
+        /// <summary>
+        ///     Number of methods to be invoked from Method0. Only relevant ifVectorMethodsProbability is non-zero.
+        /// </summary>
+        public double InvokeIntrinsicMethodsProbability = 0.001;
 
         /// <summary>
         ///     Probability of storing the method call results in a variable.
         /// </summary>
-        public double StoreVectorMethodCallResultProbability = 0.3;
+        public double StoreIntrinsicMethodCallResultProbability = 0.7;
 
         public override string ToString()
         {

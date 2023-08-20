@@ -35,7 +35,7 @@ namespace Antigen.Tree
                 AllTypes.Add(new Weights<ValueType>(type, ConfigOptions.Lookup(type)));
             }
 
-            if (TestCase.ContainsVectorMethods)
+            if (TestCase.ContainsVectorData)
             {
                 foreach (ValueType type in ValueType.GetVectorTypes())
                 {
@@ -93,7 +93,7 @@ namespace Antigen.Tree
             // Initialize operators
             foreach (Operator oper in Operator.GetOperators())
             {
-                if (TestCase.ContainsVectorMethods || !oper.IsVectorOper)
+                if (TestCase.ContainsVectorData || !oper.IsVectorOper)
                 {
                     // Add vector operators only if they are allowed.
                     AllOperators.Add(new Weights<Operator>(oper, ConfigOptions.Lookup(oper)));
@@ -398,7 +398,7 @@ namespace Antigen.Tree
         {
             IEnumerable<Weights<Operator>> ops;
 
-            if (PRNG.Decide(0.5) || !TestCase.ContainsVectorMethods)
+            if (PRNG.Decide(0.5) || !TestCase.ContainsVectorData)
             {
                 ops = from z in AllOperators
                       where z.Data.HasFlag(OpFlags.Assignment) && z.Data.HasAnyPrimitiveType()

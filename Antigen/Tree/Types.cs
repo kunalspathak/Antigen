@@ -324,6 +324,7 @@ namespace Antigen.Tree
             {
                 var parsedPrimitiveType = typeName switch
                 {
+                    "System.Void" => Primitive.Void,
                     "System.Boolean" => Primitive.Boolean,
                     "System.Byte" => Primitive.Byte,
                     "System.SByte" => Primitive.SByte,
