@@ -276,6 +276,16 @@ namespace Antigen.Config
         /// </summary>
         public int MaxCaseCounts = 4;
 
+        /// <summary>
+        ///     Probability in which vector methods will be included.
+        /// </summary>
+        public double VectorMethodsProbability = 1; //0.3;
+
+        /// <summary>
+        ///     Number of methods to be included. Only relevant ifVectorMethodsProbability is non-zero.
+        /// </summary>
+        public double NumberOfVectorMethodsProbability = 0.1;
+
         public override string ToString()
         {
             return Name;

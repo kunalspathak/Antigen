@@ -183,8 +183,7 @@ namespace Antigen
 
             List<Statement> classMembers = new List<Statement>();
 
-            //TODO-vector
-            if (true /*vector supported*/)
+            if (TC.ContainsVectorMethods)
             {
                 GenerateVectorMethods();
             }
@@ -320,46 +319,49 @@ namespace Antigen
                 fields.Add(new FieldDeclStatement(TC, variableType, variableName, rhs, isStatic));
             }
 
-            foreach (Tree.ValueType variableType in Tree.ValueType.GetVectorTypes())
+            if (TC.ContainsVectorMethods)
             {
-                Debug.Assert(variableType.IsVectorType);
-                string variableName = (isStatic ? "s_" : string.Empty) + GetVariableName(variableType);
-
-                Expression rhs;
-                if (PRNG.Decide(0.8))
+                foreach (Tree.ValueType variableType in Tree.ValueType.GetVectorTypes())
                 {
-                    MethodSignature createSig = GetRandomVectorCreateMethod(variableType);
+                    Debug.Assert(variableType.IsVectorType);
+                    string variableName = (isStatic ? "s_" : string.Empty) + GetVariableName(variableType);
 
-                    List<Expression> argumentNodes = new List<Expression>();
-                    List<ParamValuePassing> passingWays = new List<ParamValuePassing>();
-
-                    int parametersCount = createSig.Parameters.Count;
-
-                    for (int i = 0; i < parametersCount; i++)
+                    Expression rhs;
+                    if (PRNG.Decide(0.8))
                     {
-                        MethodParam methodParam = createSig.Parameters[i];
-                        Tree.ValueType argType = methodParam.ParamType;
-                        Debug.Assert(!argType.IsVectorType);
+                        MethodSignature createSig = GetRandomVectorCreateMethod(variableType);
 
-                        Expression parameterValue = ConstantValue.GetConstantValue(argType, TC._numerals);
-                        if (i == 0)
+                        List<Expression> argumentNodes = new List<Expression>();
+                        List<ParamValuePassing> passingWays = new List<ParamValuePassing>();
+
+                        int parametersCount = createSig.Parameters.Count;
+
+                        for (int i = 0; i < parametersCount; i++)
                         {
-                            parameterValue = new CastExpression(TC, parameterValue, argType);
+                            MethodParam methodParam = createSig.Parameters[i];
+                            Tree.ValueType argType = methodParam.ParamType;
+                            Debug.Assert(!argType.IsVectorType);
+
+                            Expression parameterValue = ConstantValue.GetConstantValue(argType, TC._numerals);
+                            if (i == 0)
+                            {
+                                parameterValue = new CastExpression(TC, parameterValue, argType);
+                            }
+
+                            argumentNodes.Add(parameterValue);
+                            passingWays.Add(ParamValuePassing.None);
                         }
 
-                        argumentNodes.Add(parameterValue);
-                        passingWays.Add(ParamValuePassing.None);
+                        rhs = new MethodCallExpression(createSig.MethodName, argumentNodes, passingWays);
+                    }
+                    else
+                    {
+                        rhs = ConstantValue.GetConstantValue(variableType, TC._numerals);
                     }
 
-                    rhs = new MethodCallExpression(createSig.MethodName, argumentNodes, passingWays);
+                    CurrentScope.AddLocal(variableType, variableName);
+                    fields.Add(new FieldDeclStatement(TC, variableType, variableName, rhs, isStatic));
                 }
-                else
-                {
-                    rhs = ConstantValue.GetConstantValue(variableType, TC._numerals);
-                }
-
-                CurrentScope.AddLocal(variableType, variableName);
-                fields.Add(new FieldDeclStatement(TC, variableType, variableName, rhs, isStatic));
             }
 
             // TODO-TEMP initialize one variable of each struct type

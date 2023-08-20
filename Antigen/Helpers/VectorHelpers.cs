@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Runtime.Intrinsics;
 using System.Text;
 using System.Threading.Tasks;
+using Antigen.Config;
 using Antigen.Tree;
 
 namespace Antigen
@@ -17,7 +18,8 @@ namespace Antigen
     public partial class TestClass
     {
 
-        private static List<Type> vectorGenericArgs = new List<Type>() { typeof(byte), typeof(sbyte), typeof(short), typeof(ushort), typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(float), typeof(double) };
+        private static readonly List<Type> s_vectorGenericArgs = new() { typeof(byte), typeof(sbyte), 
+            typeof(short), typeof(ushort), typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(float), typeof(double) };
 
         private void GenerateVectorMethods()
         {
@@ -53,9 +55,9 @@ namespace Antigen
 
             foreach (var vectorMethod in vectorMethods)
             {
-                //TODO-vector
-                //if (PRNG.Decide(0.3))
+                if (PRNG.Decide(TC.Config.NumberOfVectorMethodsProbability) || vectorMethod.IsVectorCreateMethod)
                 {
+                    // Add all vector create methods
                     RegisterMethod(vectorMethod);
                 }
             }
@@ -94,7 +96,7 @@ namespace Antigen
                 {
                     if (method.GetGenericArguments().Count() == 1)
                     {
-                        foreach (var genericArgument in vectorGenericArgs)
+                        foreach (var genericArgument in s_vectorGenericArgs)
                         {
                             var genericInitVectorMethod = method.MakeGenericMethod(genericArgument);
                             vectorMethods.Add(CreateMethodSignature(vectorType.Name, genericInitVectorMethod));
@@ -104,39 +106,16 @@ namespace Antigen
                 else
                 {
                     vectorMethods.Add(CreateMethodSignature(vectorType.Name, method));
-
-                    //var ms = new MethodSignature($"{vectorType.Name}.{method.Name}", isVectorGeneric: method.IsGenericMethod, isVectorMethod: true)
-                    //{
-                    //    ReturnType = Tree.ValueType.ParseType(method.ReturnType.ToString())
-                    //};
-                    //var containsVectorParam = false;
-
-                    //foreach (var methodParameter in method.GetParameters())
-                    //{
-                    //    if (methodParameter.ParameterType.Name.StartsWith("Vector"))
-                    //    {
-                    //        containsVectorParam = true;
-                    //    }
-                    //    ms.Parameters.Add(new MethodParam()
-                    //    {
-                    //        ParamName = methodParameter.Name,
-                    //        ParamType = Tree.ValueType.ParseType(methodParameter.ParameterType.ToString()),
-                    //        PassingWay = ParamValuePassing.None
-                    //    });
-                    //}
-
-                    //vectorMethods.Add(ms);
-
-                    //if ((method.Name == "Create" || method.Name == "CreateScalar") && !containsVectorParam)
-                    //{
-                    //    // Ignore vector param for Create methods because we might not have those variables
-                    //    // available.
-                    //    ms.IsVectorCreateMethod = true;
-                    //}
                 }
             }
         }
 
+        /// <summary>
+        ///     Create method signature for the vectorTypeName that has the MethodInfo.
+        /// </summary>
+        /// <param name="vectorTypeName"></param>
+        /// <param name="method"></param>
+        /// <returns>Method signature</returns>
         private static MethodSignature CreateMethodSignature(string vectorTypeName, MethodInfo method)
         {
             var ms = new MethodSignature($"{vectorTypeName}.{method.Name}", isVectorGeneric: method.IsGenericMethod, isVectorMethod: true)
@@ -158,8 +137,6 @@ namespace Antigen
                     PassingWay = ParamValuePassing.None
                 });
             }
-
-            vectorMethods.Add(ms);
 
             if ((method.Name == "Create" || method.Name == "CreateScalar") && !containsVectorParam)
             {
