@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
+using System.Runtime.Intrinsics;
 using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -322,6 +324,7 @@ namespace Antigen.Tree
             {
                 var parsedPrimitiveType = typeName switch
                 {
+                    "System.Boolean" => Primitive.Boolean,
                     "System.Byte" => Primitive.Byte,
                     "System.SByte" => Primitive.SByte,
                     "System.Int16" => Primitive.Short,
@@ -335,6 +338,63 @@ namespace Antigen.Tree
                     _ => throw new Exception("Invalid typename parameter"),
                 };
                 return types.FirstOrDefault(t => t.PrimitiveType == parsedPrimitiveType);
+            }
+        }
+
+        /// <summary>
+        ///  Get the number of elements for Vector type.
+        /// </summary>
+        /// <param name="vectorType"></param>
+        /// <returns></returns>
+        public static int GetElementCount(VectorType vectorType)
+        {
+            switch (vectorType)
+            {
+                case VectorType.Vector64_Byte: return Vector64<byte>.Count;
+                case VectorType.Vector64_SByte: return Vector64<sbyte>.Count;
+                case VectorType.Vector64_Short: return Vector64<short>.Count;
+                case VectorType.Vector64_UShort: return Vector64<ushort>.Count;
+                case VectorType.Vector64_Int: return Vector64<int>.Count;
+                case VectorType.Vector64_UInt: return Vector64<uint>.Count;
+                case VectorType.Vector64_Long: return Vector64<long>.Count;
+                case VectorType.Vector64_ULong: return Vector64<ulong>.Count;
+                case VectorType.Vector64_Float: return Vector64<float>.Count;
+                case VectorType.Vector64_Double: return Vector64<double>.Count;
+
+                case VectorType.Vector128_Byte: return Vector128<byte>.Count;
+                case VectorType.Vector128_SByte: return Vector128<sbyte>.Count;
+                case VectorType.Vector128_Short: return Vector128<short>.Count;
+                case VectorType.Vector128_UShort: return Vector128<ushort>.Count;
+                case VectorType.Vector128_Int: return Vector128<int>.Count;
+                case VectorType.Vector128_UInt: return Vector128<uint>.Count;
+                case VectorType.Vector128_Long: return Vector128<long>.Count;
+                case VectorType.Vector128_ULong: return Vector128<ulong>.Count;
+                case VectorType.Vector128_Float: return Vector128<float>.Count;
+                case VectorType.Vector128_Double: return Vector128<double>.Count;
+
+                case VectorType.Vector256_Byte: return Vector256<byte>.Count;
+                case VectorType.Vector256_SByte: return Vector256<sbyte>.Count;
+                case VectorType.Vector256_Short: return Vector256<short>.Count;
+                case VectorType.Vector256_UShort: return Vector256<ushort>.Count;
+                case VectorType.Vector256_Int: return Vector256<int>.Count;
+                case VectorType.Vector256_UInt: return Vector256<uint>.Count;
+                case VectorType.Vector256_Long: return Vector256<long>.Count;
+                case VectorType.Vector256_ULong: return Vector256<ulong>.Count;
+                case VectorType.Vector256_Float: return Vector256<float>.Count;
+                case VectorType.Vector256_Double: return Vector256<double>.Count;
+
+                //case VectorType.Vector512_Byte: return Vector512<byte>.Count;
+                //case VectorType.Vector512_SByte: return Vector512<sbyte>.Count;
+                //case VectorType.Vector512_Short: return Vector512<short>.Count;
+                //case VectorType.Vector512_UShort: return Vector512<ushort>.Count;
+                //case VectorType.Vector512_Int: return Vector512<int>.Count;
+                //case VectorType.Vector512_UInt: return Vector512<uint>.Count;
+                //case VectorType.Vector512_Long: return Vector512<long>.Count;
+                //case VectorType.Vector512_ULong: return Vector512<ulong>.Count;
+                //case VectorType.Vector512_Float: return Vector512<float>.Count;
+                //case VectorType.Vector512_Double: return Vector512<double>.Count
+                //
+                default: return 0;
             }
         }
 

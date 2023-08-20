@@ -87,7 +87,6 @@ namespace Antigen.Tree
         public Operation Oper;
         private readonly string renderText;
         public readonly bool IsVectorOper;
-        private readonly string sampleOperation;
 
         public bool HasFlag(OpFlags flag)
         {
@@ -190,7 +189,6 @@ namespace Antigen.Tree
         {
             Oper = oper;
             renderText = operatorText;
-            sampleOperation = operation;
             InputTypes = inputTypes;
             ReturnType = outputType;
             Flags = flags;
@@ -203,7 +201,6 @@ namespace Antigen.Tree
         {
             Oper = oper;
             renderText = operatorText;
-            sampleOperation = operation;
             IsVectorIntrinsics = isVectorIntrinsics;
             IsVectorNumerics = isVectorNumerics;
             Flags = flags;

@@ -864,9 +864,21 @@ namespace Antigen
 
                 Expression argExpr = ExprHelper(argExprKind, argType, depth + 1);
 
-                if (methodSig.IsVectorCreateMethod && (paramId == 0))
+                if (methodSig.IsVectorMethod && !argType.IsVectorType)
                 {
-                    argExpr = new CastExpression(TC, argExpr, argType);
+                    if ((methodSig.MethodName.Contains("GetElement") || methodSig.MethodName.Contains("WithElement")) && (parameter.ParamName == "index"))
+                    {
+                        // For GetElement/WithElement, the index should not exceed the element count. So perform modulo operation for (argExpr % ElementCount)
+                        VectorType targetVectorType = methodSig.Parameters[0].ParamType.VectorType;
+                        var elementCountExpr = ConstantValue.GetRandomConstantInt(1, Tree.ValueType.GetElementCount(targetVectorType) - 1);
+                        argExpr = new BinaryExpression(TC, Tree.ValueType.ForPrimitive(Primitive.Int), argExpr, Operator.ForOperation(Operation.BitwiseAnd), elementCountExpr);
+                    }
+                    else if (argExpr is ConstantValue)
+                    {
+                        // For vector methods, if the argument type is primitive, add an explicit
+                        // cast expression to resolve the ambiguity of the overloaded method.
+                        argExpr = new CastExpression(TC, argExpr, argType);
+                    }
                 }
 
                 passingWays.Add(parameter.PassingWay);
