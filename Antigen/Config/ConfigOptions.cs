@@ -286,6 +286,11 @@ namespace Antigen.Config
         /// </summary>
         public double NumberOfVectorMethodsProbability = 0.1;
 
+        /// <summary>
+        ///     Probability of storing the method call results in a variable.
+        /// </summary>
+        public double StoreVectorMethodCallResultProbability = 0.3;
+
         public override string ToString()
         {
             return Name;

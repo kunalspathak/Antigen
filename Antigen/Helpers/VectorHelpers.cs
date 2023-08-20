@@ -96,6 +96,7 @@ namespace Antigen
                 {
                     if (method.GetGenericArguments().Count() == 1)
                     {
+                        // Only instantiate generic single argument methods
                         foreach (var genericArgument in s_vectorGenericArgs)
                         {
                             var genericInitVectorMethod = method.MakeGenericMethod(genericArgument);

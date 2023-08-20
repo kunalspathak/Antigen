@@ -655,7 +655,7 @@ namespace Antigen
                         MethodSignature method = _testClass.GetRandomMethod();
                         Tree.ValueType methodReturnType = method.ReturnType;
 
-                        if (method.IsVectorMethod)
+                        if (method.IsVectorMethod && PRNG.Decide(TC.Config.StoreVectorMethodCallResultProbability))
                         {
                             // For intrinsic methods, store the result in a variable.
                             if (!methodReturnType.IsVectorType && methodReturnType.PrimitiveType != Primitive.Void)
