@@ -652,7 +652,23 @@ namespace Antigen
                     }
                 case StmtKind.MethodCallStatement:
                     {
-                        return new MethodCallStatement(TC, MethodCallHelper(_testClass.GetRandomMethod(), 0));
+                        MethodSignature method = _testClass.GetRandomMethod();
+                        Tree.ValueType methodReturnType = method.ReturnType;
+
+                        if (method.IsVectorMethod)
+                        {
+                            // For intrinsic methods, store the result in a variable.
+                            if (!methodReturnType.IsVectorType && methodReturnType.PrimitiveType != Primitive.Void)
+                            {
+                                // Perform assignment only if the vector method returns a value.
+                                Expression lhs = ExprHelper(ExprKind.VariableExpression, methodReturnType, 0);
+                                Operator assignOper = GetASTUtils().GetRandomAssignmentOperator(methodReturnType);
+                                Expression rhs = MethodCallHelper(method, 0);
+                                return new AssignStatement(TC, methodReturnType, lhs, assignOper, rhs);
+                            }
+                        }
+
+                        return new MethodCallStatement(TC, MethodCallHelper(method, 0));
                     }
                 default:
                     Debug.Assert(false, string.Format("Hit unknown statement type {0}", Enum.GetName(typeof(StmtKind), stmtKind)));
