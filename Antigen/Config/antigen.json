@@ -3,6 +3,7 @@
   "OutputDirectory": ".",
   "NumTestCases": -1,
   "RunDuration": -1,
+  "ExecuteBaseline": 0.3,
   "BaselineEnvVars": [
     {
       "Name": "Default",
@@ -890,7 +891,7 @@
     },
     {
       "Name": "ExceptionHandler",
-      "MaxStmtDepth": 5,
+      "MaxStmtDepth": 3,
       "MethodCount": 2,
       "TryCatchFinallyStatementWeight": 0.5,
       "CatchClausesCount": 5,
@@ -915,9 +916,9 @@
       "MaxCaseCounts": 10,
       "MaxStmtDepth": 6,
       "MaxStatementCount": 4,
-      "IfElseStatementWeight": 0.4,
-      "ForStatementWeight": 0.5,
-      "DoWhileStatementWeight": 0.5,
+      "IfElseStatementWeight": 0.8,
+      "ForStatementWeight": 0.2,
+      "DoWhileStatementWeight": 0.3,
       "WhileStatementWeight": 0.5,
       "SwitchStatementWeight": 0.45
     }

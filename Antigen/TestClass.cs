@@ -2,26 +2,34 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
+using System.Reflection;
+using System.Reflection.Metadata;
+using System.Runtime.Intrinsics;
 using Antigen.Expressions;
 using Antigen.Statements;
 using Antigen.Tree;
 using Microsoft.CodeAnalysis;
-
+using ValueType = Antigen.Tree.ValueType;
 
 namespace Antigen
 {
     /// <summary>
     ///     Denotes the class to generate.
     /// </summary>
-    public class TestClass
+    public partial class TestClass
     {
         public Scope ClassScope { get; private set; }
         public string ClassName;
         public TestCase TC { get; private set; }
         public Stack<Scope> ScopeStack { get; private set; }
         private List<Weights<MethodSignature>> _methods { get; set; }
+        private static List<MethodSignature> vectorMethods = null;
+        private static bool isVectorMethodsInitialized = false;
         private int _variableId;
 
         public string GetVariableName(Tree.ValueType variableType)
@@ -44,9 +52,20 @@ namespace Antigen
             _variableId = 0;
         }
 
+        /// <summary>
+        ///     Register method
+        /// </summary>
+        /// <param name="methodSignature"></param>
         public void RegisterMethod(MethodSignature methodSignature)
         {
-            _methods.Add(new Weights<MethodSignature>(methodSignature, (double)PRNG.Next(1, 100) / 100));
+            double methodProb = (double)PRNG.Next(1, 100) / 100;
+            if (methodSignature.IsVectorCreateMethod)
+            {
+                // Further reduce the probability of vector create methods because
+                // they are anyway used to create the vectors.
+                methodProb /= 10;
+            }
+            _methods.Add(new Weights<MethodSignature>(methodSignature, methodProb));
         }
 
         /// <summary>
@@ -58,6 +77,16 @@ namespace Antigen
         ///     Returns all leaf methods
         /// </summary>
         public IEnumerable<Weights<MethodSignature>> AllLeafMethods => _methods.Where(m => m.Data.IsLeaf);
+
+        /// <summary>
+        ///     Returns all vector methods
+        /// </summary>
+        public IEnumerable<Weights<MethodSignature>> AllVectorMethods => _methods.Where(m => m.Data.IsVectorMethod);
+
+        /// <summary>
+        ///     Returns all vector create methods
+        /// </summary>
+        public IEnumerable<Weights<MethodSignature>> AllVectorCreateMethods => _methods.Where(m => m.Data.IsVectorCreateMethod);
 
         /// <summary>
         ///     Get random method that returns specfic returnType. Null if no such
@@ -74,6 +103,37 @@ namespace Antigen
         }
 
         /// <summary>
+        ///     Get random vector create method that returns specific returnType.
+        /// </summary>
+        /// <param name="returnType"></param>
+        /// <returns></returns>
+        public MethodSignature GetRandomVectorCreateMethod(Tree.ValueType returnType)
+        {
+            var matchingMethods = AllVectorCreateMethods.Where(m => m.Data.ReturnType.Equals(returnType)).ToList();
+            if (matchingMethods.Count == 0)
+            {
+                return null;
+            }
+            return PRNG.WeightedChoice(matchingMethods);
+        }
+
+        /// <summary>
+        ///     Get random vector create method that returns specific returnType.
+        /// </summary>
+        /// <param name="returnType"></param>
+        /// <returns></returns>
+        public MethodSignature GetRandomVectorMethod(Tree.ValueType returnType)
+        {
+            var matchingMethods = AllVectorMethods.Where(m => m.Data.ReturnType.Equals(returnType)).ToList();
+
+            if (matchingMethods.Count == 0)
+            {
+                return null;
+            }
+            return PRNG.WeightedChoice(matchingMethods);
+        }
+
+        /// <summary>
         ///     Gets random leaf method that returns specific returnType. Null if no such
         ///     method is generated yet.
         /// </summary>
@@ -81,6 +141,12 @@ namespace Antigen
         /// <returns></returns>
         public MethodSignature GetRandomLeafMethod(Tree.ValueType returnType)
         {
+            if (returnType.IsVectorType)
+            {
+                // VectorType is not marked as leaf-method. So just return from overall methods list.
+                return GetRandomVectorMethod(returnType);
+            }
+
             var matchingMethods = AllLeafMethods.Where(m => m.Data.ReturnType.Equals(returnType));
             if (matchingMethods.Count() == 0)
             {
@@ -121,6 +187,12 @@ namespace Antigen
             PushScope(ClassScope);
 
             List<Statement> classMembers = new List<Statement>();
+
+            if (TC.ContainsVectorData)
+            {
+                GenerateVectorMethods();
+            }
+
             classMembers.AddRange(GenerateStructs());
             classMembers.AddRange(GenerateFields(isStatic: true));
             classMembers.AddRange(GenerateFields(isStatic: false));
@@ -183,7 +255,7 @@ namespace Antigen
                     }
                     else
                     {
-                        fieldType = GetASTUtils().GetRandomExprType();
+                        fieldType = GetASTUtils().GetRandomValueType();
                     }
 
                     fieldName = GetVariableName(fieldType);
@@ -246,12 +318,55 @@ namespace Antigen
             foreach (Tree.ValueType variableType in Tree.ValueType.GetTypes())
             {
                 string variableName = (isStatic ? "s_" : string.Empty) + GetVariableName(variableType);
-
                 Expression rhs = ConstantValue.GetConstantValue(variableType, TC._numerals);
-
                 CurrentScope.AddLocal(variableType, variableName);
 
                 fields.Add(new FieldDeclStatement(TC, variableType, variableName, rhs, isStatic));
+            }
+
+            if (TC.ContainsVectorData)
+            {
+                foreach (Tree.ValueType variableType in Tree.ValueType.GetVectorTypes())
+                {
+                    Debug.Assert(variableType.IsVectorType);
+                    string variableName = (isStatic ? "s_" : string.Empty) + GetVariableName(variableType);
+
+                    Expression rhs;
+                    if (PRNG.Decide(0.8))
+                    {
+                        MethodSignature createSig = GetRandomVectorCreateMethod(variableType);
+
+                        List<Expression> argumentNodes = new List<Expression>();
+                        List<ParamValuePassing> passingWays = new List<ParamValuePassing>();
+
+                        int parametersCount = createSig.Parameters.Count;
+
+                        for (int i = 0; i < parametersCount; i++)
+                        {
+                            MethodParam methodParam = createSig.Parameters[i];
+                            Tree.ValueType argType = methodParam.ParamType;
+                            Debug.Assert(!argType.IsVectorType);
+
+                            Expression parameterValue = ConstantValue.GetConstantValue(argType, TC._numerals);
+                            if (i == 0)
+                            {
+                                parameterValue = new CastExpression(TC, parameterValue, argType);
+                            }
+
+                            argumentNodes.Add(parameterValue);
+                            passingWays.Add(ParamValuePassing.None);
+                        }
+
+                        rhs = new MethodCallExpression(createSig.MethodName, argumentNodes, passingWays);
+                    }
+                    else
+                    {
+                        rhs = ConstantValue.GetConstantValue(variableType, TC._numerals);
+                    }
+
+                    CurrentScope.AddLocal(variableType, variableName);
+                    fields.Add(new FieldDeclStatement(TC, variableType, variableName, rhs, isStatic));
+                }
             }
 
             // TODO-TEMP initialize one variable of each struct type

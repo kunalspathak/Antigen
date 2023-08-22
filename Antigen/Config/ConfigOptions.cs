@@ -16,7 +16,7 @@ namespace Antigen.Config
         public int MaxExprDepth = 3;
 
         public int MethodCount = 3;
-        public int MaxStatementCount = 10;
+        public int MaxStatementCount = 7;
         public int VariablesCount = 8;
         public int StructCount = 2;
 
@@ -47,15 +47,64 @@ namespace Antigen.Config
         public double CharWeight = 0.03;
         public double DecimalWeight = 0.5;
         public double DoubleWeight = 0.4;
-        public double Int16Weight = 0.4;
-        public double Int32Weight = 0.45;
-        public double Int64Weight = 0.48;
+        public double ShortWeight = 0.4;
+        public double IntWeight = 0.45;
+        public double LongWeight = 0.48;
         public double SByteWeight = 0.3;
-        public double SingleWeight = 0.6;
+        public double FloatWeight = 0.6;
         public double StringWeight = 0.03;
-        public double UInt16Weight = 0.4;
-        public double UInt32Weight = 0.45;
-        public double UInt64Weight = 0.6;
+        public double UShortWeight = 0.4;
+        public double UIntWeight = 0.45;
+        public double ULongWeight = 0.6;
+
+        // Vector weights
+        public double Vector64_ByteWeight = 0.1;
+        public double Vector64_SByteWeight = 0.1;
+        public double Vector64_ShortWeight = 0.1;
+        public double Vector64_UShortWeight = 0.1;
+        public double Vector64_IntWeight = 0.1;
+        public double Vector64_UIntWeight = 0.1;
+        public double Vector64_LongWeight = 0.1;
+        public double Vector64_ULongWeight = 0.1;
+        public double Vector64_FloatWeight = 0.1;
+        public double Vector64_DoubleWeight = 0.1;
+
+        public double Vector128_ByteWeight = 0.1;
+        public double Vector128_SByteWeight = 0.1;
+        public double Vector128_ShortWeight = 0.1;
+        public double Vector128_UShortWeight = 0.1;
+        public double Vector128_IntWeight = 0.1;
+        public double Vector128_UIntWeight = 0.1;
+        public double Vector128_LongWeight = 0.1;
+        public double Vector128_ULongWeight = 0.1;
+        public double Vector128_FloatWeight = 0.1;
+        public double Vector128_DoubleWeight = 0.1;
+
+        public double Vector256_ByteWeight = 0.1;
+        public double Vector256_SByteWeight = 0.1;
+        public double Vector256_ShortWeight = 0.1;
+        public double Vector256_UShortWeight = 0.1;
+        public double Vector256_IntWeight = 0.1;
+        public double Vector256_UIntWeight = 0.1;
+        public double Vector256_LongWeight = 0.1;
+        public double Vector256_ULongWeight = 0.1;
+        public double Vector256_FloatWeight = 0.1;
+        public double Vector256_DoubleWeight = 0.1;
+
+        public double Vector512_ByteWeight = 0.1;
+        public double Vector512_SByteWeight = 0.1;
+        public double Vector512_ShortWeight = 0.1;
+        public double Vector512_UShortWeight = 0.1;
+        public double Vector512_IntWeight = 0.1;
+        public double Vector512_UIntWeight = 0.1;
+        public double Vector512_LongWeight = 0.1;
+        public double Vector512_ULongWeight = 0.1;
+        public double Vector512_FloatWeight = 0.1;
+        public double Vector512_DoubleWeight = 0.1;
+
+        public double Vector2Weight = 0.1;
+        public double Vector3Weight = 0.1;
+        public double Vector4Weight = 0.1;
 
         // Operator weights
         public double UnaryPlusWeight = 1;
@@ -102,6 +151,23 @@ namespace Antigen.Config
         public double GreaterThanOrEqualWeight = 0.51;
         public double EqualsWeight = 0.8;
         public double NotEqualsWeight = 0.8;
+
+        public double VectorAddWeight = 0.3;
+        public double VectorSubtractWeight = 0.4;
+        public double VectorMultiplyWeight = 0.45;
+        public double VectorDivideWeight = 0.2;
+        public double VectorBitwiseAndWeight = 0.37;
+        public double VectorBitwiseOrWeight = 0.48;
+        public double VectorExclusiveOrWeight = 0.34;
+        public double VectorUnaryPlusWeight = 0.33;
+        public double VectorUnaryMinusWeight = 0.12;
+        public double VectorBitwiseNotWeight = 0.29;
+        public double VectorSimpleAssignmentWeight = 0.364;
+        public double VectorAddAssignmentWeight = 0.341;
+        public double VectorSubtractAssignmentWeight = 0.24;
+        public double VectorMultiplyAssignmentWeight = 0.63;
+        public double VectorDivideAssignmentWeight = 0.2;
+
 
         /// <summary>
         ///     Probablity of removing loop parameters -- see comments on BoundParameters in ForStatement 
@@ -210,6 +276,46 @@ namespace Antigen.Config
         /// </summary>
         public int MaxCaseCounts = 4;
 
+        /// <summary>
+        ///     Avx/Avx2 methods probability
+        /// </summary>
+        public double TraditionalMethodsProbability = 0.089;
+
+        /// <summary>
+        ///     Avx/Avx2 methods probability
+        /// </summary>
+        public double AvxMethodsProbability = 0.29;
+
+        /// <summary>
+        ///     SSE* methods probability
+        /// </summary>
+        public double SSEMethodsProbability = 0.198;
+
+        /// <summary>
+        ///     AdvSimd methods probability
+        /// </summary>
+        public double AdvSimdMethodsProbability = 0.35;
+
+        /// <summary>
+        ///     Probability in which vector methods will be included.
+        /// </summary>
+        public double VectorDataProbability = 0.5;
+
+        /// <summary>
+        ///     Number of methods to be included. Only relevant ifVectorMethodsProbability is non-zero.
+        /// </summary>
+        public double RegisterIntrinsicMethodsProbability = 0.4;
+
+        /// <summary>
+        ///     Number of methods to be invoked from Method0. Only relevant ifVectorMethodsProbability is non-zero.
+        /// </summary>
+        public double InvokeIntrinsicMethodsProbability = 0.001;
+
+        /// <summary>
+        ///     Probability of storing the method call results in a variable.
+        /// </summary>
+        public double StoreIntrinsicMethodCallResultProbability = 0.7;
+
         public override string ToString()
         {
             return Name;
@@ -217,15 +323,12 @@ namespace Antigen.Config
 
         public double Lookup(Tree.ValueType type)
         {
-            string str = Enum.GetName(typeof(Microsoft.CodeAnalysis.SpecialType), type.DataType);
-            str = str.Replace("System_", "");
-            return Lookup(str + WeightSuffix);
+            return type.IsVectorType ? Lookup(type.VectorType + WeightSuffix) : Lookup(type.PrimitiveType + WeightSuffix);
         }
 
         public double Lookup(Operator oper)
         {
-            string str = Enum.GetName(typeof(SyntaxKind), oper.Oper);
-            str = str.Replace("Expression", "");
+            string str = Enum.GetName(typeof(Operation), oper.Oper);
             return Lookup(str + WeightSuffix);
         }
 

@@ -13,11 +13,19 @@ namespace Antigen.Statements
         public readonly Operator Op;
         public readonly Expression Right;
 
-        public AssignStatement(TestCase testCase, ValueType leftType, Expression lhs, Operator op, Expression rhs) : base(testCase)
+        public AssignStatement(TestCase testCase, ValueType leftType, Expression lhs, Operator op, Expression rhs, bool isVectorResult = false) : base(testCase)
         {
             Left = lhs;
             Op = op;
-            Right = Helper.FixDivideByZero(testCase, leftType, op, rhs);
+
+            if (isVectorResult)
+            {
+                Right = rhs;
+            }
+            else
+            {
+                Right = Helper.FixDivideByZero(testCase, leftType, op, rhs);
+            }
         }
 
         public override string ToString()

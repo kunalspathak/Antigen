@@ -18,7 +18,7 @@ namespace Antigen.Expressions
         {
             Expression = expression;
             Op = op;
-            _isPostOperation = op.Oper == SyntaxKind.PostIncrementExpression || op.Oper == SyntaxKind.PostDecrementExpression;
+            _isPostOperation = op.Oper == Operation.PostIncrement || op.Oper == Operation.PostDecrement;
         }
 
         public override string ToString()

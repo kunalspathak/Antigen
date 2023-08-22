@@ -73,11 +73,13 @@ namespace Antigen
         internal ConfigOptions Config { get; private set; }
         public string Name { get; private set; }
         public AstUtils AstUtils { get; private set; }
+        public bool ContainsVectorData { get; private set; }
 
         public TestCase(int testId, RunOptions runOptions)
         {
             s_runOptions = runOptions;
             Config = s_runOptions.Configs[PRNG.Next(s_runOptions.Configs.Count)];
+            ContainsVectorData = PRNG.Decide(Config.VectorDataProbability);
 
             AstUtils = new AstUtils(this, new ConfigOptions(), null);
             Name = "TestClass" + testId;
@@ -162,6 +164,11 @@ namespace Antigen
                         return TheTestResult(compileResult.AssemblyFullPath, test.Contains("System.OverflowException:") ? TestResult.Overflow : TestResult.DivideByZero);
                     }
                 }
+            }
+
+            if (!PRNG.Decide(s_runOptions.ExecuteBaseline))
+            {
+                return TheTestResult(compileResult.AssemblyFullPath, TestResult.Pass);
             }
 
             string baseline = s_testRunner.Execute(compileResult, baselineVariables);

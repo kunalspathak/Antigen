@@ -2,8 +2,6 @@
 using Antigen.Statements;
 using Antigen.Tree;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -167,11 +165,16 @@ namespace Antigen
                     //TODO-future: Select any assignOper
                     //Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator();
 
+                    if (nonLeafMethod.Data.IsVectorMethod && !PRNG.Decide(TC.Config.InvokeIntrinsicMethodsProbability))
+                    {
+                        continue;
+                    }
+
                     Tree.ValueType lhsType = nonLeafMethod.Data.ReturnType;
                     var lhs = ExprHelper(ExprKind.VariableExpression, lhsType, 0);
                     var rhs = MethodCallHelper(nonLeafMethod.Data, 0);
 
-                    methodBody.Add(new AssignStatement(TC, lhsType, lhs, Operator.ForSyntaxKind(SyntaxKind.SimpleAssignmentExpression), rhs));
+                    methodBody.Add(new AssignStatement(TC, lhsType, lhs, Operator.ForOperation(Operation.SimpleAssignment), rhs));
                 }
             }
 
@@ -246,7 +249,7 @@ namespace Antigen
 
                         string variableName = _testClass.GetVariableName(variableType);
 
-                        Expression rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(variableType.PrimitiveType), variableType, 0);
+                        Expression rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningValueType(variableType), variableType, 0);
                         CurrentScope.AddLocal(variableType, variableName);
 
                         // Add all the fields to the scope
@@ -266,7 +269,7 @@ namespace Antigen
                         //Debug.Assert(depth <= TC.Config.MaxStmtDepth);
 
                         Tree.ValueType condValueType = Tree.ValueType.ForPrimitive(Primitive.Boolean);
-                        Expression conditionExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Boolean), condValueType, 0);
+                        Expression conditionExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningValueType(Primitive.Boolean), condValueType, 0);
 
                         int ifcount = PRNG.Next(1, TC.Config.MaxStatementCount);
                         List<Statement> ifBody = new List<Statement>();
@@ -317,7 +320,11 @@ namespace Antigen
                         Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator();
                         Tree.ValueType lhsExprType, rhsExprType;
 
-                        if (assignOper.HasFlag(OpFlags.Divide))
+                        if (assignOper.IsVectorOper)
+                        {
+                            lhsExprType = GetASTUtils().GetRandomVectorTypeForOperator(assignOper);
+                        }
+                        else if (assignOper.HasFlag(OpFlags.Divide))
                         {
                             // For divide, just use 'int` type.
                             lhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
@@ -332,7 +339,7 @@ namespace Antigen
                         }
                         else
                         {
-                            lhsExprType = GetASTUtils().GetRandomExprType(assignOper.InputTypes);
+                            lhsExprType = GetASTUtils().GetRandomPrimitiveType(assignOper.InputTypes);
                         }
 
                         if (assignOper.HasFlag(OpFlags.Shift))
@@ -344,7 +351,7 @@ namespace Antigen
                             rhsExprType = lhsExprType;
                         }
 
-                        ExprKind rhsKind = GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType);
+                        ExprKind rhsKind = GetASTUtils().GetRandomExpressionReturningValueType(rhsExprType);
                         Expression lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, 0);
                         Expression rhs = ExprHelper(rhsKind, rhsExprType, 0);
 
@@ -366,7 +373,7 @@ namespace Antigen
 
                         PushScope(new Scope(TC, ScopeKind.LoopScope, CurrentScope));
 
-                        var bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Int), Tree.ValueType.ForPrimitive(Primitive.Int), 0);
+                        var bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningValueType(Primitive.Int), Tree.ValueType.ForPrimitive(Primitive.Int), 0);
                         var loopStepCastExpr = ExprHelper(ExprKind.AssignExpression, Tree.ValueType.GetRandomType(), 0) as CastExpression;
 
                         // No need to cast the assign expression inside for-loop. Additionally compiler would complain for it, so just
@@ -404,7 +411,7 @@ namespace Antigen
 
                         PushScope(new Scope(TC, ScopeKind.LoopScope, CurrentScope));
 
-                        var bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Boolean), Tree.ValueType.ForPrimitive(Primitive.Boolean), 0);
+                        var bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningValueType(Primitive.Boolean), Tree.ValueType.ForPrimitive(Primitive.Boolean), 0);
 
                         //TODO-imp: AddInductionVariables
                         //TODO-imp: ctrlFlowStack
@@ -438,7 +445,7 @@ namespace Antigen
 
                         PushScope(new Scope(TC, ScopeKind.LoopScope, CurrentScope));
 
-                        var bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(Primitive.Boolean), Tree.ValueType.ForPrimitive(Primitive.Boolean), 0);
+                        var bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningValueType(Primitive.Boolean), Tree.ValueType.ForPrimitive(Primitive.Boolean), 0);
 
                         //TODO-imp: AddInductionVariables
                         //TODO-imp: ctrlFlowStack
@@ -467,13 +474,12 @@ namespace Antigen
                 case StmtKind.ReturnStatement:
                     {
                         Tree.ValueType returnType = MethodSignature.ReturnType;
-                        if (returnType.PrimitiveType == Primitive.Void)
+                        if (returnType.IsVectorType || returnType.PrimitiveType != Primitive.Void)
                         {
-                            return new ReturnStatement(TC, null);
+                            Expression returnExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningValueType(returnType), returnType, 0);
+                            return new ReturnStatement(TC, returnExpr);
                         }
-
-                        Expression returnExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(returnType.PrimitiveType), returnType, 0);
-                        return new ReturnStatement(TC, returnExpr);
+                        return new ReturnStatement(TC, null);
                     }
                 case StmtKind.TryCatchFinallyStatement:
                     {
@@ -581,7 +587,7 @@ namespace Antigen
 
                         Primitive switchType = new Primitive[] { Primitive.Int, Primitive.Long, Primitive.Char, Primitive.String }[PRNG.Next(4)];
                         Tree.ValueType switchExprType = Tree.ValueType.ForPrimitive(switchType);
-                        ExprKind switchExprKind = GetASTUtils().GetRandomExpressionReturningPrimitive(switchType);
+                        ExprKind switchExprKind = GetASTUtils().GetRandomExpressionReturningValueType(switchType);
                         Expression switchExpr = ExprHelper(switchExprKind, switchExprType, 0);
                         //IList<SwitchSectionSyntax> listOfCases = new List<SwitchSectionSyntax>();
                         List<Tuple<ConstantValue, List<Statement>>> listOfCases = new ();
@@ -648,7 +654,28 @@ namespace Antigen
                     }
                 case StmtKind.MethodCallStatement:
                     {
-                        return new MethodCallStatement(TC, MethodCallHelper(_testClass.GetRandomMethod(), 0));
+                        MethodSignature method = _testClass.GetRandomMethod();
+                        Tree.ValueType methodReturnType = method.ReturnType;
+
+                        if (method.IsVectorMethod && PRNG.Decide(TC.Config.StoreIntrinsicMethodCallResultProbability))
+                        {
+                            // For intrinsic methods, store the result in a variable.
+                            if (!methodReturnType.IsVectorType && methodReturnType.PrimitiveType != Primitive.Void)
+                            {
+                                // Perform assignment only if the vector method returns a value.
+                                Expression lhs = ExprHelper(ExprKind.VariableExpression, methodReturnType, 0);
+                                Operator assignOper = GetASTUtils().GetRandomAssignmentOperator(methodReturnType);
+                                Expression rhs = MethodCallHelper(method, 0);
+
+                                if (assignOper.HasFlag(OpFlags.Shift) && (methodReturnType.PrimitiveType != Primitive.Int))
+                                {
+                                    rhs = new CastExpression(TC, rhs, Tree.ValueType.ForPrimitive(Primitive.Int));
+                                }
+                                return new AssignStatement(TC, methodReturnType, lhs, assignOper, rhs, true);
+                            }
+                        }
+
+                        return new MethodCallStatement(TC, MethodCallHelper(method, 0));
                     }
                 default:
                     Debug.Assert(false, string.Format("Hit unknown statement type {0}", Enum.GetName(typeof(StmtKind), stmtKind)));
@@ -685,46 +712,54 @@ namespace Antigen
                     {
                         //Debug.Assert(depth <= TC.Config.MaxExprDepth);
 
-                        Primitive returnType = exprType.PrimitiveType;
-
-                        Operator op = GetASTUtils().GetRandomBinaryOperator(returnPrimitiveType: returnType);
+                        Operator op = GetASTUtils().GetRandomBinaryOperator(exprType);
 
                         Tree.ValueType lhsExprType, rhsExprType;
 
-                        if (op.HasFlag(OpFlags.Divide))
+                        if (exprType.IsVectorType)
                         {
-                            // For '/' or '%' operations, just use int as dividend and divisor
-                            lhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
-                            rhsExprType = lhsExprType;
+                            // The vector type should match exactly.
+                            lhsExprType = rhsExprType = exprType;
                         }
                         else
                         {
-                            // If the return type is boolean, then take any ExprType that returns boolean.
-                            // However for other types, choose the same type for BinOp expression as the one used to store the result on LHS.
-                            //TODO-future: Consider doing GetRandomExprType(op.InputTypes) below. Currently, if this is done,
-                            // we end up getting code like (short)(1233342432.5M + 35435435.5M), where "short" is the exprType and
-                            // the literals are selected of different type ("decimal" in this example) and we get compilation error
-                            // because they can't be casted to short.
-                            lhsExprType = GetASTUtils().GetRandomExprType(returnType == Primitive.Boolean ? op.InputTypes : returnType);
-                            //Tree.ValueType lhsExprType = GetASTUtils().GetRandomExprType(op.InputTypes);
-                            rhsExprType = lhsExprType;
+                            Primitive returnType = exprType.PrimitiveType;
 
-                            if (op.HasFlag(OpFlags.Shift))
+                            if (op.HasFlag(OpFlags.Divide))
                             {
-                                rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
+                                // For '/' or '%' operations, just use int as dividend and divisor
+                                lhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
+                                rhsExprType = lhsExprType;
+                            }
+                            else
+                            {
+                                // If the return type is boolean, then take any ExprType that returns boolean.
+                                // However for other types, choose the same type for BinOp expression as the one used to store the result on LHS.
+                                //TODO-future: Consider doing GetRandomExprType(op.InputTypes) below. Currently, if this is done,
+                                // we end up getting code like (short)(1233342432.5M + 35435435.5M), where "short" is the exprType and
+                                // the literals are selected of different type ("decimal" in this example) and we get compilation error
+                                // because they can't be casted to short.
+                                lhsExprType = GetASTUtils().GetRandomPrimitiveType(returnType == Primitive.Boolean ? op.InputTypes : returnType);
+                                //Tree.ValueType lhsExprType = GetASTUtils().GetRandomExprType(op.InputTypes);
+                                rhsExprType = lhsExprType;
+
+                                if (op.HasFlag(OpFlags.Shift))
+                                {
+                                    rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
+                                }
                             }
                         }
 
                         ExprKind lhsExprKind, rhsExprKind;
                         if (depth < TC.Config.MaxExprDepth)
                         {
-                            lhsExprKind = GetASTUtils().GetRandomExpressionReturningPrimitive(lhsExprType.PrimitiveType);
-                            rhsExprKind = GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType);
+                            lhsExprKind = GetASTUtils().GetRandomExpressionReturningValueType(lhsExprType);
+                            rhsExprKind = GetASTUtils().GetRandomExpressionReturningValueType(rhsExprType);
                         }
                         else
                         {
-                            lhsExprKind = GetRandomTerminalExpression(exprType);
-                            rhsExprKind = GetRandomTerminalExpression(exprType);
+                            lhsExprKind = GetASTUtils().GetRandomTerminalExpression(_testClass, exprType);
+                            rhsExprKind = GetASTUtils().GetRandomTerminalExpression(_testClass, exprType);
                         }
 
                         // Fold arithmetic binop expressions that has constants.
@@ -744,30 +779,32 @@ namespace Antigen
                     {
                         //Debug.Assert(depth <= TC.Config.MaxExprDepth);
 
-                        Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator(returnPrimitiveType: exprType.PrimitiveType);
+                        Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator(exprType);
                         Tree.ValueType lhsExprType, rhsExprType;
                         lhsExprType = rhsExprType = exprType;
 
-                        if (assignOper.HasFlag(OpFlags.Divide))
+                        if (!assignOper.IsVectorOper)
                         {
-                            // For divide, just use 'int` type.
-                            lhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
-                            rhsExprType = lhsExprType;
+                            if (assignOper.HasFlag(OpFlags.Divide))
+                            {
+                                // For divide, just use 'int` type.
+                                lhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
+                                rhsExprType = lhsExprType;
+                            }
+                            else if (assignOper.HasFlag(OpFlags.Shift))
+                            {
+                                rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
+                            }
                         }
-                        else if (assignOper.HasFlag(OpFlags.Shift))
-                        {
-                            rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
-                        }
-
 
                         ExprKind rhsKind;
                         if (depth < TC.Config.MaxExprDepth)
                         {
-                            rhsKind = GetASTUtils().GetRandomExpressionReturningPrimitive(rhsExprType.PrimitiveType);
+                            rhsKind = GetASTUtils().GetRandomExpressionReturningValueType(rhsExprType);
                         }
                         else
                         {
-                            rhsKind = GetRandomTerminalExpression(rhsExprType);
+                            rhsKind = GetASTUtils().GetRandomTerminalExpression(_testClass, rhsExprType);
                         }
 
                         Expression lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, depth + 1);
@@ -806,7 +843,7 @@ namespace Antigen
             int noOfAttempts = TC.Config.NumOfAttemptsForExpression;
             do
             {
-                rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningPrimitive(exprType.PrimitiveType), exprType, 0);
+                rhs = ExprHelper(GetASTUtils().GetRandomExpressionReturningValueType(exprType), exprType, 0);
                 // Make sure that we do not end up with same lhs=lhs.
                 if (lhs.ToString() != rhs.ToString())
                 {
@@ -815,75 +852,7 @@ namespace Antigen
             } while (noOfAttempts++ < 5);
             Debug.Assert(lhs.ToString() != rhs.ToString());
 
-            return new AssignStatement(TC, exprType, lhs, Operator.ForSyntaxKind(SyntaxKind.SimpleAssignmentExpression), rhs);
-        }
-
-        /// <summary>
-        ///     Makes sure to pick either  a method call that has valid return type
-        ///     or one of the variable or literal expression.
-        /// </summary>
-        /// <param name="exprType"></param>
-        /// <returns></returns>
-        private ExprKind GetRandomTerminalExpression(Tree.ValueType exprType)
-        {
-            ExprKind kind;
-
-            int noOfAttempts = TC.Config.NumOfAttemptsForExpression;
-            bool found = false;
-
-            do
-            {
-                kind = GetASTUtils().GetRandomTerminalExpression();
-                switch (kind)
-                {
-                    case ExprKind.LiteralExpression:
-                        {
-                            if (exprType.PrimitiveType != Primitive.Struct)
-                            {
-                                found = true;
-                            }
-                            break;
-                        }
-                    case ExprKind.VariableExpression:
-                        {
-                            found = true;
-                            break;
-                        }
-                    case ExprKind.MethodCallExpression:
-                        {
-                            // If terminal expression is a method call, make sure we have a method that 
-                            // returns value of "exprType"
-                            if (_testClass.GetRandomMethod(exprType) != null)
-                            {
-                                found = true;
-                                break;
-                            }
-                            break;
-                        }
-                    default:
-                        throw new Exception("Unsupported terminal expression");
-
-                }
-
-                if (found)
-                {
-                    break;
-                }
-            } while (noOfAttempts++ < 5);
-
-            if (!found)
-            {
-                if (exprType.PrimitiveType == Primitive.Struct)
-                {
-                    kind = ExprKind.VariableExpression;
-                }
-                else
-                {
-                    kind = PRNG.Decide(0.7) ? ExprKind.VariableExpression : ExprKind.LiteralExpression;
-                }
-            }
-
-            return kind;
+            return new AssignStatement(TC, exprType, lhs, Operator.ForOperation(Operation.SimpleAssignment), rhs);
         }
 
         private Expression MethodCallHelper(MethodSignature methodSig, int depth)
@@ -904,11 +873,11 @@ namespace Antigen
                 {
                     if (depth < TC.Config.MaxExprDepth)
                     {
-                        argExprKind = GetASTUtils().GetRandomExpressionReturningPrimitive(argType.PrimitiveType);
+                        argExprKind = GetASTUtils().GetRandomExpressionReturningValueType(argType);
                     }
                     else
                     {
-                        argExprKind = GetRandomTerminalExpression(argType);
+                        argExprKind = GetASTUtils().GetRandomTerminalExpression(_testClass, argType);
                     }
                 }
                 else
@@ -917,6 +886,31 @@ namespace Antigen
                 }
 
                 Expression argExpr = ExprHelper(argExprKind, argType, depth + 1);
+
+                if (methodSig.IsVectorMethod && !argType.IsVectorType)
+                {
+                    if ((methodSig.MethodName.Contains("GetElement") || methodSig.MethodName.Contains("WithElement")) && (parameter.ParamName == "index"))
+                    {
+                        // For GetElement/WithElement, the index should not exceed the element count. So perform modulo operation for (argExpr % ElementCount)
+                        VectorType targetVectorType = methodSig.Parameters[0].ParamType.VectorType;
+                        ConstantValue elementCountExpr;
+                        if (Tree.ValueType.GetElementCount(targetVectorType) == 1)
+                        {
+                            elementCountExpr = ConstantValue.GetConstantValue(1);
+                        }
+                        else
+                        {
+                            elementCountExpr = ConstantValue.GetRandomConstantInt(0, Tree.ValueType.GetElementCount(targetVectorType) - 1);
+                        }
+                        argExpr = new BinaryExpression(TC, Tree.ValueType.ForPrimitive(Primitive.Int), argExpr, Operator.ForOperation(Operation.BitwiseAnd), elementCountExpr);
+                    }
+                    else if (argExpr is ConstantValue)
+                    {
+                        // For vector methods, if the argument type is primitive, add an explicit
+                        // cast expression to resolve the ambiguity of the overloaded method.
+                        argExpr = new CastExpression(TC, argExpr, argType);
+                    }
+                }
 
                 passingWays.Add(parameter.PassingWay);
                 argumentNodes.Add(argExpr);
@@ -933,7 +927,7 @@ namespace Antigen
             }
             else
             {
-                return GetASTUtils().GetRandomExprType();
+                return GetASTUtils().GetRandomValueType();
             }
         }
 
@@ -995,14 +989,20 @@ namespace Antigen
         public List<MethodParam> Parameters;
         public bool IsLeaf;
         public bool IsNoInline;
+        public bool IsVectorGeneric;
+        public bool IsVectorMethod;
+        public bool IsVectorCreateMethod;
 
-        public MethodSignature(string methodName, bool isLeaf = false, bool isNoInline = false)
+        public MethodSignature(string methodName, bool isLeaf = false, bool isNoInline = false, bool isVectorGeneric = false, bool isVectorMethod = false, bool isVectorCreateMethod = false)
         {
             MethodName = methodName;
             ReturnType = Tree.ValueType.ForVoid();
             Parameters = new List<MethodParam>();
             IsLeaf = isLeaf;
             IsNoInline = isNoInline;
+            IsVectorGeneric = isVectorGeneric;
+            IsVectorMethod = isVectorMethod;
+            IsVectorCreateMethod = isVectorCreateMethod;
         }
 
         public override bool Equals(object obj)

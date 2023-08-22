@@ -281,9 +281,9 @@ namespace Antigen.Statements
             Operator result = LoopParameters.LoopBreakOperator;
 
             // If break operator is '==' then guard operator is '!='. This is same regardless this is forward/backward loop
-            if (result.Oper == SyntaxKind.EqualsExpression && isFetchingForGuardCondition)
+            if (result.Oper == Operation.Equals && isFetchingForGuardCondition)
             {
-                result = Operator.ForSyntaxKind(SyntaxKind.NotEqualsExpression); // "!=";
+                result = Operator.ForOperation(Operation.NotEquals); // "!=";
             }
 
             // If this is forward loop and we are fetching for break condition, no need to flip the operator
@@ -307,17 +307,17 @@ namespace Antigen.Statements
             Operator newOperator;
             switch (oldOperator.Oper)
             {
-                case SyntaxKind.GreaterThanExpression: // ">":
-                    newOperator = Operator.ForSyntaxKind(SyntaxKind.LessThanExpression); // "<";
+                case Operation.GreaterThan: // ">":
+                    newOperator = Operator.ForOperation(Operation.LessThan); // "<";
                     break;
-                case SyntaxKind.LessThanExpression: // "<":
-                    newOperator = Operator.ForSyntaxKind(SyntaxKind.GreaterThanExpression); // ">";
+                case Operation.LessThan: // "<":
+                    newOperator = Operator.ForOperation(Operation.GreaterThan); // ">";
                     break;
-                case SyntaxKind.GreaterThanOrEqualExpression: // ">=":
-                    newOperator = Operator.ForSyntaxKind(SyntaxKind.LessThanOrEqualExpression); // "<=";
+                case Operation.GreaterThanOrEqual: // ">=":
+                    newOperator = Operator.ForOperation(Operation.LessThanOrEqual); // "<=";
                     break;
-                case SyntaxKind.LessThanOrEqualExpression: // "<=":
-                    newOperator = Operator.ForSyntaxKind(SyntaxKind.GreaterThanOrEqualExpression); // ">=";
+                case Operation.LessThanOrEqual: // "<=":
+                    newOperator = Operator.ForOperation(Operation.GreaterThanOrEqual); // ">=";
                     break;
                 default:
                     newOperator = oldOperator;

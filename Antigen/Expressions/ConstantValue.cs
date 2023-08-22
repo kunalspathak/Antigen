@@ -13,6 +13,13 @@ namespace Antigen.Expressions
     {
         public readonly string Value;
 
+        private static readonly Dictionary<string, List<string>> s_vectorConstants = new Dictionary<string, List<string>>()
+        {
+            { "Vector2", new List<string>() { "One", "Zero", "UnitX", "UnitY" } },
+            { "Vector3", new List<string>() { "One", "Zero", "UnitX", "UnitY", "UnitZ" } },
+            { "Vector4", new List<string>() { "One", "Zero", "UnitW", "UnitX", "UnitY", "UnitZ" } },
+        };
+
         protected ConstantValue(Tree.ValueType valueType, string value) : base(null)
         {
             if (valueType.PrimitiveType == Primitive.Char)
@@ -56,10 +63,34 @@ namespace Antigen.Expressions
             return new ConstantValue(Tree.ValueType.ForPrimitive(Primitive.Int), PRNG.Next(min, max).ToString());
         }
 
+        /// <summary>
+        ///     Return ConstantValue for `value`.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static ConstantValue GetConstantValue(int value)
+        {
+            return new ConstantValue(Tree.ValueType.ForPrimitive(Primitive.Int), value.ToString());
+        }
+
         public static ConstantValue GetConstantValue(Tree.ValueType literalType, IList<Weights<int>> numerals)
         {
             string constantValue;
-            if ((literalType.PrimitiveType & Primitive.Numeric) != 0)
+            if (literalType.IsVectorType)
+            {
+                constantValue = literalType.ToString();
+
+                if (literalType.IsVectorNumerics())
+                {
+                    var vectorConstantProps = s_vectorConstants[literalType.ToString()];
+                    constantValue += ("." + vectorConstantProps[PRNG.Next(vectorConstantProps.Count)]);
+                }
+                else
+                {
+                    constantValue += (PRNG.Decide(0.5) ? ".AllBitsSet" : ".Zero");
+                }
+            }
+            else if ((literalType.PrimitiveType & Primitive.Numeric) != 0)
             {
                 // numeric
                 int literalValue = PRNG.WeightedChoice(numerals);

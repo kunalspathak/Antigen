@@ -2,6 +2,7 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
+using System.Runtime.InteropServices;
 using System.Text;
 using Antigen.Statements;
 
@@ -31,10 +32,17 @@ namespace Antigen
 // This file is auto-generated.
 // Seed: -1
 //
-                using System;
+
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.{0};
+using System.Numerics;
 ";
+                bool isArm = (RuntimeInformation.OSArchitecture == Architecture.Arm) || (RuntimeInformation.OSArchitecture == Architecture.Arm64);
+
+                usingCode = string.Format(usingCode, isArm ? "Arm" : "X86");
                 s_usingStmts = new ArbitraryCodeStatement(null, usingCode);
                 return s_usingStmts;
             }
