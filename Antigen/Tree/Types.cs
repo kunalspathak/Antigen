@@ -93,7 +93,6 @@ namespace Antigen.Tree
 
     public struct ValueType
     {
-
         public bool IsVectorNumerics()
         {
             if (IsVectorType)
@@ -499,7 +498,7 @@ namespace Antigen.Tree
         public override bool Equals(object obj)
         {
             ValueType otherType = (ValueType)obj;
-            bool result = isVectorType ? (VectorType == otherType.VectorType) : (PrimitiveType == otherType.PrimitiveType);
+            bool result = otherType.isVectorType ? (VectorType == otherType.VectorType) : (PrimitiveType == otherType.PrimitiveType);
             return result &&
                 TypeKind == otherType.TypeKind &&
                 _structTypeName == otherType._structTypeName;

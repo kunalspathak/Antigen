@@ -474,13 +474,12 @@ namespace Antigen
                 case StmtKind.ReturnStatement:
                     {
                         Tree.ValueType returnType = MethodSignature.ReturnType;
-                        if (!returnType.IsVectorType && returnType.PrimitiveType == Primitive.Void)
+                        if (returnType.IsVectorType || returnType.PrimitiveType != Primitive.Void)
                         {
-                            return new ReturnStatement(TC, null);
+                            Expression returnExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningValueType(returnType), returnType, 0);
+                            return new ReturnStatement(TC, returnExpr);
                         }
-
-                        Expression returnExpr = ExprHelper(GetASTUtils().GetRandomExpressionReturningValueType(returnType), returnType, 0);
-                        return new ReturnStatement(TC, returnExpr);
+                        return new ReturnStatement(TC, null);
                     }
                 case StmtKind.TryCatchFinallyStatement:
                     {

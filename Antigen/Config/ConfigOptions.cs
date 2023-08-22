@@ -16,7 +16,7 @@ namespace Antigen.Config
         public int MaxExprDepth = 3;
 
         public int MethodCount = 3;
-        public int MaxStatementCount = 10;
+        public int MaxStatementCount = 7;
         public int VariablesCount = 8;
         public int StructCount = 2;
 
@@ -299,12 +299,12 @@ namespace Antigen.Config
         /// <summary>
         ///     Probability in which vector methods will be included.
         /// </summary>
-        public double VectorDataProbability = 0.3;
+        public double VectorDataProbability = 0.5;
 
         /// <summary>
         ///     Number of methods to be included. Only relevant ifVectorMethodsProbability is non-zero.
         /// </summary>
-        public double RegisterIntrinsicMethodsProbability = 0.1;
+        public double RegisterIntrinsicMethodsProbability = 0.4;
 
         /// <summary>
         ///     Number of methods to be invoked from Method0. Only relevant ifVectorMethodsProbability is non-zero.
