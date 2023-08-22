@@ -13,7 +13,7 @@ namespace Antigen.Expressions
     {
         public readonly string Value;
 
-        private static Dictionary<string, List<string>> s_vectorConstants = new Dictionary<string, List<string>>()
+        private static readonly Dictionary<string, List<string>> s_vectorConstants = new Dictionary<string, List<string>>()
         {
             { "Vector2", new List<string>() { "One", "Zero", "UnitX", "UnitY" } },
             { "Vector3", new List<string>() { "One", "Zero", "UnitX", "UnitY", "UnitZ" } },
@@ -61,6 +61,16 @@ namespace Antigen.Expressions
         public static ConstantValue GetRandomConstantInt(int min, int max)
         {
             return new ConstantValue(Tree.ValueType.ForPrimitive(Primitive.Int), PRNG.Next(min, max).ToString());
+        }
+
+        /// <summary>
+        ///     Return ConstantValue for `value`.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static ConstantValue GetConstantValue(int value)
+        {
+            return new ConstantValue(Tree.ValueType.ForPrimitive(Primitive.Int), value.ToString());
         }
 
         public static ConstantValue GetConstantValue(Tree.ValueType literalType, IList<Weights<int>> numerals)

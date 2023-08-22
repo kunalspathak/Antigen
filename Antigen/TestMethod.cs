@@ -474,7 +474,7 @@ namespace Antigen
                 case StmtKind.ReturnStatement:
                     {
                         Tree.ValueType returnType = MethodSignature.ReturnType;
-                        if (returnType.PrimitiveType == Primitive.Void)
+                        if (!returnType.IsVectorType && returnType.PrimitiveType == Primitive.Void)
                         {
                             return new ReturnStatement(TC, null);
                         }
@@ -894,7 +894,15 @@ namespace Antigen
                     {
                         // For GetElement/WithElement, the index should not exceed the element count. So perform modulo operation for (argExpr % ElementCount)
                         VectorType targetVectorType = methodSig.Parameters[0].ParamType.VectorType;
-                        var elementCountExpr = ConstantValue.GetRandomConstantInt(1, Tree.ValueType.GetElementCount(targetVectorType) - 1);
+                        ConstantValue elementCountExpr;
+                        if (Tree.ValueType.GetElementCount(targetVectorType) == 1)
+                        {
+                            elementCountExpr = ConstantValue.GetConstantValue(1);
+                        }
+                        else
+                        {
+                            elementCountExpr = ConstantValue.GetRandomConstantInt(0, Tree.ValueType.GetElementCount(targetVectorType) - 1);
+                        }
                         argExpr = new BinaryExpression(TC, Tree.ValueType.ForPrimitive(Primitive.Int), argExpr, Operator.ForOperation(Operation.BitwiseAnd), elementCountExpr);
                     }
                     else if (argExpr is ConstantValue)
