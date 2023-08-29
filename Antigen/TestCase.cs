@@ -281,7 +281,7 @@ namespace Antigen
             string uniqueIssueDirName = null;
             int assertionHashCode = failureText.GetHashCode();
             string currentReproFile = $"{testFileName}.g.cs";
-            lock (this)
+            lock (Program.s_spinLock)
             {
                 if (!s_uniqueIssues.ContainsKey(assertionHashCode))
                 {
