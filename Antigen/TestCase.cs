@@ -26,6 +26,8 @@ namespace Antigen
         {
             "System.OverflowException: Value was either too large or too small for a Decimal.",
             "System.DivideByZeroException: Attempted to divide by zero.",
+            "isCandidateVar(fieldVarDsc) == isMultiReg", // https://github.com/dotnet/runtime/issues/85628
+            "curSize < maxSplitSize", // https://github.com/dotnet/runtime/issues/91251
         };
 
         private SyntaxNode testCaseRoot;
