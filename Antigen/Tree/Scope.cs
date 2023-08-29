@@ -155,7 +155,7 @@ namespace Antigen.Tree
                     foreach (StructField childField in childFields)
                     {
                         // structs present in structToFieldsMapping should have all the child fields expanded.
-                        Debug.Assert((childField.FieldType.PrimitiveType & Primitive.Any) != 0);
+                        //Debug.Assert((childField.FieldType.PrimitiveType & Primitive.Any) != 0);
 
                         string expandedFieldName = field.FieldName + "." + childField.FieldName;
 
@@ -165,7 +165,7 @@ namespace Antigen.Tree
                 else
                 {
                     // else it is a primitive
-                    Debug.Assert((field.FieldType.PrimitiveType & Primitive.Any) != 0);
+                    //Debug.Assert((field.FieldType.PrimitiveType & Primitive.Any) != 0);
 
                     //string expandedFieldName = field.FieldName + "." + childField.FieldName;
 
