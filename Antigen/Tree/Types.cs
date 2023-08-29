@@ -75,20 +75,20 @@ namespace Antigen.Tree
         Vector256_Float = 29,
         Vector256_Double = 30,
 
-        //Vector512_Byte,
-        //Vector512_SByte,
-        //Vector512_Short,
-        //Vector512_UShort,
-        //Vector512_Int,
-        //Vector512_UInt,
-        //Vector512_Long,
-        //Vector512_ULong,
-        //Vector512_Float,
-        //Vector512_Double,
+        Vector512_Byte = 31,
+        Vector512_SByte = 32,
+        Vector512_Short = 33,
+        Vector512_UShort = 34,
+        Vector512_Int = 35,
+        Vector512_UInt = 36,
+        Vector512_Long = 37,
+        Vector512_ULong = 38,
+        Vector512_Float = 39,
+        Vector512_Double = 40,
 
-        Vector2 = 31,
-        Vector3 = 32,
-        Vector4 = 33,
+        Vector2 = 41,
+        Vector3 = 42,
+        Vector4 = 43,
     }
 
     public struct ValueType
@@ -110,7 +110,7 @@ namespace Antigen.Tree
         {
             if (IsVectorType)
             {
-                if (VectorType >= VectorType.Vector64_Byte && VectorType <= VectorType.Vector256_Double)
+                if (VectorType >= VectorType.Vector64_Byte && VectorType <= VectorType.Vector512_Double)
                 {
                     return true;
                 }
@@ -146,7 +146,7 @@ namespace Antigen.Tree
         public Primitive PrimitiveType;
         public VectorType VectorType;
         public SyntaxKind TypeKind;
-        private string _displayText;
+        private readonly string _displayText;
 
         private ValueType(Primitive valueType, string displayText, SyntaxKind typeKind)
         {
@@ -218,23 +218,23 @@ namespace Antigen.Tree
             new ValueType(VectorType.Vector256_ULong, "Vector256<ulong>", "v256_ulong"),
             new ValueType(VectorType.Vector256_Float, "Vector256<float>", "v256_float"),
             new ValueType(VectorType.Vector256_Double, "Vector256<double>", "v256_double"),
-            //new ValueType(VectorType.Vector512_Byte, "Vector512<byte>", "v512_byte"),
-            //new ValueType(VectorType.Vector512_SByte, "Vector512<sbyte>", "v512_sbyte"),
-            //new ValueType(VectorType.Vector512_Short, "Vector512<short>", "v512_short"),
-            //new ValueType(VectorType.Vector512_UShort, "Vector512<ushort>", "v512_ushort"),
-            //new ValueType(VectorType.Vector512_Int, "Vector512<int>", "v512_int"),
-            //new ValueType(VectorType.Vector512_UInt, "Vector512<uint>", "v512_uint"),
-            //new ValueType(VectorType.Vector512_Long, "Vector512<long>", "v512_long"),
-            //new ValueType(VectorType.Vector512_ULong, "Vector512<ulong>", "v512_ulong"),
-            //new ValueType(VectorType.Vector512_Float, "Vector512<float>", "v512_float"),
-            //new ValueType(VectorType.Vector512_Double, "Vector512<double>", "v512_double"),
+            new ValueType(VectorType.Vector512_Byte, "Vector512<byte>", "v512_byte"),
+            new ValueType(VectorType.Vector512_SByte, "Vector512<sbyte>", "v512_sbyte"),
+            new ValueType(VectorType.Vector512_Short, "Vector512<short>", "v512_short"),
+            new ValueType(VectorType.Vector512_UShort, "Vector512<ushort>", "v512_ushort"),
+            new ValueType(VectorType.Vector512_Int, "Vector512<int>", "v512_int"),
+            new ValueType(VectorType.Vector512_UInt, "Vector512<uint>", "v512_uint"),
+            new ValueType(VectorType.Vector512_Long, "Vector512<long>", "v512_long"),
+            new ValueType(VectorType.Vector512_ULong, "Vector512<ulong>", "v512_ulong"),
+            new ValueType(VectorType.Vector512_Float, "Vector512<float>", "v512_float"),
+            new ValueType(VectorType.Vector512_Double, "Vector512<double>", "v512_double"),
             new ValueType(VectorType.Vector2, "Vector2", "v2"),
             new ValueType(VectorType.Vector3, "Vector3", "v3"),
             new ValueType(VectorType.Vector4, "Vector4", "v4"),
 
         };
 
-        private static Regex vectorRegex = new Regex(@"Vector(64|128|256)`1\[(.*)\]");
+        private static readonly Regex vectorRegex = new Regex(@"Vector(64|128|256|512)`1\[(.*)\]");
 
         public static ValueType ParseType(string typeName)
         {
@@ -290,20 +290,20 @@ namespace Antigen.Tree
                         "System.Double" => VectorType.Vector256_Double,
                         _ => throw new Exception("Invalid template parameter for Vector256"),
                     },
-                    //"512" => templateParameterType switch
-                    //{
-                    //    "System.Byte" => VectorType.Vector512_Byte,
-                    //    "System.SByte" => VectorType.Vector512_SByte,
-                    //    "System.Int16" => VectorType.Vector512_Short,
-                    //    "System.UInt16" => VectorType.Vector512_UShort,
-                    //    "System.Int32" => VectorType.Vector512_Int,
-                    //    "System.UInt32" => VectorType.Vector512_UInt,
-                    //    "System.Int64" => VectorType.Vector512_Long,
-                    //    "System.UInt64" => VectorType.Vector512_ULong,
-                    //    "System.Single" => VectorType.Vector512_Float,
-                    //    "System.Double" => VectorType.Vector512_Double,
-                    //    _ => throw new Exception("Invalid template parameter for Vector512"),
-                    //},
+                "512" => templateParameterType switch
+                {
+                    "System.Byte" => VectorType.Vector512_Byte,
+                    "System.SByte" => VectorType.Vector512_SByte,
+                    "System.Int16" => VectorType.Vector512_Short,
+                    "System.UInt16" => VectorType.Vector512_UShort,
+                    "System.Int32" => VectorType.Vector512_Int,
+                    "System.UInt32" => VectorType.Vector512_UInt,
+                    "System.Int64" => VectorType.Vector512_Long,
+                    "System.UInt64" => VectorType.Vector512_ULong,
+                    "System.Single" => VectorType.Vector512_Float,
+                    "System.Double" => VectorType.Vector512_Double,
+                    _ => throw new Exception("Invalid template parameter for Vector512"),
+                },
                     _ => throw new Exception("Invalid vector length"),
                 };
                 return vectorTypes.FirstOrDefault(v => v.VectorType == parsedVectorType);
@@ -383,17 +383,17 @@ namespace Antigen.Tree
                 case VectorType.Vector256_Float: return Vector256<float>.Count;
                 case VectorType.Vector256_Double: return Vector256<double>.Count;
 
-                //case VectorType.Vector512_Byte: return Vector512<byte>.Count;
-                //case VectorType.Vector512_SByte: return Vector512<sbyte>.Count;
-                //case VectorType.Vector512_Short: return Vector512<short>.Count;
-                //case VectorType.Vector512_UShort: return Vector512<ushort>.Count;
-                //case VectorType.Vector512_Int: return Vector512<int>.Count;
-                //case VectorType.Vector512_UInt: return Vector512<uint>.Count;
-                //case VectorType.Vector512_Long: return Vector512<long>.Count;
-                //case VectorType.Vector512_ULong: return Vector512<ulong>.Count;
-                //case VectorType.Vector512_Float: return Vector512<float>.Count;
-                //case VectorType.Vector512_Double: return Vector512<double>.Count
-                //
+                case VectorType.Vector512_Byte: return Vector512<byte>.Count;
+                case VectorType.Vector512_SByte: return Vector512<sbyte>.Count;
+                case VectorType.Vector512_Short: return Vector512<short>.Count;
+                case VectorType.Vector512_UShort: return Vector512<ushort>.Count;
+                case VectorType.Vector512_Int: return Vector512<int>.Count;
+                case VectorType.Vector512_UInt: return Vector512<uint>.Count;
+                case VectorType.Vector512_Long: return Vector512<long>.Count;
+                case VectorType.Vector512_ULong: return Vector512<ulong>.Count;
+                case VectorType.Vector512_Float: return Vector512<float>.Count;
+                case VectorType.Vector512_Double: return Vector512<double>.Count;
+
                 default: return 0;
             }
         }

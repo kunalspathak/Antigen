@@ -91,16 +91,16 @@ namespace Antigen.Config
         public double Vector256_FloatWeight = 0.1;
         public double Vector256_DoubleWeight = 0.1;
 
-        public double Vector512_ByteWeight = 0.1;
-        public double Vector512_SByteWeight = 0.1;
-        public double Vector512_ShortWeight = 0.1;
-        public double Vector512_UShortWeight = 0.1;
-        public double Vector512_IntWeight = 0.1;
-        public double Vector512_UIntWeight = 0.1;
-        public double Vector512_LongWeight = 0.1;
-        public double Vector512_ULongWeight = 0.1;
-        public double Vector512_FloatWeight = 0.1;
-        public double Vector512_DoubleWeight = 0.1;
+        public double Vector512_ByteWeight = 0.15;
+        public double Vector512_SByteWeight = 0.15;
+        public double Vector512_ShortWeight = 0.15;
+        public double Vector512_UShortWeight = 0.15;
+        public double Vector512_IntWeight = 0.15;
+        public double Vector512_UIntWeight = 0.15;
+        public double Vector512_LongWeight = 0.15;
+        public double Vector512_ULongWeight = 0.15;
+        public double Vector512_FloatWeight = 0.15;
+        public double Vector512_DoubleWeight = 0.15;
 
         public double Vector2Weight = 0.1;
         public double Vector3Weight = 0.1;

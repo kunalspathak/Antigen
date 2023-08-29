@@ -44,10 +44,10 @@ namespace Antigen
                 {
                     RecordIntrinsicMethods(typeof(Vector256));
                 }
-                //if (Vector512<byte>.IsSupported)
-                //{
-                //    RecordVectorMethods(typeof(Vector512));
-                //}
+                if (Vector512<byte>.IsSupported)
+                {
+                    RecordIntrinsicMethods(typeof(Vector512));
+                }
 
                 if (PRNG.Decide(TC.Config.TraditionalMethodsProbability))
                 {

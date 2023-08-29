@@ -62,11 +62,6 @@ namespace Antigen
             new Weights<int>(int.MaxValue, (double) PRNG.Next(1, 10) / 10000 ),
         };
 
-        //private List<SyntaxNode> classesList;
-        //private List<SyntaxNode> methodsList;
-        //private List<SyntaxNode> propertiesList;
-        //private List<SyntaxNode> fieldsList;
-
         private static TestRunner s_testRunner;
         private static RunOptions s_runOptions;
 
@@ -90,7 +85,6 @@ namespace Antigen
         {
             var klass = new TestClass(this, PreGenerated.MainClassName).Generate();
             var finalCode = PreGenerated.UsingDirective + klass.ToString();
-
             testCaseRoot = CSharpSyntaxTree.ParseText(finalCode).GetRoot();
         }
 
@@ -281,7 +275,7 @@ namespace Antigen
             string uniqueIssueDirName = null;
             int assertionHashCode = failureText.GetHashCode();
             string currentReproFile = $"{testFileName}.g.cs";
-            lock (this)
+            lock (Program.s_spinLock)
             {
                 if (!s_uniqueIssues.ContainsKey(assertionHashCode))
                 {
