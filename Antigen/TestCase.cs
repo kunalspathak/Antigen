@@ -194,8 +194,14 @@ namespace Antigen
             // If baseline and test output doesn't match
             else if (baseline != test)
             {
-                SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, baseline, baselineVariables, test, testVariables, "OutputMismatch", $"{ Name}-output-mismatch");
-                return TheTestResult(compileResult.AssemblyFullPath, TestResult.OutputMismatch);
+                bool unsupportedOperationInBaseline = baseline.Contains("System.PlatformNotSupportedException");
+                bool unsupportedOperationInTest = test.Contains("System.PlatformNotSupportedException");
+                if (unsupportedOperationInBaseline == unsupportedOperationInTest)
+                {
+                    // Only return mismatch output if both baseline/test contains "not supported" or both doesn't contain this exception.
+                    SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, baseline, baselineVariables, test, testVariables, "OutputMismatch", $"{Name}-output-mismatch");
+                    return TheTestResult(compileResult.AssemblyFullPath, TestResult.OutputMismatch);
+                }
             }
 
             return TheTestResult(compileResult.AssemblyFullPath, TestResult.Pass);
