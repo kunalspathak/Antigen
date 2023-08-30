@@ -3,6 +3,7 @@ using Antigen.Tree;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -45,7 +46,7 @@ namespace Antigen
                 FileName = _fileName;
             }
         }
-        private static readonly Dictionary<int, UniqueIssueFile> s_uniqueIssues = new();
+        private static readonly ConcurrentDictionary<int, UniqueIssueFile> s_uniqueIssues = new();
 
         internal IList<Weights<int>> _numerals = new List<Weights<int>>()
         {
@@ -146,6 +147,13 @@ namespace Antigen
             // If test assertion
             if (!string.IsNullOrEmpty(testAssertion))
             {
+                foreach (var knownError in _knownDiffs)
+                {
+                    if (testAssertion.Contains(knownError))
+                    {
+                        return TheTestResult(compileResult.AssemblyFullPath, TestResult.Pass);
+                    }
+                }
                 SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, test, testVariables, testAssertion, $"{Name}-test-assertion");
                 return TheTestResult(compileResult.AssemblyFullPath, TestResult.Assertion);
             }
@@ -189,15 +197,14 @@ namespace Antigen
             // Is there assertion in baseline?
             if (!string.IsNullOrEmpty(baselineAssertion))
             {
-
                 SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, baseline, baselineVariables, null, null, baselineAssertion, $"{Name}-base-assertion");
                 return TheTestResult(compileResult.AssemblyFullPath, TestResult.Assertion);
             }
             // If baseline and test output doesn't match
             else if (baseline != test)
             {
-                bool unsupportedOperationInBaseline = baseline.Contains("System.PlatformNotSupportedException");
-                bool unsupportedOperationInTest = test.Contains("System.PlatformNotSupportedException");
+                var unsupportedOperationInBaseline = baseline.Contains("System.PlatformNotSupportedException");
+                var unsupportedOperationInTest = test.Contains("System.PlatformNotSupportedException");
                 if (unsupportedOperationInBaseline == unsupportedOperationInTest)
                 {
                     // Only return mismatch output if both baseline/test contains "not supported" or both doesn't contain this exception.
@@ -237,6 +244,7 @@ namespace Antigen
 #endif
 
             StringBuilder fileContents = new StringBuilder();
+            fileContents.AppendLine($"// Found by Antigen on {DateTime.Now}");
             if (baselineVars != null)
             {
                 fileContents.AppendLine($"// BaselineVars: {string.Join("|", baselineVars.ToList().Select(x => $"{x.Key}={x.Value}"))}");
@@ -277,6 +285,10 @@ namespace Antigen
             }
             fileContents.AppendLine();
             fileContents.AppendLine(testOutput);
+            fileContents.AppendLine();
+            fileContents.AppendLine();
+            fileContents.AppendLine("GH title text:");
+            fileContents.AppendLine(failureText);
             fileContents.AppendLine("*/");
 
             string output = string.IsNullOrEmpty(baselineOutput) ? testOutput : baselineOutput;

@@ -93,7 +93,7 @@ namespace Utils
             if (assertionMatch.Success)
             {
                 Debug.Assert(assertionMatch.Groups.Count == 4);
-                return assertionMatch.Groups[1].Value + ":" + assertionMatch.Groups[3].Value;
+                return $"Assertion failed '{assertionMatch.Groups[1].Value}' during '{assertionMatch.Groups[3].Value}'";
             }
 
             assertionMatch = s_coreclrAssertionRegEx.Match(output);
