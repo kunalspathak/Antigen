@@ -186,55 +186,97 @@ namespace Antigen.Tree
             new ValueType(Primitive.ULong,      "ulong",     SyntaxKind.ULongKeyword),
         };
 
-        private static readonly List<ValueType> vectorTypes = new List<ValueType>()
-        {
-            new ValueType(VectorType.Vector64_Byte, "Vector64<byte>", "v64_byte"),
-            new ValueType(VectorType.Vector64_SByte, "Vector64<sbyte>", "v64_sbyte"),
-            new ValueType(VectorType.Vector64_Short, "Vector64<short>", "v64_short"),
-            new ValueType(VectorType.Vector64_UShort, "Vector64<ushort>", "v64_ushort"),
-            new ValueType(VectorType.Vector64_Int, "Vector64<int>", "v64_int"),
-            new ValueType(VectorType.Vector64_UInt, "Vector64<uint>", "v64_uint"),
-            new ValueType(VectorType.Vector64_Long, "Vector64<long>", "v64_long"),
-            new ValueType(VectorType.Vector64_ULong, "Vector64<ulong>", "v64_ulong"),
-            new ValueType(VectorType.Vector64_Float, "Vector64<float>", "v64_float"),
-            new ValueType(VectorType.Vector64_Double, "Vector64<double>", "v64_double"),
-            new ValueType(VectorType.Vector128_Byte, "Vector128<byte>", "v128_byte"),
-            new ValueType(VectorType.Vector128_SByte, "Vector128<sbyte>", "v128_sbyte"),
-            new ValueType(VectorType.Vector128_Short, "Vector128<short>", "v128_short"),
-            new ValueType(VectorType.Vector128_UShort, "Vector128<ushort>", "v128_ushort"),
-            new ValueType(VectorType.Vector128_Int, "Vector128<int>", "v128_int"),
-            new ValueType(VectorType.Vector128_UInt, "Vector128<uint>", "v128_uint"),
-            new ValueType(VectorType.Vector128_Long, "Vector128<long>", "v128_long"),
-            new ValueType(VectorType.Vector128_ULong, "Vector128<ulong>", "v128_ulong"),
-            new ValueType(VectorType.Vector128_Float, "Vector128<float>", "v128_float"),
-            new ValueType(VectorType.Vector128_Double, "Vector128<double>", "v128_double"),
-            new ValueType(VectorType.Vector256_Byte, "Vector256<byte>", "v256_byte"),
-            new ValueType(VectorType.Vector256_SByte, "Vector256<sbyte>", "v256_sbyte"),
-            new ValueType(VectorType.Vector256_Short, "Vector256<short>", "v256_short"),
-            new ValueType(VectorType.Vector256_UShort, "Vector256<ushort>", "v256_ushort"),
-            new ValueType(VectorType.Vector256_Int, "Vector256<int>", "v256_int"),
-            new ValueType(VectorType.Vector256_UInt, "Vector256<uint>", "v256_uint"),
-            new ValueType(VectorType.Vector256_Long, "Vector256<long>", "v256_long"),
-            new ValueType(VectorType.Vector256_ULong, "Vector256<ulong>", "v256_ulong"),
-            new ValueType(VectorType.Vector256_Float, "Vector256<float>", "v256_float"),
-            new ValueType(VectorType.Vector256_Double, "Vector256<double>", "v256_double"),
-            new ValueType(VectorType.Vector512_Byte, "Vector512<byte>", "v512_byte"),
-            new ValueType(VectorType.Vector512_SByte, "Vector512<sbyte>", "v512_sbyte"),
-            new ValueType(VectorType.Vector512_Short, "Vector512<short>", "v512_short"),
-            new ValueType(VectorType.Vector512_UShort, "Vector512<ushort>", "v512_ushort"),
-            new ValueType(VectorType.Vector512_Int, "Vector512<int>", "v512_int"),
-            new ValueType(VectorType.Vector512_UInt, "Vector512<uint>", "v512_uint"),
-            new ValueType(VectorType.Vector512_Long, "Vector512<long>", "v512_long"),
-            new ValueType(VectorType.Vector512_ULong, "Vector512<ulong>", "v512_ulong"),
-            new ValueType(VectorType.Vector512_Float, "Vector512<float>", "v512_float"),
-            new ValueType(VectorType.Vector512_Double, "Vector512<double>", "v512_double"),
-            new ValueType(VectorType.Vector2, "Vector2", "v2"),
-            new ValueType(VectorType.Vector3, "Vector3", "v3"),
-            new ValueType(VectorType.Vector4, "Vector4", "v4"),
+        private static readonly List<ValueType> s_vectorTypes = new();
 
-        };
+        static ValueType()
+        {
+            if (Program.s_runOptions.SupportsVector64)
+            {
+                s_vectorTypes.Add(new ValueType(VectorType.Vector64_Byte, "Vector64<byte>", "v64_byte"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector64_SByte, "Vector64<sbyte>", "v64_sbyte"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector64_Short, "Vector64<short>", "v64_short"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector64_UShort, "Vector64<ushort>", "v64_ushort"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector64_Int, "Vector64<int>", "v64_int"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector64_UInt, "Vector64<uint>", "v64_uint"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector64_Long, "Vector64<long>", "v64_long"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector64_ULong, "Vector64<ulong>", "v64_ulong"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector64_Float, "Vector64<float>", "v64_float"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector64_Double, "Vector64<double>", "v64_double"));
+            }
+
+            if (Program.s_runOptions.SupportsVector128)
+            {
+                s_vectorTypes.Add(new ValueType(VectorType.Vector128_Byte, "Vector128<byte>", "v128_byte"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector128_SByte, "Vector128<sbyte>", "v128_sbyte"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector128_Short, "Vector128<short>", "v128_short"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector128_UShort, "Vector128<ushort>", "v128_ushort"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector128_Int, "Vector128<int>", "v128_int"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector128_UInt, "Vector128<uint>", "v128_uint"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector128_Long, "Vector128<long>", "v128_long"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector128_ULong, "Vector128<ulong>", "v128_ulong"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector128_Float, "Vector128<float>", "v128_float"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector128_Double, "Vector128<double>", "v128_double"));
+            }
+
+            if (Program.s_runOptions.SupportsVector256)
+            {
+                s_vectorTypes.Add(new ValueType(VectorType.Vector256_Byte, "Vector256<byte>", "v256_byte"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector256_SByte, "Vector256<sbyte>", "v256_sbyte"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector256_Short, "Vector256<short>", "v256_short"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector256_UShort, "Vector256<ushort>", "v256_ushort"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector256_Int, "Vector256<int>", "v256_int"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector256_UInt, "Vector256<uint>", "v256_uint"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector256_Long, "Vector256<long>", "v256_long"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector256_ULong, "Vector256<ulong>", "v256_ulong"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector256_Float, "Vector256<float>", "v256_float"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector256_Double, "Vector256<double>", "v256_double"));
+            }
+
+            if (Program.s_runOptions.SupportsVector512)
+            {
+                s_vectorTypes.Add(new ValueType(VectorType.Vector512_Byte, "Vector512<byte>", "v512_byte"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector512_SByte, "Vector512<sbyte>", "v512_sbyte"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector512_Short, "Vector512<short>", "v512_short"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector512_UShort, "Vector512<ushort>", "v512_ushort"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector512_Int, "Vector512<int>", "v512_int"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector512_UInt, "Vector512<uint>", "v512_uint"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector512_Long, "Vector512<long>", "v512_long"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector512_ULong, "Vector512<ulong>", "v512_ulong"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector512_Float, "Vector512<float>", "v512_float"));
+                s_vectorTypes.Add(new ValueType(VectorType.Vector512_Double, "Vector512<double>", "v512_double"));
+            }
+
+            s_vectorTypes.Add(new ValueType(VectorType.Vector2, "Vector2", "v2"));
+            s_vectorTypes.Add(new ValueType(VectorType.Vector3, "Vector3", "v3"));
+            s_vectorTypes.Add(new ValueType(VectorType.Vector4, "Vector4", "v4"));
+        }
 
         private static readonly Regex vectorRegex = new Regex(@"Vector(64|128|256|512)`1\[(.*)\]");
+        private static readonly Regex multipleVectorsRegex = new Regex(@"Vector(64|128|256|512)`1");
+
+        /// <summary>
+        ///     Returns Vector length for given type. `null` if not a VectorType.
+        /// </summary>
+        /// <param name="typeName"></param>
+        /// <returns></returns>
+        public static string GetVectorList(string typeName)
+        {
+
+            var vectorTypeMatches = multipleVectorsRegex.Matches(typeName);
+            if (vectorTypeMatches.Count == 0)
+            {
+                return null;
+            }
+
+            string result = "|";
+            foreach (Match vectorTypeMatch in vectorTypeMatches)
+            {
+                Debug.Assert(vectorTypeMatch.Groups.Count == 2);
+                result += (vectorTypeMatch.Groups[1].Value + "|");
+            }
+
+            return result;
+        }
 
         public static ValueType ParseType(string typeName)
         {
@@ -306,7 +348,7 @@ namespace Antigen.Tree
                 },
                     _ => throw new Exception("Invalid vector length"),
                 };
-                return vectorTypes.FirstOrDefault(v => v.VectorType == parsedVectorType);
+                return s_vectorTypes.FirstOrDefault(v => v.VectorType == parsedVectorType);
             }
             else if (typeName.Contains("System.Numerics"))
             {
@@ -317,7 +359,7 @@ namespace Antigen.Tree
                     "System.Numerics.Vector4" => VectorType.Vector4,
                     _ => throw new Exception("Invalid vector type Vector"),
                 };
-                return vectorTypes.FirstOrDefault(v => v.VectorType == parsedVectorType);
+                return s_vectorTypes.FirstOrDefault(v => v.VectorType == parsedVectorType);
             }
             else
             {
@@ -487,7 +529,7 @@ namespace Antigen.Tree
 
         public static List<ValueType> GetVectorTypes()
         {
-            return vectorTypes;
+            return s_vectorTypes;
         }
 
         public static ValueType GetRandomType()

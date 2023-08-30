@@ -10,12 +10,12 @@ using System.Reflection;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
+using Antigen.Tree;
 
 namespace Antigen
 {
     public partial class TestClass
     {
-
         private static readonly List<Type> s_vectorGenericArgs = new() { typeof(byte), typeof(sbyte), 
             typeof(short), typeof(ushort), typeof(int), typeof(uint), typeof(long), typeof(ulong), typeof(float), typeof(double) };
 
@@ -32,19 +32,19 @@ namespace Antigen
                 RecordVectorCtors(typeof(Vector3));
                 RecordVectorCtors(typeof(Vector4));
 
-                if (Vector64<byte>.IsSupported)
+                if (Program.s_runOptions.SupportsVector64)
                 {
                     RecordIntrinsicMethods(typeof(Vector64));
                 }
-                if (Vector128<byte>.IsSupported)
+                if (Program.s_runOptions.SupportsVector128)
                 {
                     RecordIntrinsicMethods(typeof(Vector128));
                 }
-                if (Vector256<byte>.IsSupported)
+                if (Program.s_runOptions.SupportsVector256)
                 {
                     RecordIntrinsicMethods(typeof(Vector256));
                 }
-                if (Vector512<byte>.IsSupported)
+                if (Program.s_runOptions.SupportsVector512)
                 {
                     RecordIntrinsicMethods(typeof(Vector512));
                 }
@@ -95,6 +95,31 @@ namespace Antigen
                     if (Popcnt.X64.IsSupported)
                     {
                         RecordIntrinsicMethods(typeof(Popcnt.X64), "Popcnt.X64");
+                    }
+
+                    if (Avx512BW.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Avx512BW));
+                    }
+
+                    if (Avx512CD.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Avx512CD));
+                    }
+
+                    if (Avx512DQ.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Avx512DQ));
+                    }
+
+                    if (Avx512F.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Avx512F));
+                    }
+
+                    if (Avx512Vbmi.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Avx512Vbmi));
                     }
                 }
 
@@ -196,6 +221,17 @@ namespace Antigen
                 {
                     // We do not support these types, so ignore these methods.
                     continue;
+                }
+
+                string vectorsInMethod = Tree.ValueType.GetVectorList(fullMethodName);
+
+                // If a parameter is one of the vector that is not supported, then skip this method
+                if (vectorsInMethod != null)
+                {
+                    if (!Program.s_runOptions.SupportsVector64 && vectorsInMethod.Contains("64")) continue;
+                    if (!Program.s_runOptions.SupportsVector128 && vectorsInMethod.Contains("128")) continue;
+                    if (!Program.s_runOptions.SupportsVector256 && vectorsInMethod.Contains("256")) continue;
+                    if (!Program.s_runOptions.SupportsVector512 && vectorsInMethod.Contains("512")) continue;
                 }
 
                 if (method.IsGenericMethod)
