@@ -22,6 +22,7 @@ namespace Trimmer
     public class TestTrimmer
     {
         private string _testFileToTrim;
+        private int _sizeOfTestFileToTrim;
         private static TestRunner _testRunner;
         private Dictionary<string, string> _baselineVariables;
         private Dictionary<string, string> _testVariables;
@@ -50,6 +51,7 @@ namespace Trimmer
                 throw new Exception($"{testFileToTrim} doesn't exist.");
             }
             _testFileToTrim = testFileToTrim;
+            _sizeOfTestFileToTrim = CSharpSyntaxTree.ParseText(File.ReadAllText(_testFileToTrim)).GetRoot().ToFullString().Length;
             _opts = opts;
             _testRunner = TestRunner.GetInstance(opts.CoreRunPath, opts.IssuesFolder);
 
@@ -463,6 +465,9 @@ TRIMMER_LOOP:
             programContents = Regex.Replace(programContents, @"[\r\n]*$", string.Empty, RegexOptions.Multiline);
 
             StringBuilder fileContents = new StringBuilder();
+            fileContents.AppendLine("// Found by Antigen");
+            fileContents.AppendLine($"// Reduced from {GetReadableFileSize(_sizeOfTestFileToTrim)} to {GetReadableFileSize(programContents.Length)}.");
+            fileContents.AppendLine();
             fileContents.AppendLine(programContents);
             fileContents.AppendLine("/*");
             fileContents.AppendLine("Got output diff:");
@@ -503,6 +508,22 @@ TRIMMER_LOOP:
 
             File.Move(compileResult.AssemblyFullPath, Path.Combine(_opts.IssuesFolder, $"{failedFileName}.exe"), overwrite: true);
             return verificationResult;
+        }
+
+        // Credits: https://stackoverflow.com/a/281679
+        private static string GetReadableFileSize(double len)
+        {
+            string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+            int order = 0;
+            while (len >= 1024 && order < sizes.Length - 1)
+            {
+                order++;
+                len = len / 1024;
+            }
+
+            // Adjust the format string to your preferences. For example "{0:0.#}{1}" would
+            // show a single decimal place, and no space.
+            return String.Format("{0:0.##} {1}", len, sizes[order]);
         }
     }
 

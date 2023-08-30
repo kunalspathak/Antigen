@@ -15,7 +15,7 @@ namespace Antigen
     {
         internal static readonly object s_spinLock = new object();
         private static int totalTestCount = 0;
-        private static readonly RunOptions s_runOptions = RunOptions.Initialize();
+        internal static readonly RunOptions s_runOptions = RunOptions.Initialize();
         private static readonly Dictionary<TestResult, int> s_stats = new()
         {
             { TestResult.RoslynException, 0 },

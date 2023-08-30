@@ -244,7 +244,6 @@ namespace Antigen
 #endif
 
             StringBuilder fileContents = new StringBuilder();
-            fileContents.AppendLine($"// Found by Antigen on {DateTime.Now}");
             if (baselineVars != null)
             {
                 fileContents.AppendLine($"// BaselineVars: {string.Join("|", baselineVars.ToList().Select(x => $"{x.Key}={x.Value}"))}");
