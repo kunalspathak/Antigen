@@ -219,7 +219,7 @@ namespace Antigen
                     fullMethodName.Contains("Quaternion") || fullMethodName.Contains("[]") ||
                     fullMethodName.Contains("*") || fullMethodName.Contains("ByRef") ||
                     fullMethodName.Contains("Vector`1") || fullMethodName.Contains("Divide") ||
-                    fullMethodName.Contains("FloatComparisonMode"))
+                    fullMethodName.Contains("FloatComparisonMode") || fullMethodName.Contains("Unsafe"))
                 {
                     // We do not support these types, so ignore these methods.
                     continue;
