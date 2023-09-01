@@ -98,7 +98,18 @@ namespace Antigen
                         {
                             RecordIntrinsicMethods(typeof(Popcnt.X64), "Popcnt.X64");
                         }
+                    }
 
+                    if (PRNG.Decide(TC.Config.AvxMethodsProbability))
+                    {
+                        if (Avx.IsSupported)
+                        {
+                            RecordIntrinsicMethods(typeof(Avx));
+                        }
+                        if (Avx2.IsSupported)
+                        {
+                            RecordIntrinsicMethods(typeof(Avx2));
+                        }
                         if (Avx512BW.IsSupported)
                         {
                             RecordIntrinsicMethods(typeof(Avx512BW));
@@ -122,18 +133,6 @@ namespace Antigen
                         if (Avx512Vbmi.IsSupported)
                         {
                             RecordIntrinsicMethods(typeof(Avx512Vbmi));
-                        }
-                    }
-
-                    if (PRNG.Decide(TC.Config.AvxMethodsProbability))
-                    {
-                        if (Avx.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Avx));
-                        }
-                        if (Avx2.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Avx2));
                         }
                     }
 
