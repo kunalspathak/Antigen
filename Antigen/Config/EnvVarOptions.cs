@@ -10,25 +10,25 @@ namespace Antigen.Config
 {
     public static class EnvVarOptions
     {
-        private static List<ComplusEnvVarGroup> s_baselineGroups;
-        private static readonly List<Weights<ComplusEnvVarGroup>> s_baselineGroupWeight = new();
+        private static List<DotnetEnvVarGroup> s_baselineGroups;
+        private static readonly List<Weights<DotnetEnvVarGroup>> s_baselineGroupWeight = new();
 
-        private static List<ComplusEnvVarGroup> s_testGroups;
-        private static readonly List<Weights<ComplusEnvVarGroup>> s_testGroupWeight = new();
+        private static List<DotnetEnvVarGroup> s_testGroups;
+        private static readonly List<Weights<DotnetEnvVarGroup>> s_testGroupWeight = new();
 
-        internal static void Initialize(List<ComplusEnvVarGroup> baselineEnvVars, List<ComplusEnvVarGroup> testEnvVars)
+        internal static void Initialize(List<DotnetEnvVarGroup> baselineEnvVars, List<DotnetEnvVarGroup> testEnvVars)
         {
             s_baselineGroups = baselineEnvVars;
             foreach (var base_group in s_baselineGroups)
             {
-                s_baselineGroupWeight.Add(new Weights<ComplusEnvVarGroup>(base_group, base_group.Weight));
+                s_baselineGroupWeight.Add(new Weights<DotnetEnvVarGroup>(base_group, base_group.Weight));
                 base_group.PopulateWeights();
             }
 
             s_testGroups = testEnvVars;
             foreach (var test_group in s_testGroups)
             {
-                s_testGroupWeight.Add(new Weights<ComplusEnvVarGroup>(test_group, test_group.Weight));
+                s_testGroupWeight.Add(new Weights<DotnetEnvVarGroup>(test_group, test_group.Weight));
                 test_group.PopulateWeights();
             }
         }
@@ -37,7 +37,7 @@ namespace Antigen.Config
         ///     Returns a random EnvVarGroup depending on the weight.
         /// </summary>
         /// <returns></returns>
-        private static ComplusEnvVarGroup GetRandomOsrTestGroup()
+        private static DotnetEnvVarGroup GetRandomOsrTestGroup()
         {
             return PRNG.WeightedChoice(s_testGroupWeight.Where(tg => tg.Data.IsOsrSwitchGroup()));
         }
@@ -46,7 +46,7 @@ namespace Antigen.Config
         ///     Returns a random EnvVarGroup depending on the weight.
         /// </summary>
         /// <returns></returns>
-        private static ComplusEnvVarGroup GetRandomNonOsrTestGroup()
+        private static DotnetEnvVarGroup GetRandomNonOsrTestGroup()
         {
             return PRNG.WeightedChoice(s_testGroupWeight.Where(tg => !tg.Data.IsOsrSwitchGroup()));
         }
@@ -62,7 +62,7 @@ namespace Antigen.Config
             {
                 foreach (var variable in group.Variables)
                 {
-                    envVars[$"COMPlus_{variable.Name}"] = variable.Values[PRNG.Next(variable.Values.Length)];
+                    envVars[$"DOTNET_{variable.Name}"] = variable.Values[PRNG.Next(variable.Values.Length)];
                 }
             }
             return envVars;
@@ -83,7 +83,7 @@ namespace Antigen.Config
             var defaultVariablesCount = PRNG.Next(1, 8);
             for (var i = 0; i < defaultVariablesCount; i++)
             {
-                ComplusEnvVar envVar;
+                DotnetEnvVar envVar;
 
                 // Avoid duplicate variables
                 do
@@ -91,7 +91,7 @@ namespace Antigen.Config
                     envVar = defaultGroup.GetRandomVariable();
                 } while (!usedEnvVars.Add(envVar.Name));
 
-                envVars[$"COMPlus_{envVar.Name}"] = envVar.Values[PRNG.Next(envVar.Values.Length)];
+                envVars[$"DOTNET_{envVar.Name}"] = envVar.Values[PRNG.Next(envVar.Values.Length)];
             }
 
             // OSR switches
@@ -102,19 +102,19 @@ namespace Antigen.Config
                 foreach (var osrSwitch in osrstressGroup.Variables)
                 {
                     Debug.Assert(osrSwitch.Values.Length == 1);
-                    envVars[$"COMPlus_{osrSwitch.Name}"] = osrSwitch.Values[0];
+                    envVars[$"DOTNET_{osrSwitch.Name}"] = osrSwitch.Values[0];
                 }
             }
             else
             {
-                envVars["COMPlus_TieredCompilation"] = "0";
+                envVars["DOTNET_TieredCompilation"] = "0";
             }
 
             // stress switches
             var stressVariablesCount = PRNG.Next(1, 4);
             for (var i = 0; i < stressVariablesCount; i++)
             {
-                ComplusEnvVar envVar;
+                DotnetEnvVar envVar;
 
                 // Avoid duplicate variables
                 do
@@ -123,14 +123,14 @@ namespace Antigen.Config
                     envVar = stressGroup.GetRandomVariable();
                 } while (!usedEnvVars.Add(envVar.Name));
 
-                envVars[$"COMPlus_{envVar.Name}"] = envVar.Values[PRNG.Next(envVar.Values.Length)];
+                envVars[$"DOTNET_{envVar.Name}"] = envVar.Values[PRNG.Next(envVar.Values.Length)];
             }
 
             return envVars;
         }
     }
 
-    public class ComplusEnvVar
+    public class DotnetEnvVar
     {
         public string Name;
         public string[] Values;
@@ -138,12 +138,12 @@ namespace Antigen.Config
 
         public override string ToString()
         {
-            return $"COMPlus_{Name}=[{string.Join(",", Values)}]";
+            return $"DOTNET_{Name}=[{string.Join(",", Values)}]";
         }
 
         public override bool Equals(object obj)
         {
-            if (obj is not ComplusEnvVar otherObj)
+            if (obj is not DotnetEnvVar otherObj)
             {
                 return false;
             }
@@ -157,16 +157,16 @@ namespace Antigen.Config
         }
     }
 
-    public class ComplusEnvVarGroup
+    public class DotnetEnvVarGroup
     {
         public string Name;
         public double Weight;
-        public List<ComplusEnvVar> Variables;
+        public List<DotnetEnvVar> Variables;
 
         /// <summary>
         ///     Weights of individual EnvVars present in this group.
         /// </summary>
-        private readonly List<Weights<ComplusEnvVar>> _variableWeights = new List<Weights<ComplusEnvVar>>();
+        private readonly List<Weights<DotnetEnvVar>> _variableWeights = new List<Weights<DotnetEnvVar>>();
 
         /// <summary>
         ///     Populate list of weighted choices.
@@ -176,12 +176,12 @@ namespace Antigen.Config
             Variables.ForEach(v => AddVariable(v));
         }
 
-        private void AddVariable(ComplusEnvVar variable)
+        private void AddVariable(DotnetEnvVar variable)
         {
-            _variableWeights.Add(new Weights<ComplusEnvVar>(variable, variable.Weight));
+            _variableWeights.Add(new Weights<DotnetEnvVar>(variable, variable.Weight));
         }
 
-        public ComplusEnvVar GetRandomVariable()
+        public DotnetEnvVar GetRandomVariable()
         {
             return PRNG.WeightedChoice(_variableWeights);
         }

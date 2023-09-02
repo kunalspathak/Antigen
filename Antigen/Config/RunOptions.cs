@@ -30,9 +30,9 @@ namespace Antigen.Config
 
         public List<ConfigOptions> Configs;
 
-        public List<ComplusEnvVarGroup> BaselineEnvVars;
+        public List<DotnetEnvVarGroup> BaselineEnvVars;
 
-        public List<ComplusEnvVarGroup> TestEnvVars;
+        public List<DotnetEnvVarGroup> TestEnvVars;
 
         /// <summary>
         ///     If this run supports Vector64.

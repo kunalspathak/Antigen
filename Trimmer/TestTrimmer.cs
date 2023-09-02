@@ -85,12 +85,12 @@ namespace Trimmer
 
                     if (!string.IsNullOrEmpty(_opts.AltJitName))
                     {
-                        _testVariables["COMPlus_AltJitName"] = _opts.AltJitName;
+                        _testVariables["DOTNET_AltJitName"] = _opts.AltJitName;
                     }
 
                     if (!string.IsNullOrEmpty(_opts.AltJitMethodName))
                     {
-                        _testVariables["COMPlus_AltJit"] = _opts.AltJitMethodName;
+                        _testVariables["DOTNET_AltJit"] = _opts.AltJitMethodName;
                     }
                     return;
                 }
