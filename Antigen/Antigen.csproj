@@ -25,6 +25,9 @@
 
   <PropertyGroup>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <RestoreAdditionalProjectSources>
+      https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet8/nuget/v3/index.json
+    </RestoreAdditionalProjectSources>
   </PropertyGroup>
 
   <ItemGroup>
