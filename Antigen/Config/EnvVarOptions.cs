@@ -5,6 +5,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace Antigen.Config
 {
@@ -15,6 +16,8 @@ namespace Antigen.Config
 
         private static List<DotnetEnvVarGroup> s_testGroups;
         private static readonly List<Weights<DotnetEnvVarGroup>> s_testGroupWeight = new();
+
+        private static bool s_IsArm = (RuntimeInformation.OSArchitecture == Architecture.Arm) || (RuntimeInformation.OSArchitecture == Architecture.Arm64);
 
         internal static void Initialize(List<DotnetEnvVarGroup> baselineEnvVars, List<DotnetEnvVarGroup> testEnvVars)
         {
@@ -108,6 +111,10 @@ namespace Antigen.Config
             else
             {
                 envVars["DOTNET_TieredCompilation"] = "0";
+                if (!s_IsArm)
+                {
+                    envVars["DOTNET_PreferredVectorBitWidth"] = "512";
+                }
             }
 
             // stress switches
