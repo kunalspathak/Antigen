@@ -57,7 +57,13 @@ if len(rows) > 1:
             second_output_data.extend(['0' if char not in ['0', '1'] else char for char in cell_text])
 
     # Print the first output with word replacements and other word replacements
-    print("".join(extracted_data))
+    first_output_str = "".join(extracted_data)
+    for word in re.findall(r'\b\w+\b', first_output_str):
+        if word not in replacement_mapping:
+            first_output_str = first_output_str.replace(word, word[0])
+
+    print("First Output:")
+    print(first_output_str)
 
     # Print the second output grouped in 16 digits on the same line
     second_output_str = "".join(second_output_data)
@@ -76,13 +82,26 @@ if len(rows) > 1:
         grouped_hex.append(third_output_str[i:i+4])
     print("Third Output (Grouped Hexadecimal without '0x' prefix):")
     print(" ".join(grouped_hex))
+
+# Find the element with class "asm-code"
+asm_code_element = soup.find('p', class_='asm-code')
+
+# Extract and print the text from the "asm-code" element
+if asm_code_element:
+    asm_code_text = asm_code_element.get_text().strip()
+    print("\nText from 'asm-code' class:")
+    print(asm_code_text)
 else:
-    print("Table does not have enough rows.")
+    print("\n'asm-code' class not found in the HTML.")
     
-# s101101011000000001000nnnnnddddd
+# First Output:
+# s
 # Second Output (Grouped in 16 digits on the same line):
 # 0101101011000000 0010000000000000
 # Third Output (Hexadecimal with '0x' prefix):
 # 0x5ac02000
 # Third Output (Grouped Hexadecimal without '0x' prefix):
 # 5ac0 2000
+
+# Text from 'asm-code' class:
+# ABS  <Wd>, <Wn>
