@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 import re
 
 # Load the HTML file
-with open("fmax_float.html", "r", encoding="utf-8") as file:
+with open("abs.html", "r", encoding="utf-8") as file:
     html_content = file.read()
     
 # Mapping for word replacements (case-sensitive)
@@ -31,7 +31,7 @@ if len(rows) > 1:
     second_row = rows[1]  # Index 1 corresponds to the second row
     cells = second_row.find_all('td')
     
-    # Extract the data from each cell with word replacements
+    # Extract the data from each cell with word replacements and other word replacements
     extracted_data = []
     second_output_data = []  # For the second output
     for cell in cells:
@@ -41,6 +41,8 @@ if len(rows) > 1:
             cell_text = cell.get_text().strip()
             # Replace words using the regex pattern for the entire cell content
             cell_text = pattern.sub(lambda x: replacement_mapping.get(x.group(0), x.group(0)), cell_text)
+            # Replace non-numeric output with the first character of the word
+            cell_text = "".join([word[0] if not word.isdigit() and word not in replacement_mapping else word for word in cell_text.split()])
             extracted_data.extend([cell_text] * colspan)
             # Replace non-numeric output with 0 for the second output
             second_output_data.extend(['0' if char not in ['0', '1'] else char for char in cell_text] * colspan)
@@ -48,17 +50,14 @@ if len(rows) > 1:
             cell_text = cell.get_text().strip()
             # Replace words using the regex pattern
             cell_text = pattern.sub(lambda x: replacement_mapping.get(x.group(0), x.group(0)), cell_text)
+            # Replace non-numeric output with the first character of the word
+            cell_text = "".join([word[0] if not word.isdigit() and word not in replacement_mapping else word for word in cell_text.split()])
             extracted_data.append(cell_text)
             # Replace non-numeric output with 0 for the second output
-            second_output_data.extend(['0' if cell_text not in ['0', '1'] else cell_text])
+            second_output_data.extend(['0' if char not in ['0', '1'] else char for char in cell_text])
 
-    # Print the first output with word replacements and replace other words with their first character
-    first_output_str = "".join(extracted_data)
-    for word in re.findall(r'\b\w+\b', first_output_str):
-        if word not in replacement_mapping:
-            first_output_str = first_output_str.replace(word, word[0])
-
-    print(first_output_str)
+    # Print the first output with word replacements and other word replacements
+    print("".join(extracted_data))
 
     # Print the second output grouped in 16 digits on the same line
     second_output_str = "".join(second_output_data)
@@ -80,10 +79,10 @@ if len(rows) > 1:
 else:
     print("Table does not have enough rows.")
     
-# 0
+# s101101011000000001000nnnnnddddd
 # Second Output (Grouped in 16 digits on the same line):
-# 0001111000000000 0010000001001000 00000000
+# 0101101011000000 0010000000000000
 # Third Output (Hexadecimal with '0x' prefix):
-# 0x1e00204800
+# 0x5ac02000
 # Third Output (Grouped Hexadecimal without '0x' prefix):
-# 1e00 2048 00
+# 5ac0 2000
