@@ -63,12 +63,12 @@ if len(rows) > 1:
     third_output_str = hex(int(second_output_str, 2))
     print("Third Output (Hexadecimal):")
     print(third_output_str[2:])  # Remove '0x' prefix
-    # Print the third output without '0x' and in groups of 4 hex digits
+    # Print the third output without '0x' and in groups of 4 hex digits with a space separator
     grouped_hex = []
     for i in range(0, len(third_output_str) - 2, 4):
         grouped_hex.append(third_output_str[i:i+4])
     print("Third Output (Grouped Hexadecimal):")
-    print("".join(grouped_hex))
+    print(" ".join(grouped_hex))
 else:
     print("Table does not have enough rows.")
     
@@ -77,4 +77,4 @@ else:
 # Third Output (Hexadecimal):
 # 5ac02000
 # Third Output (Grouped Hexadecimal):
-# 0x5ac020
+# 0x5a c020
