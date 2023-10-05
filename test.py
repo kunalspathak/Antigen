@@ -33,7 +33,7 @@ if len(rows) > 1:
     
     # Extract the data from each cell with word replacements
     extracted_data = []
-    non_numeric_output = []
+    second_output_data = []  # For the second output
     for cell in cells:
         # Check if the cell spans multiple columns
         if 'colspan' in cell.attrs:
@@ -43,22 +43,22 @@ if len(rows) > 1:
             cell_text = pattern.sub(lambda x: replacement_mapping.get(x.group(0), x.group(0)), cell_text)
             extracted_data.extend([cell_text] * colspan)
             # Replace non-numeric output with 0 for the second output
-            non_numeric_output.extend(['0' if char not in ['0', '1'] else char for char in cell_text])
+            second_output_data.extend(['0' if char not in ['0', '1'] else char for char in cell_text])
         else:
             cell_text = cell.get_text().strip()
             # Replace words using the regex pattern
             cell_text = pattern.sub(lambda x: replacement_mapping.get(x.group(0), x.group(0)), cell_text)
             extracted_data.append(cell_text)
             # Replace non-numeric output with 0 for the second output
-            non_numeric_output.extend(['0' if char not in ['0', '1'] else char for char in cell_text])
+            second_output_data.append('0' if cell_text not in ['0', '1'] else cell_text)
 
     # Print the extracted data with word replacements
     print("".join(extracted_data))
 
-    # Print the second output with non-numeric values replaced by 0
-    print("".join(non_numeric_output))
+    # Print the second output (identical to the first output, except non-numeric values replaced with 0)
+    print("".join(second_output_data))
 else:
     print("Table does not have enough rows.")
     
 # sf101101011000000001000nnnnnddddd
-# 0010110101100000000100000    
+# 010110101100000000100000
