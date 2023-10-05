@@ -43,14 +43,14 @@ if len(rows) > 1:
             cell_text = pattern.sub(lambda x: replacement_mapping.get(x.group(0), x.group(0)), cell_text)
             extracted_data.extend([cell_text] * colspan)
             # Replace non-numeric output with 0 for the second output
-            non_numeric_output.extend(['0'] * colspan)
+            non_numeric_output.extend(['0' if char not in ['0', '1'] else char for char in cell_text])
         else:
             cell_text = cell.get_text().strip()
             # Replace words using the regex pattern
             cell_text = pattern.sub(lambda x: replacement_mapping.get(x.group(0), x.group(0)), cell_text)
             extracted_data.append(cell_text)
             # Replace non-numeric output with 0 for the second output
-            non_numeric_output.append('0')
+            non_numeric_output.extend(['0' if char not in ['0', '1'] else char for char in cell_text])
 
     # Print the extracted data with word replacements
     print("Extracted Data:")
@@ -66,4 +66,4 @@ else:
 # ['sf', '1', '0', '1', '1', '0', '1', '0', '1', '1', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', 'n', 'n', 'n', 'n', 'n', 'd', 'd', 'd', 'd', 'd']
 
 # Second Output (Non-numeric values replaced by 0):
-# ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0']
+# ['0', '0', '1', '0', '1', '1', '0', '1', '0', '1', '1', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0']    
