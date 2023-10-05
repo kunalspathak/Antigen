@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+import re
 
 # Load the HTML file
 with open("abs.html", "r", encoding="utf-8") as file:
@@ -10,9 +11,11 @@ replacement_mapping = {
     'Rn': 'n',
     'Rd': 'd',
     'Rt': 't',
-    'imm': 'i',
-    'immediate': 'i'
+    'imm|immediate': 'i'
 }
+
+# Create a regex pattern for word replacements
+pattern = re.compile('|'.join(re.escape(word) for word in replacement_mapping.keys()), re.IGNORECASE)
 
 # Parse the HTML
 soup = BeautifulSoup(html_content, 'html.parser')
@@ -37,9 +40,8 @@ if len(rows) > 1:
             extracted_data.extend([replacement_mapping.get('-', '-')] * colspan)
         else:
             cell_text = cell.get_text().strip()
-            # Replace words according to the mapping
-            for word, replacement in replacement_mapping.items():
-                cell_text = cell_text.replace(word, replacement)
+            # Replace words using the regex pattern
+            cell_text = pattern.sub(lambda x: replacement_mapping[x.group(0).lower()], cell_text)
             extracted_data.append(cell_text)
 
     # Print the extracted data with word replacements
