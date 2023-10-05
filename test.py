@@ -5,7 +5,7 @@ import re
 with open("abs.html", "r", encoding="utf-8") as file:
     html_content = file.read()
     
-# Mapping for word replacements
+# Mapping for word replacements (case-sensitive)
 replacement_mapping = {
     'Rm': 'm',
     'Rn': 'n',
@@ -15,7 +15,7 @@ replacement_mapping = {
 }
 
 # Create a regex pattern for word replacements
-pattern = re.compile('|'.join(r'\b{}\b'.format(re.escape(word)) for word in replacement_mapping.keys()), re.IGNORECASE)
+pattern = re.compile('|'.join(r'\b{}\b'.format(re.escape(word)) for word in replacement_mapping.keys()))
 
 # Parse the HTML
 soup = BeautifulSoup(html_content, 'html.parser')
@@ -39,15 +39,17 @@ if len(rows) > 1:
             colspan = int(cell['colspan'])
             cell_text = cell.get_text().strip()
             # Replace words using the regex pattern for the entire cell content
-            cell_text = pattern.sub(lambda x: replacement_mapping.get(x.group(0).lower(), x.group(0)), cell_text)
+            cell_text = pattern.sub(lambda x: replacement_mapping.get(x.group(0), x.group(0)), cell_text)
             extracted_data.extend([cell_text] * colspan)
         else:
             cell_text = cell.get_text().strip()
             # Replace words using the regex pattern
-            cell_text = pattern.sub(lambda x: replacement_mapping.get(x.group(0).lower(), x.group(0)), cell_text)
+            cell_text = pattern.sub(lambda x: replacement_mapping.get(x.group(0), x.group(0)), cell_text)
             extracted_data.append(cell_text)
 
     # Print the extracted data with word replacements
     print(extracted_data)
 else:
     print("Table does not have enough rows.")
+    
+# ['sf', '1', '0', '1', '1', '0', '1', '0', '1', '1', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', 'n', 'n', 'n', 'n', 'n', 'd', 'd', 'd', 'd', 'd']
