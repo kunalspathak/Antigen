@@ -55,27 +55,15 @@ if len(rows) > 1:
     # Print the extracted data with word replacements
     print("".join(extracted_data))
 
-    # Print the second output (identical to the first output, except non-numeric values replaced with 0)
+    # Print the second output grouped in 16 digits separated by space
     second_output_str = "".join(second_output_data)
-    print(second_output_str)
-
-    # Convert the binary string to its hexadecimal equivalent with '0x' prefix
-    third_output_str = hex(int(second_output_str, 2))
-    print("Third Output (Hexadecimal with '0x' prefix):")
-    print(third_output_str)
-
-    # Print the grouped hexadecimal output without '0x' and in groups of 4 hex digits with a space separator
-    grouped_hex = []
-    for i in range(2, len(third_output_str), 4):  # Start at 2 to skip '0x' prefix
-        grouped_hex.append(third_output_str[i:i+4])
-    print("Third Output (Grouped Hexadecimal without '0x' prefix):")
-    print(" ".join(grouped_hex))
+    print("Second Output (Grouped in 16 digits separated by space):")
+    for i in range(0, len(second_output_str), 16):
+        print(second_output_str[i:i+16])
 else:
     print("Table does not have enough rows.")
     
 # sf101101011000000001000nnnnnddddd
-# 01011010110000000010000000000000
-# Third Output (Hexadecimal with '0x' prefix):
-# 0x5ac02000
-# Third Output (Grouped Hexadecimal without '0x' prefix):
-# 5ac0 2000
+# Second Output (Grouped in 16 digits separated by space):
+# 0101101011000000
+# 0010000000000000
