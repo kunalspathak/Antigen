@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 import re
 
 # Load the HTML file
-with open("abc.html", "r", encoding="utf-8") as file:
+with open("abs.html", "r", encoding="utf-8") as file:
     html_content = file.read()
     
 # Mapping for word replacements (case-sensitive)
@@ -62,11 +62,19 @@ if len(rows) > 1:
     # Convert the binary string to its hexadecimal equivalent
     third_output_str = hex(int(second_output_str, 2))
     print("Third Output (Hexadecimal):")
-    print(third_output_str)
+    print(third_output_str[2:])  # Remove '0x' prefix
+    # Print the third output without '0x' and in groups of 4 hex digits
+    grouped_hex = []
+    for i in range(0, len(third_output_str) - 2, 4):
+        grouped_hex.append(third_output_str[i:i+4])
+    print("Third Output (Grouped Hexadecimal):")
+    print("".join(grouped_hex))
 else:
     print("Table does not have enough rows.")
     
-# sf0011010000mmmmm000000nnnnnddddd
-# 00011010000000000000000000000000
+# sf101101011000000001000nnnnnddddd
+# 01011010110000000010000000000000
 # Third Output (Hexadecimal):
-# 0x1a000000
+# 5ac02000
+# Third Output (Grouped Hexadecimal):
+# 0x5ac020
