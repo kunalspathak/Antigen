@@ -43,14 +43,14 @@ if len(rows) > 1:
             cell_text = pattern.sub(lambda x: replacement_mapping.get(x.group(0), x.group(0)), cell_text)
             extracted_data.extend([cell_text] * colspan)
             # Replace non-numeric output with 0 for the second output
-            second_output_data.extend(['0' if char not in ['0', '1'] else char for char in cell_text])
+            second_output_data.extend(['0' if char not in ['0', '1'] else char for char in cell_text] * colspan)
         else:
             cell_text = cell.get_text().strip()
             # Replace words using the regex pattern
             cell_text = pattern.sub(lambda x: replacement_mapping.get(x.group(0), x.group(0)), cell_text)
             extracted_data.append(cell_text)
             # Replace non-numeric output with 0 for the second output
-            second_output_data.append('0' if cell_text not in ['0', '1'] else cell_text)
+            second_output_data.extend(['0' if cell_text not in ['0', '1'] else cell_text])
 
     # Print the extracted data with word replacements
     print("".join(extracted_data))
@@ -61,4 +61,4 @@ else:
     print("Table does not have enough rows.")
     
 # sf101101011000000001000nnnnnddddd
-# 010110101100000000100000
+# 01011010110000000010000000000000
