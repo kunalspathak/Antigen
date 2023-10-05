@@ -15,7 +15,7 @@ replacement_mapping = {
 }
 
 # Create a regex pattern for word replacements
-pattern = re.compile('|'.join(re.escape(word) for word in replacement_mapping.keys()), re.IGNORECASE)
+pattern = re.compile('|'.join(r'\b{}\b'.format(re.escape(word)) for word in replacement_mapping.keys()), re.IGNORECASE)
 
 # Parse the HTML
 soup = BeautifulSoup(html_content, 'html.parser')
@@ -37,11 +37,14 @@ if len(rows) > 1:
         # Check if the cell spans multiple columns
         if 'colspan' in cell.attrs:
             colspan = int(cell['colspan'])
-            extracted_data.extend([replacement_mapping.get('-', '-')] * colspan)
+            cell_text = cell.get_text().strip()
+            # Replace words using the regex pattern for the entire cell content
+            cell_text = pattern.sub(lambda x: replacement_mapping.get(x.group(0).lower(), x.group(0)), cell_text)
+            extracted_data.extend([cell_text] * colspan)
         else:
             cell_text = cell.get_text().strip()
             # Replace words using the regex pattern
-            cell_text = pattern.sub(lambda x: replacement_mapping[x.group(0).lower()], cell_text)
+            cell_text = pattern.sub(lambda x: replacement_mapping.get(x.group(0).lower(), x.group(0)), cell_text)
             extracted_data.append(cell_text)
 
     # Print the extracted data with word replacements
