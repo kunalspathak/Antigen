@@ -52,18 +52,13 @@ if len(rows) > 1:
             # Replace non-numeric output with 0 for the second output
             non_numeric_output.extend(['0' if char not in ['0', '1'] else char for char in cell_text])
 
-    # Print the extracted data with word replacements
-    print("Extracted Data:")
-    print(extracted_data)
+    # Print the extracted data with word replacements without quotes and commas
+    print("".join(extracted_data))
 
-    # Print the second output with non-numeric values replaced by 0
-    print("\nSecond Output (Non-numeric values replaced by 0):")
-    print(non_numeric_output)
+    # Print the second output with non-numeric values replaced by 0 without quotes and commas
+    print("".join(non_numeric_output))
 else:
-    print("Table does not have enough rows.")
+    print("Table does not have enough rows.") 
     
-# Extracted Data:
-# ['sf', '1', '0', '1', '1', '0', '1', '0', '1', '1', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', 'n', 'n', 'n', 'n', 'n', 'd', 'd', 'd', 'd', 'd']
-
-# Second Output (Non-numeric values replaced by 0):
-# ['0', '0', '1', '0', '1', '1', '0', '1', '0', '1', '1', '0', '0', '0', '0', '0', '0', '0', '0', '1', '0', '0', '0', '0', '0']    
+# sf101101011000000001000nnnnnddddd
+# 0010110101100000000100000
