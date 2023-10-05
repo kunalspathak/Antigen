@@ -52,8 +52,13 @@ if len(rows) > 1:
             # Replace non-numeric output with 0 for the second output
             second_output_data.extend(['0' if cell_text not in ['0', '1'] else cell_text])
 
-    # Print the extracted data with word replacements
-    print("".join(extracted_data))
+    # Print the first output with word replacements and replace other words with their first character
+    first_output_str = "".join(extracted_data)
+    for word in re.findall(r'\b\w+\b', first_output_str):
+        if word not in replacement_mapping:
+            first_output_str = first_output_str.replace(word, word[0])
+
+    print(first_output_str)
 
     # Print the second output grouped in 16 digits on the same line
     second_output_str = "".join(second_output_data)
@@ -75,10 +80,10 @@ if len(rows) > 1:
 else:
     print("Table does not have enough rows.")
     
-# sf101101011000000001000nnnnnddddd
+# 0
 # Second Output (Grouped in 16 digits on the same line):
-# 0101101011000000 0010000000000000
+# 0001111000000000 0010000001001000 00000000
 # Third Output (Hexadecimal with '0x' prefix):
-# 0x5ac02000
+# 0x1e00204800
 # Third Output (Grouped Hexadecimal without '0x' prefix):
-# 5ac0 2000
+# 1e00 2048 00
