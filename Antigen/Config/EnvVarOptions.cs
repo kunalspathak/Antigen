@@ -111,13 +111,30 @@ namespace Antigen.Config
             else
             {
                 envVars["DOTNET_TieredCompilation"] = "0";
-                envVars["DOTNET_AltJit"] = "*";
                 if (!s_IsArm)
                 {
                     envVars["DOTNET_PreferredVectorBitWidth"] = "512";
                 }
                 else
                 {
+                    string altjitName = "clrjit_universal_arm64_x64";
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    {
+                        altjitName += ".dylib";
+                    }
+
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    {
+                        altjitName += ".so";
+                    }
+
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        altjitName += ".dll";
+                    }
+
+                    envVars["DOTNET_AltJitName"] = altjitName;
+                    envVars["DOTNET_AltJit"] = "*";
                     envVars["DOTNET_MaxVectorTBitWidth"] = "128";
                 }
             }
