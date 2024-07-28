@@ -111,9 +111,14 @@ namespace Antigen.Config
             else
             {
                 envVars["DOTNET_TieredCompilation"] = "0";
+                envVars["DOTNET_AltJit"] = "*";
                 if (!s_IsArm)
                 {
                     envVars["DOTNET_PreferredVectorBitWidth"] = "512";
+                }
+                else
+                {
+                    envVars["DOTNET_MaxVectorTBitWidth"] = "128";
                 }
             }
 

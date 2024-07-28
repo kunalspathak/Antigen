@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Utils;
 
 namespace Antigen
@@ -98,19 +99,19 @@ namespace Antigen
             CompileResult compileResult = s_testRunner.Compile(syntaxTree, Name);
             if (compileResult.AssemblyFullPath == null)
             {
-                //StringBuilder fileContents = new StringBuilder();
+                StringBuilder fileContents = new StringBuilder();
 
-                //fileContents.AppendLine(testCaseRoot.NormalizeWhitespace().ToFullString());
-                //fileContents.AppendLine("/*");
-                //fileContents.AppendLine($"Got {compileResult.CompileErrors.Count()} compiler error(s):");
-                //foreach (var error in compileResult.CompileErrors)
-                //{
-                //    fileContents.AppendLine(error.ToString());
-                //}
-                //fileContents.AppendLine("*/");
+                fileContents.AppendLine(testCaseRoot.NormalizeWhitespace().ToFullString());
+                fileContents.AppendLine("/*");
+                fileContents.AppendLine($"Got {compileResult.CompileErrors.Count()} compiler error(s):");
+                foreach (var error in compileResult.CompileErrors)
+                {
+                   fileContents.AppendLine(error.ToString());
+                }
+                fileContents.AppendLine("*/");
 
-                //string errorFile = Path.Combine(s_runOptions.OutputDirectory, $"{Name}-compile-error.g.cs");
-                //File.WriteAllText(errorFile, fileContents.ToString());
+                string errorFile = Path.Combine(s_runOptions.OutputDirectory, $"{Name}-compile-error.g.cs");
+                File.WriteAllText(errorFile, fileContents.ToString());
                 return compileResult.RoslynException != null ? TestResult.RoslynException : TestResult.CompileError;
             }
 #if UNREACHABLE
@@ -296,13 +297,19 @@ namespace Antigen
             string currentReproFile = $"{testFileName}.g.cs";
             lock (Program.s_spinLock)
             {
+                UniqueIssueFile uniqueIssueFile;
                 if (!s_uniqueIssues.ContainsKey(assertionHashCode))
                 {
-                    s_uniqueIssues[assertionHashCode] = new UniqueIssueFile(s_uniqueIssues.Count, int.MaxValue, currentReproFile);
+                    uniqueIssueFile = new UniqueIssueFile(s_uniqueIssues.Count, int.MaxValue, currentReproFile);
+                }
+                else
+                {
+                    uniqueIssueFile = s_uniqueIssues[assertionHashCode];
                 }
 
                 // Create hash of testAssertion and copy files in respective bucket.
-                uniqueIssueDirName = Path.Combine(s_runOptions.OutputDirectory, $"UniqueIssue{s_uniqueIssues[assertionHashCode].UniqueIssueId}");
+                uniqueIssueDirName = Path.Combine(s_runOptions.OutputDirectory, $"UniqueIssue{uniqueIssueFile.UniqueIssueId}");
+
                 if (!Directory.Exists(uniqueIssueDirName))
                 {
                     Directory.CreateDirectory(uniqueIssueDirName);
@@ -310,9 +317,9 @@ namespace Antigen
                 }
 
                 // Only cache 1 file of smallest possible size.
-                if (s_uniqueIssues[assertionHashCode].FileSize > fileContents.Length)
+                if (uniqueIssueFile.FileSize > fileContents.Length)
                 {
-                    string largerReproFile = Path.Combine(uniqueIssueDirName, s_uniqueIssues[assertionHashCode].FileName);
+                    string largerReproFile = Path.Combine(uniqueIssueDirName, uniqueIssueFile.FileName);
                     if (File.Exists(largerReproFile))
                     {
                         File.Delete(largerReproFile);
@@ -324,7 +331,7 @@ namespace Antigen
                     File.WriteAllText(failFile, fileContents.ToString());
 
                     // Update the file size
-                    s_uniqueIssues[assertionHashCode] = new UniqueIssueFile(s_uniqueIssues.Count, fileContents.Length, currentReproFile);
+                    s_uniqueIssues[assertionHashCode] = new UniqueIssueFile(uniqueIssueFile.UniqueIssueId, fileContents.Length, currentReproFile);
                 }
             }
         }

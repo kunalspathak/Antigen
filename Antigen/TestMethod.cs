@@ -2,6 +2,7 @@
 using Antigen.Statements;
 using Antigen.Tree;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -868,7 +869,11 @@ namespace Antigen
 
                 Tree.ValueType argType = parameter.ParamType;
                 ExprKind argExprKind;
-
+                // if (argType.PrimitiveType == Primitive.SveMaskPattern)
+                // {
+                //     argExprKind = GetASTUtils().GetRandomTerminalExpression(_testClass, argType);
+                // }
+                // else 
                 if (parameter.PassingWay == ParamValuePassing.None)
                 {
                     if (depth < TC.Config.MaxExprDepth)
@@ -911,6 +916,11 @@ namespace Antigen
                         argExpr = new CastExpression(TC, argExpr, argType);
                     }
                 }
+
+                // if (argType.PrimitiveType == Primitive.SveMaskPattern)
+                // {
+                //     argExpr = new CastExpression(TC, argExpr, argType);
+                // }
 
                 passingWays.Add(parameter.PassingWay);
                 argumentNodes.Add(argExpr);

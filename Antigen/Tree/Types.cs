@@ -32,7 +32,9 @@ namespace Antigen.Tree
         String = 0x2000,
         Struct = 0x4000,
 
-        Numeric = Byte | SByte | Short | UShort | Int | UInt | Long | ULong | Float | Double | Decimal,
+        // SveMaskPattern = 0x8000,
+
+        Numeric = Byte | SByte | Short | UShort | Int | UInt | Long | ULong | Float | Double | Decimal /*| SveMaskPattern*/,
         SignedInteger = SByte | Short | Int | Long,
         UnsignedInteger = Byte | UShort | UInt | ULong,
         Integer = SignedInteger | UnsignedInteger,
@@ -86,9 +88,19 @@ namespace Antigen.Tree
         Vector512_Float = 39,
         Vector512_Double = 40,
 
-        Vector2 = 41,
-        Vector3 = 42,
-        Vector4 = 43,
+        Vector_Byte = 41,
+        Vector_SByte = 42,
+        Vector_Short = 43,
+        Vector_UShort = 44,
+        Vector_Int = 45,
+        Vector_UInt = 46,
+        Vector_Long = 47,
+        Vector_ULong = 48,
+        Vector_Float = 49,
+        Vector_Double = 50,
+        Vector2 = 51,
+        Vector3 = 52,
+        Vector4 = 53,
     }
 
     public struct ValueType
@@ -110,7 +122,7 @@ namespace Antigen.Tree
         {
             if (IsVectorType)
             {
-                if (VectorType >= VectorType.Vector64_Byte && VectorType <= VectorType.Vector512_Double)
+                if (VectorType >= VectorType.Vector64_Byte && VectorType <= VectorType.Vector_Double)
                 {
                     return true;
                 }
@@ -184,6 +196,7 @@ namespace Antigen.Tree
             new ValueType(Primitive.UShort,     "ushort",     SyntaxKind.UShortKeyword),
             new ValueType(Primitive.UInt,       "uint",     SyntaxKind.UIntKeyword),
             new ValueType(Primitive.ULong,      "ulong",     SyntaxKind.ULongKeyword),
+            // new ValueType(Primitive.SveMaskPattern,      "SveMaskPattern",     SyntaxKind.EnumKeyword),
         };
 
         private static readonly List<ValueType> s_vectorTypes = new();
@@ -246,12 +259,24 @@ namespace Antigen.Tree
                 s_vectorTypes.Add(new ValueType(VectorType.Vector512_Double, "Vector512<double>", "v512_double"));
             }
 
+
+            s_vectorTypes.Add(new ValueType(VectorType.Vector_Byte, "Vector<byte>", "v_byte"));
+            s_vectorTypes.Add(new ValueType(VectorType.Vector_SByte, "Vector<sbyte>", "v_sbyte"));
+            s_vectorTypes.Add(new ValueType(VectorType.Vector_Short, "Vector<short>", "v_short"));
+            s_vectorTypes.Add(new ValueType(VectorType.Vector_UShort, "Vector<ushort>", "v_ushort"));
+            s_vectorTypes.Add(new ValueType(VectorType.Vector_Int, "Vector<int>", "v_int"));
+            s_vectorTypes.Add(new ValueType(VectorType.Vector_UInt, "Vector<uint>", "v_uint"));
+            s_vectorTypes.Add(new ValueType(VectorType.Vector_Long, "Vector<long>", "v_long"));
+            s_vectorTypes.Add(new ValueType(VectorType.Vector_ULong, "Vector<ulong>", "v_ulong"));
+            s_vectorTypes.Add(new ValueType(VectorType.Vector_Float, "Vector<float>", "v_float"));
+            s_vectorTypes.Add(new ValueType(VectorType.Vector_Double, "Vector<double>", "v_double"));
+
             s_vectorTypes.Add(new ValueType(VectorType.Vector2, "Vector2", "v2"));
             s_vectorTypes.Add(new ValueType(VectorType.Vector3, "Vector3", "v3"));
             s_vectorTypes.Add(new ValueType(VectorType.Vector4, "Vector4", "v4"));
         }
 
-        private static readonly Regex vectorRegex = new Regex(@"Vector(64|128|256|512)`1\[(.*)\]");
+        private static readonly Regex vectorRegex = new Regex(@"Vector(64|128|256|512)?`1\[(.*)\]");
         private static readonly Regex multipleVectorsRegex = new Regex(@"Vector(64|128|256|512)`1");
 
         /// <summary>
@@ -261,7 +286,6 @@ namespace Antigen.Tree
         /// <returns></returns>
         public static string GetVectorList(string typeName)
         {
-
             var vectorTypeMatches = multipleVectorsRegex.Matches(typeName);
             if (vectorTypeMatches.Count == 0)
             {
@@ -290,6 +314,20 @@ namespace Antigen.Tree
 
                 parsedVectorType = vectorLength switch
                 {
+                    "" => templateParameterType switch
+                    {
+                        "System.Byte" => VectorType.Vector_Byte,
+                        "System.SByte" => VectorType.Vector_SByte,
+                        "System.Int16" => VectorType.Vector_Short,
+                        "System.UInt16" => VectorType.Vector_UShort,
+                        "System.Int32" => VectorType.Vector_Int,
+                        "System.UInt32" => VectorType.Vector_UInt,
+                        "System.Int64" => VectorType.Vector_Long,
+                        "System.UInt64" => VectorType.Vector_ULong,
+                        "System.Single" => VectorType.Vector_Float,
+                        "System.Double" => VectorType.Vector_Double,
+                        _ => throw new Exception("Invalid template parameter for Vector"),
+                    },
                     "64" => templateParameterType switch
                     {
                         "System.Byte" => VectorType.Vector64_Byte,
@@ -361,6 +399,10 @@ namespace Antigen.Tree
                 };
                 return s_vectorTypes.FirstOrDefault(v => v.VectorType == parsedVectorType);
             }
+            // else if (typeName == "System.Runtime.Intrinsics.Arm.SveMaskPattern")
+            // {
+            //     return types.FirstOrDefault(t => t.PrimitiveType == Primitive.SveMaskPattern);
+            // }
             else
             {
                 var parsedPrimitiveType = typeName switch
@@ -392,6 +434,17 @@ namespace Antigen.Tree
         {
             switch (vectorType)
             {
+                case VectorType.Vector_Byte: return Vector<byte>.Count;
+                case VectorType.Vector_SByte: return Vector<sbyte>.Count;
+                case VectorType.Vector_Short: return Vector<short>.Count;
+                case VectorType.Vector_UShort: return Vector<ushort>.Count;
+                case VectorType.Vector_Int: return Vector<int>.Count;
+                case VectorType.Vector_UInt: return Vector<uint>.Count;
+                case VectorType.Vector_Long: return Vector<long>.Count;
+                case VectorType.Vector_ULong: return Vector<ulong>.Count;
+                case VectorType.Vector_Float: return Vector<float>.Count;
+                case VectorType.Vector_Double: return Vector<double>.Count;
+
                 case VectorType.Vector64_Byte: return Vector64<byte>.Count;
                 case VectorType.Vector64_SByte: return Vector64<sbyte>.Count;
                 case VectorType.Vector64_Short: return Vector64<short>.Count;

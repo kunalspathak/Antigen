@@ -888,7 +888,7 @@
       "MaxExprDepth": 5,
       "VariablesCount": 10,
       "MethodCount": 5,
-      "MaxStatementCount": 10,
+      "MaxStatementCount": 3,
       "TryCatchFinallyStatementWeight": 0.03,
       "LocalVariablesLogProbability": 1.0
     },

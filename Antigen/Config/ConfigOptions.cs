@@ -16,7 +16,7 @@ namespace Antigen.Config
         public int MaxExprDepth = 3;
 
         public int MethodCount = 3;
-        public int MaxStatementCount = 7;
+        public int MaxStatementCount = 2;
         public int VariablesCount = 8;
         public int StructCount = 2;
 
@@ -56,6 +56,7 @@ namespace Antigen.Config
         public double UShortWeight = 0.4;
         public double UIntWeight = 0.45;
         public double ULongWeight = 0.6;
+        public double SveMaskPatternWeight = 0;
 
         // Vector weights
         public double Vector64_ByteWeight = 0.1;
@@ -101,6 +102,17 @@ namespace Antigen.Config
         public double Vector512_ULongWeight = 0.15;
         public double Vector512_FloatWeight = 0.15;
         public double Vector512_DoubleWeight = 0.15;
+
+        public double Vector_ByteWeight = 0.15;
+        public double Vector_SByteWeight = 0.15;
+        public double Vector_ShortWeight = 0.15;
+        public double Vector_UShortWeight = 0.15;
+        public double Vector_IntWeight = 0.15;
+        public double Vector_UIntWeight = 0.15;
+        public double Vector_LongWeight = 0.15;
+        public double Vector_ULongWeight = 0.15;
+        public double Vector_FloatWeight = 0.15;
+        public double Vector_DoubleWeight = 0.15;
 
         public double Vector2Weight = 0.1;
         public double Vector3Weight = 0.1;
@@ -295,6 +307,11 @@ namespace Antigen.Config
         ///     AdvSimd methods probability
         /// </summary>
         public double AdvSimdMethodsProbability = 0.35;
+
+            /// <summary>
+        ///     AdvSimd methods probability
+        /// </summary>
+        public double SveMethodsProbability = 1;
 
         /// <summary>
         ///     Probability in which vector methods will be included.

@@ -27,9 +27,11 @@ namespace Antigen
                 {
                     vectorMethods = new List<MethodSignature>();
 
+                    RecordIntrinsicMethods(typeof(Vector));
                     RecordIntrinsicMethods(typeof(Vector2));
                     RecordIntrinsicMethods(typeof(Vector3));
                     RecordIntrinsicMethods(typeof(Vector4));
+                    // RecordVectorCtors(typeof(Vector<>));
                     RecordVectorCtors(typeof(Vector2));
                     RecordVectorCtors(typeof(Vector3));
                     RecordVectorCtors(typeof(Vector4));
@@ -164,18 +166,22 @@ namespace Antigen
                         }
                     }
 
-                    if (PRNG.Decide(TC.Config.AdvSimdMethodsProbability))
+                    if (AdvSimd.IsSupported)
                     {
-                        if (AdvSimd.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(AdvSimd));
-                        }
-
-                        if (AdvSimd.Arm64.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(AdvSimd.Arm64), "AdvSimd.Arm64");
-                        }
+                        RecordIntrinsicMethods(typeof(AdvSimd));
                     }
+
+                    if (AdvSimd.Arm64.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(AdvSimd.Arm64), "AdvSimd.Arm64");
+                    }
+
+                    // if (Sve.IsSupported)
+                    {
+                        RecordIntrinsicMethods(typeof(Sve));
+                    }
+
+
 
                     isVectorMethodsInitialized = true;
                 }
@@ -218,11 +224,17 @@ namespace Antigen
                     fullMethodName.Contains("Matrix") || fullMethodName.Contains("Span") ||
                     fullMethodName.Contains("Quaternion") || fullMethodName.Contains("[]") ||
                     fullMethodName.Contains("*") || fullMethodName.Contains("ByRef") ||
-                    fullMethodName.Contains("Vector`1") || fullMethodName.Contains("Divide") ||
+                    fullMethodName.Contains("Numerics.Plane") || fullMethodName.Contains("Divide") ||
+                    fullMethodName.Contains("SveMaskPattern") ||
                     fullMethodName.Contains("FloatComparisonMode") || fullMethodName.Contains("Unsafe"))
                 {
                     // We do not support these types, so ignore these methods.
                     continue;
+                }
+
+                if (fullMethodName.Contains("SveMaskPattern"))
+                {
+                    Console.WriteLine("");
                 }
 
                 string vectorsInMethod = Tree.ValueType.GetVectorList(fullMethodName);

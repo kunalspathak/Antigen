@@ -126,6 +126,24 @@ namespace Antigen
         {
             var matchingMethods = AllVectorMethods.Where(m => m.Data.ReturnType.Equals(returnType)).ToList();
 
+            if (PRNG.Decide(TC.Config.SveMethodsProbability))
+            {
+                var sveMethods = matchingMethods.Where(m => m.Data.MethodName.StartsWith("Sve.")).ToList();
+                if (sveMethods.Count > 0)
+                {
+                    matchingMethods = sveMethods;
+                }
+            }
+
+            else if (PRNG.Decide(TC.Config.AdvSimdMethodsProbability))
+            {
+                var advsimdMethods = matchingMethods.Where(m => m.Data.MethodName.StartsWith("AdvSimd.")).ToList();
+                if (advsimdMethods.Count > 0)
+                {
+                    matchingMethods = advsimdMethods;
+                }
+            }
+
             if (matchingMethods.Count == 0)
             {
                 return null;
