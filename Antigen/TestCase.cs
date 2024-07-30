@@ -84,6 +84,7 @@ namespace Antigen
                 if (PRNG.Decide(0.5))
                 {
                     Config.UseSve = true;
+                    Config.Name += " - Sve";
                 }
             }
             ContainsVectorData = PRNG.Decide(Config.VectorDataProbability);
