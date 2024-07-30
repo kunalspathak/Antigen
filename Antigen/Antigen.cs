@@ -71,7 +71,7 @@ namespace Antigen
                     Directory.CreateDirectory(s_runOptions.OutputDirectory);
                 }
 
-                Parallel.For(0, 2, (p) => RunTest());
+                Parallel.For(0, 1, (p) => RunTest());
                 Console.WriteLine($"Executed {s_testId} test cases.");
                 DisplayStats();
             }

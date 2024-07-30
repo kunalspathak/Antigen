@@ -79,15 +79,17 @@ namespace Antigen
         {
             s_runOptions = runOptions;
             Config = s_runOptions.Configs[PRNG.Next(s_runOptions.Configs.Count)];
+            ContainsVectorData = PRNG.Decide(Config.VectorDataProbability);
+
             if (RuntimeInformation.OSArchitecture == Architecture.X64)
             {
                 if (PRNG.Decide(0.5))
                 {
                     Config.UseSve = true;
                     Config.Name += " - Sve";
+                    ContainsVectorData = true;
                 }
             }
-            ContainsVectorData = PRNG.Decide(Config.VectorDataProbability);
 
             AstUtils = new AstUtils(this, new ConfigOptions(), null);
             Name = "TestClass" + testId;

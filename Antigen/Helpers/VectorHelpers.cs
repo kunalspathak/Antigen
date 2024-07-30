@@ -31,15 +31,9 @@ namespace Antigen
                     RecordIntrinsicMethods(typeof(Vector2));
                     RecordIntrinsicMethods(typeof(Vector3));
                     RecordIntrinsicMethods(typeof(Vector4));
-                    // RecordVectorCtors(typeof(Vector<>));
                     RecordVectorCtors(typeof(Vector2));
                     RecordVectorCtors(typeof(Vector3));
                     RecordVectorCtors(typeof(Vector4));
-
-                    if (Program.s_runOptions.SupportsVector64)
-                    {
-                        RecordIntrinsicMethods(typeof(Vector64));
-                    }
 
                     if (Program.s_runOptions.SupportsVector128)
                     {
@@ -48,6 +42,10 @@ namespace Antigen
 
                     if (!TC.Config.UseSve)
                     {
+                        if (Program.s_runOptions.SupportsVector64)
+                        {
+                            RecordIntrinsicMethods(typeof(Vector64));
+                        }
                         if (Program.s_runOptions.SupportsVector256)
                         {
                             RecordIntrinsicMethods(typeof(Vector256));
@@ -187,6 +185,7 @@ namespace Antigen
                     }
                     else
                     {
+                        RecordIntrinsicMethods(typeof(Vector64));
                         RecordIntrinsicMethods(typeof(AdvSimd));
                         RecordIntrinsicMethods(typeof(AdvSimd.Arm64), "AdvSimd.Arm64");
                         RecordIntrinsicMethods(typeof(Sve));
