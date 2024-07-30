@@ -40,149 +40,157 @@ namespace Antigen
                     {
                         RecordIntrinsicMethods(typeof(Vector64));
                     }
+
                     if (Program.s_runOptions.SupportsVector128)
                     {
                         RecordIntrinsicMethods(typeof(Vector128));
                     }
-                    if (Program.s_runOptions.SupportsVector256)
+
+                    if (!TC.Config.UseSve)
                     {
-                        RecordIntrinsicMethods(typeof(Vector256));
+                        if (Program.s_runOptions.SupportsVector256)
+                        {
+                            RecordIntrinsicMethods(typeof(Vector256));
+                        }
+                        if (Program.s_runOptions.SupportsVector512)
+                        {
+                            RecordIntrinsicMethods(typeof(Vector512));
+                        }
+
+                        if (PRNG.Decide(TC.Config.TraditionalMethodsProbability))
+                        {
+                            if (System.Runtime.Intrinsics.X86.Aes.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(System.Runtime.Intrinsics.X86.Aes));
+                            }
+
+                            if (Bmi1.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Bmi1));
+                            }
+                            if (Bmi1.X64.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Bmi1.X64), "Bmi1.X64");
+                            }
+                            if (Bmi2.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Bmi2));
+                            }
+                            if (Bmi2.X64.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Bmi2.X64), "Bmi2.X64");
+                            }
+                            if (Fma.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Fma));
+                            }
+                            if (Lzcnt.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Lzcnt));
+                            }
+                            if (Lzcnt.X64.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Lzcnt.X64), "Lzcnt.X64");
+                            }
+                            if (Pclmulqdq.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Pclmulqdq));
+                            }
+                            if (Popcnt.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Popcnt));
+                            }
+                            if (Popcnt.X64.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Popcnt.X64), "Popcnt.X64");
+                            }
+                        }
+
+                        if (PRNG.Decide(TC.Config.AvxMethodsProbability))
+                        {
+                            if (Avx.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Avx));
+                            }
+                            if (Avx2.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Avx2));
+                            }
+                            if (Avx512BW.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Avx512BW));
+                            }
+
+                            if (Avx512CD.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Avx512CD));
+                            }
+
+                            if (Avx512DQ.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Avx512DQ));
+                            }
+
+                            if (Avx512F.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Avx512F));
+                            }
+
+                            if (Avx512Vbmi.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Avx512Vbmi));
+                            }
+                        }
+
+                        if (PRNG.Decide(TC.Config.SSEMethodsProbability))
+                        {
+                            if (Sse.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Sse));
+                            }
+                            if (Sse2.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Sse2));
+                            }
+                            if (Sse3.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Sse3));
+                            }
+                            if (Sse41.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Sse41));
+                            }
+                            if (Sse42.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Sse42));
+                            }
+                            if (Ssse3.IsSupported)
+                            {
+                                RecordIntrinsicMethods(typeof(Sse));
+                            }
+                        }
+
+                        if (AdvSimd.IsSupported)
+                        {
+                            RecordIntrinsicMethods(typeof(AdvSimd));
+                        }
+
+                        if (AdvSimd.Arm64.IsSupported)
+                        {
+                            RecordIntrinsicMethods(typeof(AdvSimd.Arm64), "AdvSimd.Arm64");
+                        }
+
+                        if (Sve.IsSupported)
+                        {
+                            RecordIntrinsicMethods(typeof(Sve));
+                        }
                     }
-                    if (Program.s_runOptions.SupportsVector512)
-                    {
-                        RecordIntrinsicMethods(typeof(Vector512));
-                    }
-
-                    if (PRNG.Decide(TC.Config.TraditionalMethodsProbability))
-                    {
-                        if (System.Runtime.Intrinsics.X86.Aes.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(System.Runtime.Intrinsics.X86.Aes));
-                        }
-
-                        if (Bmi1.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Bmi1));
-                        }
-                        if (Bmi1.X64.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Bmi1.X64), "Bmi1.X64");
-                        }
-                        if (Bmi2.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Bmi2));
-                        }
-                        if (Bmi2.X64.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Bmi2.X64), "Bmi2.X64");
-                        }
-                        if (Fma.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Fma));
-                        }
-                        if (Lzcnt.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Lzcnt));
-                        }
-                        if (Lzcnt.X64.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Lzcnt.X64), "Lzcnt.X64");
-                        }
-                        if (Pclmulqdq.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Pclmulqdq));
-                        }
-                        if (Popcnt.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Popcnt));
-                        }
-                        if (Popcnt.X64.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Popcnt.X64), "Popcnt.X64");
-                        }
-                    }
-
-                    if (PRNG.Decide(TC.Config.AvxMethodsProbability))
-                    {
-                        if (Avx.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Avx));
-                        }
-                        if (Avx2.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Avx2));
-                        }
-                        if (Avx512BW.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Avx512BW));
-                        }
-
-                        if (Avx512CD.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Avx512CD));
-                        }
-
-                        if (Avx512DQ.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Avx512DQ));
-                        }
-
-                        if (Avx512F.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Avx512F));
-                        }
-
-                        if (Avx512Vbmi.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Avx512Vbmi));
-                        }
-                    }
-
-                    if (PRNG.Decide(TC.Config.SSEMethodsProbability))
-                    {
-                        if (Sse.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Sse));
-                        }
-                        if (Sse2.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Sse2));
-                        }
-                        if (Sse3.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Sse3));
-                        }
-                        if (Sse41.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Sse41));
-                        }
-                        if (Sse42.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Sse42));
-                        }
-                        if (Ssse3.IsSupported)
-                        {
-                            RecordIntrinsicMethods(typeof(Sse));
-                        }
-                    }
-
-                    if (AdvSimd.IsSupported)
+                    else
                     {
                         RecordIntrinsicMethods(typeof(AdvSimd));
-                    }
-
-                    if (AdvSimd.Arm64.IsSupported)
-                    {
                         RecordIntrinsicMethods(typeof(AdvSimd.Arm64), "AdvSimd.Arm64");
-                    }
-
-                    // if (Sve.IsSupported)
-                    {
                         RecordIntrinsicMethods(typeof(Sve));
                     }
-
-
-
                     isVectorMethodsInitialized = true;
                 }
             }

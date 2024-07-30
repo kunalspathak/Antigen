@@ -5,6 +5,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -78,6 +79,13 @@ namespace Antigen
         {
             s_runOptions = runOptions;
             Config = s_runOptions.Configs[PRNG.Next(s_runOptions.Configs.Count)];
+            if (RuntimeInformation.OSArchitecture == Architecture.X64)
+            {
+                if (PRNG.Decide(0.5))
+                {
+                    Config.UseSve = true;
+                }
+            }
             ContainsVectorData = PRNG.Decide(Config.VectorDataProbability);
 
             AstUtils = new AstUtils(this, new ConfigOptions(), null);
@@ -121,8 +129,8 @@ namespace Antigen
                 File.WriteAllText(workingFile, testCaseRoot.ToFullString());
             }
 #endif
-            var baselineVariables = EnvVarOptions.BaseLineVars();
-            var testVariables = EnvVarOptions.TestVars(includeOsrSwitches: PRNG.Decide(0.3));
+            var baselineVariables = EnvVarOptions.BaseLineVars(Config.UseSve);
+            var testVariables = EnvVarOptions.TestVars(includeOsrSwitches: PRNG.Decide(0.3), Config.UseSve);
 
             // Execute test first and see if we have any errors/asserts
             var test = s_testRunner.Execute(compileResult, testVariables);

@@ -58,7 +58,7 @@ namespace Antigen.Config
         ///     Returns random set of baseline environment variables.
         /// </summary>
         /// <returns></returns>
-        public static Dictionary<string, string> BaseLineVars()
+        public static Dictionary<string, string> BaseLineVars(bool useSve)
         {
             var envVars = new Dictionary<string, string>();
             foreach (var group in s_baselineGroups)
@@ -68,6 +68,11 @@ namespace Antigen.Config
                     envVars[$"DOTNET_{variable.Name}"] = variable.Values[PRNG.Next(variable.Values.Length)];
                 }
             }
+
+            if (useSve)
+            {
+                AddSveSwitches(ref envVars);
+            }
             return envVars;
         }
 
@@ -75,7 +80,7 @@ namespace Antigen.Config
         ///     Returns random set of test environment variables.
         /// </summary>
         /// <returns></returns>
-        public static Dictionary<string, string> TestVars(bool includeOsrSwitches)
+        public static Dictionary<string, string> TestVars(bool includeOsrSwitches, bool useSve)
         {
             var envVars = new Dictionary<string, string>();
 
@@ -117,25 +122,12 @@ namespace Antigen.Config
                 }
                 else
                 {
-                    string altjitName = "clrjit_universal_arm64_x64";
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-                    {
-                        altjitName += ".dylib";
-                    }
-
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                    {
-                        altjitName += ".so";
-                    }
-
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    {
-                        altjitName += ".dll";
-                    }
-
-                    envVars["DOTNET_AltJitName"] = altjitName;
-                    envVars["DOTNET_AltJit"] = "*";
                     envVars["DOTNET_MaxVectorTBitWidth"] = "128";
+                }
+
+                if (useSve)
+                {
+                    AddSveSwitches(ref envVars);
                 }
             }
 
@@ -156,6 +148,28 @@ namespace Antigen.Config
             }
 
             return envVars;
+        }
+
+        private static void AddSveSwitches(ref Dictionary<string, string> envVars)
+        {
+            string altjitName = "clrjit_universal_arm64_x64";
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                altjitName += ".dylib";
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                altjitName += ".so";
+            }
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                altjitName += ".dll";
+            }
+
+            envVars["DOTNET_AltJitName"] = altjitName;
+            envVars["DOTNET_AltJit"] = "*";
         }
     }
 

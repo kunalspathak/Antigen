@@ -11,6 +11,8 @@ namespace Antigen.Config
 
         public string Name;
 
+        public bool UseSve;
+
         // Test general configuration
         public int MaxStmtDepth = 4;
         public int MaxExprDepth = 3;
