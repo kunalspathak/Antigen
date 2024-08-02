@@ -86,9 +86,14 @@ namespace Antigen
                 if (PRNG.Decide(0.5))
                 {
                     Config.UseSve = true;
-                    Config.Name += " - Sve";
                     ContainsVectorData = true;
                 }
+            }
+            else
+            {
+                // local temporary change
+                Config.UseSve = true;
+                ContainsVectorData = true;
             }
 
             AstUtils = new AstUtils(this, new ConfigOptions(), null);
@@ -132,8 +137,9 @@ namespace Antigen
                 File.WriteAllText(workingFile, testCaseRoot.ToFullString());
             }
 #endif
-            var baselineVariables = EnvVarOptions.BaseLineVars(Config.UseSve);
-            var testVariables = EnvVarOptions.TestVars(includeOsrSwitches: PRNG.Decide(0.3), Config.UseSve);
+            bool isx64 = RuntimeInformation.OSArchitecture == Architecture.X64;
+            var baselineVariables = EnvVarOptions.BaseLineVars(Config.UseSve && isx64);
+            var testVariables = EnvVarOptions.TestVars(includeOsrSwitches: PRNG.Decide(0.3), Config.UseSve && isx64);
 
             // Execute test first and see if we have any errors/asserts
             var test = s_testRunner.Execute(compileResult, testVariables);

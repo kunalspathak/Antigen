@@ -28,7 +28,7 @@ namespace Antigen
         public TestCase TC { get; private set; }
         public Stack<Scope> ScopeStack { get; private set; }
         private List<Weights<MethodSignature>> _methods { get; set; }
-        private static List<MethodSignature> vectorMethods = null;
+        private static List<MethodSignature> s_allVectorMethods = null;
         private static bool isVectorMethodsInitialized = false;
         private int _variableId;
 
@@ -124,27 +124,72 @@ namespace Antigen
         /// <returns></returns>
         public MethodSignature GetRandomVectorMethod(Tree.ValueType returnType)
         {
-            var matchingMethods = AllVectorMethods.Where(m => m.Data.ReturnType.Equals(returnType)).ToList();
+            var matchingMethods = AllVectorMethods.Where(m => m.Data.ReturnType.Equals(returnType));
 
-            if (PRNG.Decide(TC.Config.SveMethodsProbability) || TC.Config.UseSve)
-            {
-                var sveMethods = matchingMethods.Where(m => m.Data.MethodName.StartsWith("Sve.")).ToList();
-                if (sveMethods.Count > 0)
-                {
-                    matchingMethods = sveMethods;
-                }
-            }
+            // // TraditionalMethodsProbability
+            // // AvxMethodsProbability
+            // // SSEMethodsProbability
+            // // AdvSimdMethodsProbability
+            // // SveMethodsProbability
 
-            else if (PRNG.Decide(TC.Config.AdvSimdMethodsProbability) || TC.Config.UseSve)
-            {
-                var advsimdMethods = matchingMethods.Where(m => m.Data.MethodName.StartsWith("AdvSimd.")).ToList();
-                if (advsimdMethods.Count > 0)
-                {
-                    matchingMethods = advsimdMethods;
-                }
-            }
+            // var sveMethods = matchingMethods.Where(m => m.Data.MethodName.StartsWith("Sve."));
+            // var advsimdMethods = matchingMethods.Where(m => m.Data.MethodName.StartsWith("AdvSimd."));
+            // var avxMethods = matchingMethods.Where(m => m.Data.MethodName.StartsWith("Avx"));
+            // var sseMethods = matchingMethods.Where(m => m.Data.MethodName.StartsWith("Sse"));
+            // var traditionalMethods = matchingMethods.Where(m =>
+            // {
+            //     string methodName = m.Data.MethodName;
+            //     if (methodName.StartsWith("Bmi"))
+            //     {
+            //         return true;
+            //     }
+            //     else if (methodName.StartsWith("Fma"))
+            //     {
+            //         return true;
+            //     }
+            //     else if (methodName.StartsWith("Lzcnt"))
+            //     {
+            //         return true;
+            //     }
+            //     else if (methodName.StartsWith("Pclmulqdq"))
+            //     {
+            //         return true;
+            //     }
+            //     else if (methodName.StartsWith("Popcnt"))
+            //     {
+            //         return true;
+            //     }
+            //     else
+            //     {
+            //         return false;
+            //     }
+            // });
 
-            if (matchingMethods.Count == 0)
+            // if (PRNG.Decide(TC.Config.TraditionalMethodsProbability))
+            // {
+            //     matchingMethods = traditionalMethods;
+            // }
+            // if (PRNG.Decide(TC.Config.SSEMethodsProbability))
+            // {
+
+            // }
+
+            // if (TC.Config.UseSve || PRNG.Decide(TC.Config.SveMethodsProbability))
+            // {
+            //     if (sveMethods.Count > 0)
+            //     {
+            //         matchingMethods = sveMethods;
+            //     }
+            // }
+            // else if (TC.Config.UseSve || PRNG.Decide(TC.Config.AdvSimdMethodsProbability))
+            // {
+            //     if (advsimdMethods.Count > 0)
+            //     {
+            //         matchingMethods = advsimdMethods;
+            //     }
+            // }
+
+            if (matchingMethods.Count() == 0)
             {
                 return null;
             }

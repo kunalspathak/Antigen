@@ -310,7 +310,7 @@ namespace Antigen.Config
         /// </summary>
         public double AdvSimdMethodsProbability = 0.35;
 
-            /// <summary>
+        /// <summary>
         ///     AdvSimd methods probability
         /// </summary>
         public double SveMethodsProbability = 1;
