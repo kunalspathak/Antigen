@@ -28,7 +28,7 @@ namespace Antigen
         public TestCase TC { get; private set; }
         public Stack<Scope> ScopeStack { get; private set; }
         private List<Weights<MethodSignature>> _methods { get; set; }
-        private static List<MethodSignature> vectorMethods = null;
+        private static List<MethodSignature> s_allVectorMethods = null;
         private static bool isVectorMethodsInitialized = false;
         private int _variableId;
 
@@ -124,9 +124,9 @@ namespace Antigen
         /// <returns></returns>
         public MethodSignature GetRandomVectorMethod(Tree.ValueType returnType)
         {
-            var matchingMethods = AllVectorMethods.Where(m => m.Data.ReturnType.Equals(returnType)).ToList();
+            var matchingMethods = AllVectorMethods.Where(m => m.Data.ReturnType.Equals(returnType));
 
-            if (matchingMethods.Count == 0)
+            if (matchingMethods.Count() == 0)
             {
                 return null;
             }

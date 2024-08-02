@@ -37,12 +37,12 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.{0};
+using System.Runtime.Intrinsics.Arm;
+using System.Runtime.Intrinsics.X86;
 using System.Numerics;
 ";
                 bool isArm = (RuntimeInformation.OSArchitecture == Architecture.Arm) || (RuntimeInformation.OSArchitecture == Architecture.Arm64);
 
-                usingCode = string.Format(usingCode, isArm ? "Arm" : "X86");
                 s_usingStmts = new ArbitraryCodeStatement(null, usingCode);
                 return s_usingStmts;
             }

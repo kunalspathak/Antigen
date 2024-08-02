@@ -5,9 +5,11 @@ using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using Utils;
 
 namespace Antigen
@@ -79,6 +81,21 @@ namespace Antigen
             Config = s_runOptions.Configs[PRNG.Next(s_runOptions.Configs.Count)];
             ContainsVectorData = PRNG.Decide(Config.VectorDataProbability);
 
+            if (RuntimeInformation.OSArchitecture == Architecture.X64)
+            {
+                if (PRNG.Decide(Config.SveMethodsProbability))
+                {
+                    Config.UseSve = true;
+                    ContainsVectorData = true;
+                }
+            }
+            else
+            {
+                // local temporary change
+                Config.UseSve = true;
+                ContainsVectorData = true;
+            }
+
             AstUtils = new AstUtils(this, new ConfigOptions(), null);
             Name = "TestClass" + testId;
             s_testRunner = TestRunner.GetInstance(s_runOptions.CoreRun, s_runOptions.OutputDirectory);
@@ -105,7 +122,7 @@ namespace Antigen
                 //fileContents.AppendLine($"Got {compileResult.CompileErrors.Count()} compiler error(s):");
                 //foreach (var error in compileResult.CompileErrors)
                 //{
-                //    fileContents.AppendLine(error.ToString());
+                //   fileContents.AppendLine(error.ToString());
                 //}
                 //fileContents.AppendLine("*/");
 
@@ -120,8 +137,9 @@ namespace Antigen
                 File.WriteAllText(workingFile, testCaseRoot.ToFullString());
             }
 #endif
-            var baselineVariables = EnvVarOptions.BaseLineVars();
-            var testVariables = EnvVarOptions.TestVars(includeOsrSwitches: PRNG.Decide(0.3));
+            bool isx64 = RuntimeInformation.OSArchitecture == Architecture.X64;
+            var baselineVariables = EnvVarOptions.BaseLineVars(Config.UseSve && isx64);
+            var testVariables = EnvVarOptions.TestVars(includeOsrSwitches: PRNG.Decide(0.3), Config.UseSve && isx64);
 
             // Execute test first and see if we have any errors/asserts
             var test = s_testRunner.Execute(compileResult, testVariables);
@@ -296,13 +314,19 @@ namespace Antigen
             string currentReproFile = $"{testFileName}.g.cs";
             lock (Program.s_spinLock)
             {
+                UniqueIssueFile uniqueIssueFile;
                 if (!s_uniqueIssues.ContainsKey(assertionHashCode))
                 {
-                    s_uniqueIssues[assertionHashCode] = new UniqueIssueFile(s_uniqueIssues.Count, int.MaxValue, currentReproFile);
+                    uniqueIssueFile = new UniqueIssueFile(s_uniqueIssues.Count, int.MaxValue, currentReproFile);
+                }
+                else
+                {
+                    uniqueIssueFile = s_uniqueIssues[assertionHashCode];
                 }
 
                 // Create hash of testAssertion and copy files in respective bucket.
-                uniqueIssueDirName = Path.Combine(s_runOptions.OutputDirectory, $"UniqueIssue{s_uniqueIssues[assertionHashCode].UniqueIssueId}");
+                uniqueIssueDirName = Path.Combine(s_runOptions.OutputDirectory, $"UniqueIssue{uniqueIssueFile.UniqueIssueId}");
+
                 if (!Directory.Exists(uniqueIssueDirName))
                 {
                     Directory.CreateDirectory(uniqueIssueDirName);
@@ -310,9 +334,9 @@ namespace Antigen
                 }
 
                 // Only cache 1 file of smallest possible size.
-                if (s_uniqueIssues[assertionHashCode].FileSize > fileContents.Length)
+                if (uniqueIssueFile.FileSize > fileContents.Length)
                 {
-                    string largerReproFile = Path.Combine(uniqueIssueDirName, s_uniqueIssues[assertionHashCode].FileName);
+                    string largerReproFile = Path.Combine(uniqueIssueDirName, uniqueIssueFile.FileName);
                     if (File.Exists(largerReproFile))
                     {
                         File.Delete(largerReproFile);
@@ -324,7 +348,7 @@ namespace Antigen
                     File.WriteAllText(failFile, fileContents.ToString());
 
                     // Update the file size
-                    s_uniqueIssues[assertionHashCode] = new UniqueIssueFile(s_uniqueIssues.Count, fileContents.Length, currentReproFile);
+                    s_uniqueIssues[assertionHashCode] = new UniqueIssueFile(uniqueIssueFile.UniqueIssueId, fileContents.Length, currentReproFile);
                 }
             }
         }

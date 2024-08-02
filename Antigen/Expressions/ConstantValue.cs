@@ -141,6 +141,9 @@ namespace Antigen.Expressions
                     case Tree.Primitive.Double:
                         constantValue = ((double)literalValue + (double)PRNG.Next(5) / PRNG.Next(10, 100)).ToString();
                         break;
+                    // case Tree.Primitive.SveMaskPattern:
+                    //     constantValue = (Helpers.GetRandomByte() % 16).ToString();
+                    //     break;
                     default:
                         Debug.Assert(false, string.Format("Hit unknown value type {0}", Enum.GetName(typeof(Tree.Primitive), literalType.PrimitiveType)));
                         constantValue = "1";
