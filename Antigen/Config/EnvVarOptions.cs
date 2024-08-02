@@ -116,18 +116,17 @@ namespace Antigen.Config
             else
             {
                 envVars["DOTNET_TieredCompilation"] = "0";
-                if (!s_IsArm)
-                {
-                    envVars["DOTNET_PreferredVectorBitWidth"] = "512";
-                }
-                else
+                if (s_IsArm)
                 {
                     envVars["DOTNET_MaxVectorTBitWidth"] = "128";
                 }
-
-                if (useSve)
+                else if (useSve)
                 {
                     AddSveSwitches(ref envVars);
+                }
+                else
+                {
+                    envVars["DOTNET_PreferredVectorBitWidth"] = "512";
                 }
             }
 
@@ -170,6 +169,7 @@ namespace Antigen.Config
 
             envVars["DOTNET_AltJitName"] = altjitName;
             envVars["DOTNET_AltJit"] = "*";
+            envVars["DOTNET_MaxVectorTBitWidth"] = "128";
         }
     }
 

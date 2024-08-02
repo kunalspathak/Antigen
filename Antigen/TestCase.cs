@@ -83,7 +83,7 @@ namespace Antigen
 
             if (RuntimeInformation.OSArchitecture == Architecture.X64)
             {
-                if (PRNG.Decide(0.5))
+                if (PRNG.Decide(Config.SveMethodsProbability))
                 {
                     Config.UseSve = true;
                     ContainsVectorData = true;

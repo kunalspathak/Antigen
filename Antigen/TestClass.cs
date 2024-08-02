@@ -126,69 +126,6 @@ namespace Antigen
         {
             var matchingMethods = AllVectorMethods.Where(m => m.Data.ReturnType.Equals(returnType));
 
-            // // TraditionalMethodsProbability
-            // // AvxMethodsProbability
-            // // SSEMethodsProbability
-            // // AdvSimdMethodsProbability
-            // // SveMethodsProbability
-
-            // var sveMethods = matchingMethods.Where(m => m.Data.MethodName.StartsWith("Sve."));
-            // var advsimdMethods = matchingMethods.Where(m => m.Data.MethodName.StartsWith("AdvSimd."));
-            // var avxMethods = matchingMethods.Where(m => m.Data.MethodName.StartsWith("Avx"));
-            // var sseMethods = matchingMethods.Where(m => m.Data.MethodName.StartsWith("Sse"));
-            // var traditionalMethods = matchingMethods.Where(m =>
-            // {
-            //     string methodName = m.Data.MethodName;
-            //     if (methodName.StartsWith("Bmi"))
-            //     {
-            //         return true;
-            //     }
-            //     else if (methodName.StartsWith("Fma"))
-            //     {
-            //         return true;
-            //     }
-            //     else if (methodName.StartsWith("Lzcnt"))
-            //     {
-            //         return true;
-            //     }
-            //     else if (methodName.StartsWith("Pclmulqdq"))
-            //     {
-            //         return true;
-            //     }
-            //     else if (methodName.StartsWith("Popcnt"))
-            //     {
-            //         return true;
-            //     }
-            //     else
-            //     {
-            //         return false;
-            //     }
-            // });
-
-            // if (PRNG.Decide(TC.Config.TraditionalMethodsProbability))
-            // {
-            //     matchingMethods = traditionalMethods;
-            // }
-            // if (PRNG.Decide(TC.Config.SSEMethodsProbability))
-            // {
-
-            // }
-
-            // if (TC.Config.UseSve || PRNG.Decide(TC.Config.SveMethodsProbability))
-            // {
-            //     if (sveMethods.Count > 0)
-            //     {
-            //         matchingMethods = sveMethods;
-            //     }
-            // }
-            // else if (TC.Config.UseSve || PRNG.Decide(TC.Config.AdvSimdMethodsProbability))
-            // {
-            //     if (advsimdMethods.Count > 0)
-            //     {
-            //         matchingMethods = advsimdMethods;
-            //     }
-            // }
-
             if (matchingMethods.Count() == 0)
             {
                 return null;
