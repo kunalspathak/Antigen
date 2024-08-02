@@ -43,7 +43,6 @@ using System.Numerics;
 ";
                 bool isArm = (RuntimeInformation.OSArchitecture == Architecture.Arm) || (RuntimeInformation.OSArchitecture == Architecture.Arm64);
 
-                //usingCode = string.Format(usingCode, isArm ? "Arm" : "X86");
                 s_usingStmts = new ArbitraryCodeStatement(null, usingCode);
                 return s_usingStmts;
             }
