@@ -69,6 +69,10 @@ namespace Antigen.Config
                 }
             }
 
+            if (s_IsArm)
+            {
+                envVars["DOTNET_MaxVectorTBitWidth"] = "128";
+            }
             if (useSve)
             {
                 AddSveSwitches(ref envVars);

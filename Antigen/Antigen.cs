@@ -171,10 +171,15 @@ namespace Antigen
                 var currTestId = GetNextTestId();
                 var testCase = new TestCase(currTestId, s_runOptions);
                 testCase.Generate();
+                string configName = testCase.Config.Name;
+                if (testCase.ContainsVectorData)
+                {
+                    configName += " (vector)";
+                }
                 var result = testCase.Verify();
                 Console.WriteLine("[{4}] Test# {0, -5} [{1, -25}] - {2, -15} {3, -10} MB ",
                     currTestId,
-                    testCase.Config.Name,
+                    configName,
                     Enum.GetName(typeof(TestResult), result),
                     (double)Process.GetCurrentProcess().WorkingSet64 / 1000000,
                     (DateTime.Now - s_startTime).ToString());

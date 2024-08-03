@@ -89,12 +89,12 @@ namespace Antigen
                     ContainsVectorData = true;
                 }
             }
-            else
-            {
-                // local temporary change
-                Config.UseSve = true;
-                ContainsVectorData = true;
-            }
+            // else
+            // {
+            //     // local temporary change
+            //     Config.UseSve = true;
+            //     ContainsVectorData = true;
+            // }
 
             AstUtils = new AstUtils(this, new ConfigOptions(), null);
             Name = "TestClass" + testId;
