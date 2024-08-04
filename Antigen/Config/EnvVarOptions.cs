@@ -123,6 +123,8 @@ namespace Antigen.Config
                 if (s_IsArm)
                 {
                     envVars["DOTNET_MaxVectorTBitWidth"] = "128";
+                    envVars["DOTNET_PreferredVectorBitWidth"] = "0";
+
                 }
                 else if (useSve)
                 {
@@ -174,6 +176,7 @@ namespace Antigen.Config
             envVars["DOTNET_AltJitName"] = altjitName;
             envVars["DOTNET_AltJit"] = "*";
             envVars["DOTNET_MaxVectorTBitWidth"] = "128";
+            envVars["DOTNET_PreferredVectorBitWidth"] = "0";
         }
     }
 

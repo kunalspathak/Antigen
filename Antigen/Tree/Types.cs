@@ -419,7 +419,7 @@ namespace Antigen.Tree
                     "System.UInt64" => Primitive.ULong,
                     "System.Single" => Primitive.Float,
                     "System.Double" => Primitive.Double,
-                    _ => throw new Exception("Invalid typename parameter"),
+                    _ => throw new Exception($"Invalid typename parameter - '{typeName}'"),
                 };
                 return types.FirstOrDefault(t => t.PrimitiveType == parsedPrimitiveType);
             }
