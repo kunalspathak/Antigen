@@ -249,16 +249,12 @@ namespace Antigen
                     fullMethodName.Contains("Quaternion") || fullMethodName.Contains("[]") ||
                     fullMethodName.Contains("*") || fullMethodName.Contains("ByRef") ||
                     fullMethodName.Contains("Numerics.Plane") || fullMethodName.Contains("Divide") ||
-                    fullMethodName.Contains("SveMaskPattern") ||
-                    fullMethodName.Contains("FloatComparisonMode") || fullMethodName.Contains("Unsafe"))
+                    fullMethodName.Contains("SveMaskPattern") || fullMethodName.Contains("SvePrefetchType") ||
+                    fullMethodName.Contains("FloatComparisonMode") || fullMethodName.Contains("FloatRoundingMode") ||
+                    fullMethodName.Contains("Unsafe"))
                 {
                     // We do not support these types, so ignore these methods.
                     continue;
-                }
-
-                if (fullMethodName.Contains("SveMaskPattern"))
-                {
-                    Console.WriteLine("");
                 }
 
                 string vectorsInMethod = Tree.ValueType.GetVectorList(fullMethodName);
