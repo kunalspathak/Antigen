@@ -40,12 +40,19 @@ namespace Antigen
             public readonly int UniqueIssueId;
             public readonly int FileSize;
             public readonly string FileName;
+            public int HitCount { get; private set; }
 
-            public UniqueIssueFile(int _uniqueIssueId, int _fileSize, string _fileName)
+            public UniqueIssueFile(int _uniqueIssueId, int _fileSize, string _fileName, int hitCount)
             {
                 UniqueIssueId = _uniqueIssueId;
                 FileSize = _fileSize;
                 FileName = _fileName;
+                HitCount = hitCount;
+            }
+
+            public void IncreaseHitCount()
+            {
+                HitCount++;
             }
         }
         private static readonly ConcurrentDictionary<int, UniqueIssueFile> s_uniqueIssues = new();
@@ -311,6 +318,7 @@ namespace Antigen
             fileContents.AppendLine("*/");
 
             string output = string.IsNullOrEmpty(baselineOutput) ? testOutput : baselineOutput;
+            StringBuilder summaryContents = new StringBuilder(output);
             string uniqueIssueDirName = null;
             int assertionHashCode = failureText.GetHashCode();
             string currentReproFile = $"{testFileName}.g.cs";
@@ -319,12 +327,17 @@ namespace Antigen
                 UniqueIssueFile uniqueIssueFile;
                 if (!s_uniqueIssues.ContainsKey(assertionHashCode))
                 {
-                    uniqueIssueFile = new UniqueIssueFile(s_uniqueIssues.Count, int.MaxValue, currentReproFile);
+                    uniqueIssueFile = new UniqueIssueFile(s_uniqueIssues.Count, int.MaxValue, currentReproFile, 0);
                 }
                 else
                 {
                     uniqueIssueFile = s_uniqueIssues[assertionHashCode];
                 }
+                uniqueIssueFile.IncreaseHitCount();
+                summaryContents.AppendLine();
+                summaryContents.AppendLine();
+                summaryContents.AppendLine($"HitCount: {uniqueIssueFile.HitCount}");
+
 
                 // Create hash of testAssertion and copy files in respective bucket.
                 uniqueIssueDirName = Path.Combine(s_runOptions.OutputDirectory, $"UniqueIssue{uniqueIssueFile.UniqueIssueId}");
@@ -332,8 +345,9 @@ namespace Antigen
                 if (!Directory.Exists(uniqueIssueDirName))
                 {
                     Directory.CreateDirectory(uniqueIssueDirName);
-                    File.WriteAllText(Path.Combine(uniqueIssueDirName, "summary.txt"), output);
                 }
+
+                File.WriteAllText(Path.Combine(uniqueIssueDirName, "summary.txt"), summaryContents.ToString());
 
                 // Only cache 1 file of smallest possible size.
                 if (uniqueIssueFile.FileSize > fileContents.Length)
@@ -344,13 +358,12 @@ namespace Antigen
                         File.Delete(largerReproFile);
                     }
 
-
                     // Write the smallest file
                     string failFile = Path.Combine(uniqueIssueDirName, currentReproFile);
                     File.WriteAllText(failFile, fileContents.ToString());
 
                     // Update the file size
-                    s_uniqueIssues[assertionHashCode] = new UniqueIssueFile(uniqueIssueFile.UniqueIssueId, fileContents.Length, currentReproFile);
+                    s_uniqueIssues[assertionHashCode] = new UniqueIssueFile(uniqueIssueFile.UniqueIssueId, fileContents.Length, currentReproFile, uniqueIssueFile.HitCount);
                 }
             }
         }
