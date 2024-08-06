@@ -1,4 +1,8 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
+using Antigen.Tree;
+using System.Runtime.Intrinsics.Arm;
+using System.Diagnostics;
 
 namespace Antigen
 {
@@ -56,6 +60,21 @@ namespace Antigen
                 strBuilder.Append(Alphabets[PRNG.Next(Alphabets.Length)]);
             }
             return strBuilder.ToString();
+        }
+
+        public static string GetRandomEnumValue(Primitive primitive)
+        {
+            Array enumValues;
+            switch (primitive)
+            {
+                case Primitive.SveMaskPattern:
+                    enumValues = Enum.GetValues(typeof(SveMaskPattern));
+                    return "SveMaskPattern." + enumValues.GetValue(PRNG.Next(enumValues.Length)).ToString();
+                default:
+                    Debug.Assert(false, string.Format("Hit unknown value type {0}", Enum.GetName(typeof(Tree.Primitive), primitive)));
+                    return "0";
+
+            }
         }
 
         public static bool GetRandomBoolean()

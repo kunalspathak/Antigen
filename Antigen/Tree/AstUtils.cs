@@ -37,7 +37,7 @@ namespace Antigen.Tree
 
             if (TestCase.ContainsVectorData)
             {
-                foreach (ValueType type in ValueType.GetVectorTypes())
+                foreach (ValueType type in VectorHelpers.GetVectorTypes(TestCase))
                 {
                     AllTypes.Add(new Weights<ValueType>(type, ConfigOptions.Lookup(type)));
                 }

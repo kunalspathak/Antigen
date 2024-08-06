@@ -166,6 +166,9 @@ namespace Antigen.Expressions
                     case Tree.Primitive.String:
                         constantValue = Helpers.GetRandomString();
                         break;
+                    case Tree.Primitive.SveMaskPattern:
+                        constantValue = Helpers.GetRandomEnumValue(literalType.PrimitiveType);
+                        break;
                     default:
                         Debug.Assert(false, string.Format("Hit unknown value type {0}", Enum.GetName(typeof(Tree.Primitive), literalType.PrimitiveType)));
                         constantValue = "1";

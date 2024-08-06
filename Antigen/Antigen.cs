@@ -165,6 +165,9 @@ namespace Antigen
                 { TestResult.OOM, 0 },
             };
 
+            // Generate vector methods
+            VectorHelpers.RecordVectorMethods();
+
             int testCount = 0;
             while (!Done)
             {
@@ -174,7 +177,11 @@ namespace Antigen
                 string configName = testCase.Config.Name;
                 if (testCase.ContainsVectorData)
                 {
-                    configName += " (vector)";
+                    configName += " (Vector)";
+                }
+                if (testCase.Config.UseSve)
+                {
+                    configName += " (SVE)";
                 }
                 var result = testCase.Verify();
                 Console.WriteLine("[{4}] Test# {0, -5} [{1, -25}] - {2, -15} {3, -10} MB ",

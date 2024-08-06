@@ -375,7 +375,13 @@ namespace Antigen
                         PushScope(new Scope(TC, ScopeKind.LoopScope, CurrentScope));
 
                         var bounds = ExprHelper(GetASTUtils().GetRandomExpressionReturningValueType(Primitive.Int), Tree.ValueType.ForPrimitive(Primitive.Int), 0);
-                        var loopStepCastExpr = ExprHelper(ExprKind.AssignExpression, Tree.ValueType.GetRandomType(), 0) as CastExpression;
+                        Tree.ValueType loopStepType;
+                        do
+                        {
+                            loopStepType = Tree.ValueType.GetRandomType();
+                        } while (loopStepType.PrimitiveType == Primitive.SveMaskPattern);
+
+                        var loopStepCastExpr = ExprHelper(ExprKind.AssignExpression, loopStepType, 0) as CastExpression;
 
                         // No need to cast the assign expression inside for-loop. Additionally compiler would complain for it, so just
                         // unwrap the cast expression and use the real assignment expression.
@@ -696,6 +702,11 @@ namespace Antigen
         public Expression ExprHelper(ExprKind exprKind, Tree.ValueType exprType, int depth)
         {
             //Debug.Assert(depth <= TC.Config.MaxExprDepth);
+
+            if (exprType.PrimitiveType == Primitive.SveMaskPattern)
+            {
+                exprKind = PRNG.Decide(0.5) ? ExprKind.LiteralExpression : ExprKind.VariableExpression;
+            }
 
             switch (exprKind)
             {
