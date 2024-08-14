@@ -128,3 +128,7 @@ Antigen also comes with a component called `Trimmer` which would trim the C# cod
 ## Are there any other fuzzers?
 
 There are lot of fuzzers to test compilers. One of them is [Fuzzlyn](https://github.com/jakobbotsch/Fuzzlyn) developed by [Jakob Botsch Nielsen](https://jakobbotsch.com/).
+
+## Credits
+
+The design idea of running an execution server that speed up the runtime of Antigen tests was adopted from [Fuzzlyn](https://github.com/jakobbotsch/Fuzzlyn) developed by [Jakob Botsch Nielsen](https://jakobbotsch.com/).
