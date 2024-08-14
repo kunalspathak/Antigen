@@ -26,6 +26,7 @@ namespace Antigen
             { TestResult.OutputMismatch, 0 },
             { TestResult.Pass, 0 },
             { TestResult.OOM, 0 },
+            { TestResult.OtherError, 0 },
         };
 
         private static int s_testId = 0;
@@ -71,7 +72,7 @@ namespace Antigen
                     Directory.CreateDirectory(s_runOptions.OutputDirectory);
                 }
 
-                Parallel.For(0, 2, (p) => RunTest());
+                Parallel.For(0, 4, (p) => RunTest());
                 Console.WriteLine($"Executed {s_testId} test cases.");
                 DisplayStats();
             }
@@ -163,6 +164,7 @@ namespace Antigen
                 { TestResult.OutputMismatch, 0 },
                 { TestResult.Pass, 0 },
                 { TestResult.OOM, 0 },
+                { TestResult.OtherError, 0 },
             };
 
             // Generate vector methods
@@ -172,34 +174,35 @@ namespace Antigen
             while (!Done)
             {
                 var currTestId = GetNextTestId();
-                var testCase = new TestCase(currTestId, s_runOptions);
-                testCase.Generate();
-                string configName = testCase.Config.Name;
-                if (testCase.ContainsVectorData)
+                using (var testCase = new TestCase(currTestId, s_runOptions))
                 {
-                    configName += " (Vector)";
-                }
-                if (testCase.Config.UseSve)
-                {
-                    configName += " (SVE)";
-                }
-                var result = testCase.Verify();
-                Console.WriteLine("[{4}] Test# {0, -5} [{1, -25}] - {2, -15} {3, -10} MB ",
-                    currTestId,
-                    configName,
-                    Enum.GetName(typeof(TestResult), result),
-                    (double)Process.GetCurrentProcess().WorkingSet64 / 1000000,
-                    (DateTime.Now - s_startTime).ToString());
+                    testCase.Generate();
+                    string configName = testCase.Config.Name;
+                    if (testCase.ContainsVectorData)
+                    {
+                        configName += " (Vector)";
+                    }
+                    if (testCase.Config.UseSve)
+                    {
+                        configName += " (SVE)";
+                    }
+                    //var result = testCase.Verify();
+                    var result = testCase.Verify2();
 
+                    Console.WriteLine("[{4}] Test# {0, -5} [{1, -25}] - {2, -15} {3, -10} MB ",
+                        currTestId,
+                        configName,
+                        Enum.GetName(typeof(TestResult), result),
+                        (double)Process.GetCurrentProcess().WorkingSet64 / 1000000,
+                        (DateTime.Now - s_startTime).ToString());
+                    localStats[result]++;
+                }
                 testCount++;
-                localStats[result]++;
                 if (testCount == 50)
                 {
                     SaveResult(localStats, testCount);
                     testCount = 0;
                 }
-
-                GC.Collect();
             }
         }
     }

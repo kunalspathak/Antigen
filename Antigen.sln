@@ -12,6 +12,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trimmer", "Trimmer\Trimmer.csproj", "{CE027BEA-870D-4821-886E-71E3F209A18B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExecutionEngine", "ExecutionEngine\ExecutionEngine.csproj", "{1A2BB825-9952-479B-8F6A-7F0543B0A4FC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,6 +28,10 @@ Global
 		{CE027BEA-870D-4821-886E-71E3F209A18B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CE027BEA-870D-4821-886E-71E3F209A18B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CE027BEA-870D-4821-886E-71E3F209A18B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A2BB825-9952-479B-8F6A-7F0543B0A4FC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A2BB825-9952-479B-8F6A-7F0543B0A4FC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A2BB825-9952-479B-8F6A-7F0543B0A4FC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A2BB825-9952-479B-8F6A-7F0543B0A4FC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

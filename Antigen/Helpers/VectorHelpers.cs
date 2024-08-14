@@ -142,6 +142,11 @@ namespace Antigen
         {
             lock (Program.s_spinLock)
             {
+                if (s_allVectorTypes != null)
+                {
+                    return;
+                }
+
                 RecordVectorTypes();
 
                 s_allVectorMethods = new List<MethodSignature>();

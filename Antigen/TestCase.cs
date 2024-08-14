@@ -11,10 +11,13 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Utils;
+using Antigen.Compilation;
+using Antigen.Execution;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace Antigen
 {
-    public class TestCase
+    public class TestCase : IDisposable
     {
         #region Compiler options
 
@@ -28,14 +31,17 @@ namespace Antigen
         private readonly List<string> _knownDiffs = new List<string>()
         {
             "System.OverflowException: Value was either too large or too small for a Decimal.",
+            "Value was either too large or too small for a Decimal.",
             "System.DivideByZeroException: Attempted to divide by zero.",
+            "Attempted to divide by zero.",
+            "Arithmetic operation resulted in an overflow.",
             "isCandidateVar(fieldVarDsc) == isMultiReg", // https://github.com/dotnet/runtime/issues/85628
             "curSize < maxSplitSize", // https://github.com/dotnet/runtime/issues/91251
         };
 
         private SyntaxNode testCaseRoot;
 
-        private struct UniqueIssueFile
+        private class UniqueIssueFile
         {
             public readonly int UniqueIssueId;
             public readonly int FileSize;
@@ -77,6 +83,7 @@ namespace Antigen
         private static TestRunner s_testRunner;
         private static RunOptions s_runOptions;
 
+        internal Compiler Compiler { get; private set; }
         internal ConfigOptions Config { get; private set; }
         public string Name { get; private set; }
         public AstUtils AstUtils { get; private set; }
@@ -106,6 +113,7 @@ namespace Antigen
             AstUtils = new AstUtils(this, new ConfigOptions(), null);
             Name = "TestClass" + testId;
             s_testRunner = TestRunner.GetInstance(s_runOptions.CoreRun, s_runOptions.OutputDirectory);
+            Compiler = new Compiler(s_runOptions.OutputDirectory);
         }
 
         public void Generate()
@@ -122,7 +130,7 @@ namespace Antigen
             CompileResult compileResult = s_testRunner.Compile(syntaxTree, Name);
             if (compileResult.AssemblyFullPath == null)
             {
-#if UNREACHABLE
+//#if UNREACHABLE
                 StringBuilder fileContents = new StringBuilder();
 
                 fileContents.AppendLine(testCaseRoot.NormalizeWhitespace().ToFullString());
@@ -136,7 +144,7 @@ namespace Antigen
 
                 string errorFile = Path.Combine(s_runOptions.OutputDirectory, $"{Name}-compile-error.g.cs");
                 File.WriteAllText(errorFile, fileContents.ToString());
-#endif
+//#endif
                 return compileResult.RoslynException != null ? TestResult.RoslynException : TestResult.CompileError;
             }
 #if UNREACHABLE
@@ -151,6 +159,7 @@ namespace Antigen
             var testVariables = EnvVarOptions.TestVars(includeOsrSwitches: PRNG.Decide(0.3), Config.UseSve && isx64);
 
             // Execute test first and see if we have any errors/asserts
+            //var test = s_testRunner.Execute2(compileResult);
             var test = s_testRunner.Execute(compileResult, testVariables);
 
             // If timeout, skip
@@ -243,6 +252,89 @@ namespace Antigen
             return TheTestResult(compileResult.AssemblyFullPath, TestResult.Pass);
         }
 
+        public TestResult Verify2()
+        {
+            SyntaxTree syntaxTree = testCaseRoot.SyntaxTree; // RslnUtilities.GetValidSyntaxTree(testCaseRoot);
+            CompileResult compileResult = Compiler.Compile(syntaxTree, Name);
+            ExecuteResult executeResult = s_testRunner.Execute(compileResult);
+            if (executeResult.Result == RunOutcome.AssertionFailure)
+            {
+                var assertionMessage = executeResult.AssertionMessage;
+                var parsedAssertion = RslnUtilities.ParseAssertionError(assertionMessage);
+
+                if (!string.IsNullOrEmpty(parsedAssertion))
+                {
+                    foreach (var knownError in _knownDiffs)
+                    {
+                        if (parsedAssertion.Contains(knownError))
+                        {
+                            return TestResult.Pass;
+                        }
+                    }
+                    SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, assertionMessage, null, parsedAssertion, $"{Name}-test-assertion");
+                    return TestResult.Assertion;
+                }
+                else
+                {
+                    foreach (var knownError in _knownDiffs)
+                    {
+                        if (assertionMessage.Contains(knownError))
+                        {
+                            //SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, test, testVariables, "Out of memory", $"{Name}-test-divbyzero");
+
+                            return assertionMessage.Contains("System.OverflowException:") ? TestResult.Overflow : TestResult.DivideByZero;
+                        }
+                    }
+                }
+                return TestResult.Assertion;
+            }
+            else if (executeResult.Result == RunOutcome.OtherError)
+            {
+                string errorMessage = executeResult.OtherErrorMessage;
+                if (errorMessage.Contains("System.OutOfMemoryException"))
+                {
+                    return TestResult.OOM;
+                }
+                if (errorMessage == "Operation is not supported on this platform.")
+                {
+                    // probably we are running with Altjit.
+
+                    return TestResult.Pass;
+                }
+                foreach (var knownError in _knownDiffs)
+                {
+                    if (errorMessage.Contains(knownError))
+                    {
+                        if (errorMessage.Contains("Attempted to divide by zero"))
+                        {
+                            return TestResult.DivideByZero;
+                        }
+                        else if (errorMessage.Contains("overflow") || errorMessage.Contains("too large or too small"))
+                        {
+                            return TestResult.Overflow;
+                        }
+                    }
+                    return TestResult.OtherError;
+                }
+                var parsedError = RslnUtilities.ParseAssertionError(errorMessage);
+                parsedError = parsedError ?? errorMessage;
+
+                SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, executeResult.OtherErrorMessage, null, parsedError, $"{Name}-test-error");
+                return TestResult.OtherError;
+            }
+            else if (executeResult.Result == RunOutcome.OutputMismatch)
+            {
+                var outputDiff = executeResult.OtherErrorMessage;
+                SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, outputDiff, null, outputDiff, $"{Name}-test-output-mismatch");
+                return TestResult.OutputMismatch;
+            }
+            else
+            {
+                return TestResult.Pass;
+            }
+            // execute
+        }
+
         private TestResult TheTestResult(string assemblyPath, TestResult result)
         {
             try
@@ -284,21 +376,6 @@ namespace Antigen
             fileContents.AppendLine("/*");
 
             fileContents.AppendFormat("Config: {0}", Config.Name).AppendLine();
-            fileContents.AppendLine("--------- Baseline ---------");
-            fileContents.AppendLine();
-            fileContents.AppendLine("Environment:");
-            fileContents.AppendLine();
-            if (baselineVars != null)
-            {
-                foreach (var envVars in baselineVars)
-                {
-                    fileContents.AppendFormat("{0}={1}", envVars.Key, envVars.Value).AppendLine();
-                }
-            }
-            fileContents.AppendLine();
-            fileContents.AppendLine(baselineOutput);
-
-            fileContents.AppendLine("--------- Test ---------");
             fileContents.AppendLine();
             fileContents.AppendLine("Environment:");
             fileContents.AppendLine();
@@ -368,5 +445,11 @@ namespace Antigen
             }
         }
 
+        public void Dispose()
+        {
+            this.testCaseRoot = null;
+            this.Compiler = null;
+            GC.Collect();
+        }
     }
 }

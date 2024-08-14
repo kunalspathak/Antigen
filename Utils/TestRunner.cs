@@ -9,6 +9,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Antigen.Compilation;
+using Antigen.Execution;
+using ExecutionEngine;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Emit;
@@ -23,18 +26,28 @@ namespace Utils
         DivideByZero,
         OutputMismatch,
         Assertion,
+        OtherError,
         Pass,
         OOM
     }
 
+
     public class TestRunner
     {
-        internal static readonly CSharpCompilationOptions CompileOptions = new CSharpCompilationOptions(OutputKind.ConsoleApplication, concurrentBuild: false, optimizationLevel: OptimizationLevel.Release/*, mainTypeName: "Main"*/);
+        internal static readonly CSharpCompilationOptions ReleaseCompileOptions = new (
+            OutputKind.ConsoleApplication,
+            concurrentBuild: true,
+            optimizationLevel: OptimizationLevel.Release);
+        internal static readonly CSharpCompilationOptions DebugCompileOptions = new(
+            OutputKind.ConsoleApplication,
+            concurrentBuild: true,
+            optimizationLevel: OptimizationLevel.Debug);
 
         private static TestRunner _testRunner;
         private static readonly bool s_useDotnet = false;
         private readonly string _coreRun;
         private readonly string _outputDirectory;
+        private readonly EEDriver _driver;
 
         private static readonly string s_corelibPath = typeof(object).Assembly.Location;
         private static readonly MetadataReference[] s_references =
@@ -44,19 +57,23 @@ namespace Utils
              MetadataReference.CreateFromFile(Path.Combine(Path.GetDirectoryName(s_corelibPath), "System.Runtime.dll")),
              MetadataReference.CreateFromFile(typeof(SyntaxTree).Assembly.Location),
              MetadataReference.CreateFromFile(typeof(CSharpSyntaxTree).Assembly.Location),
-    };
+        };
 
         private TestRunner(string coreRun, string outputFolder)
         {
             _coreRun = coreRun;
             _outputDirectory = outputFolder;
+            _driver = EEDriver.GetInstance(coreRun, Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "ExecutionEngine.dll"));
         }
 
         public static TestRunner GetInstance(string coreRun, string outputFolder)
         {
-            if (_testRunner == null)
+            lock (ReleaseCompileOptions)
             {
-                _testRunner = new TestRunner(coreRun, outputFolder);
+                if (_testRunner == null)
+                {
+                    _testRunner = new TestRunner(coreRun, outputFolder);
+                }
             }
             return _testRunner;
         }
@@ -69,7 +86,7 @@ namespace Utils
         {
             string assemblyFullPath = Path.Combine(_outputDirectory, $"{assemblyName}.exe");
 
-            var cc = CSharpCompilation.Create($"{assemblyName}.exe", new SyntaxTree[] { programTree }, s_references, CompileOptions);
+            var cc = CSharpCompilation.Create($"{assemblyName}.exe", [programTree], s_references, ReleaseCompileOptions);
 
             using (var ms = new MemoryStream())
             {
@@ -89,7 +106,7 @@ namespace Utils
 #if DEBUG
                     return new CompileResult(result.Diagnostics);
 #else
-                    return new CompileResult(null, null);
+                    return new CompileResult(null, null, null, null);
 #endif
                 }
 
@@ -97,7 +114,7 @@ namespace Utils
                 File.WriteAllBytes(assemblyFullPath, ms.ToArray());
                 //Console.WriteLine($"{ms.Length} bytes");
 
-                return new CompileResult(assemblyName, assemblyFullPath);
+                return new CompileResult(assemblyName, assemblyFullPath, null, ms.ToArray());
             }
         }
 
@@ -222,39 +239,65 @@ namespace Utils
                     try
                     {
                         finalOutput = output.ToString();
-
-                    } catch (ArgumentOutOfRangeException)
+                    }
+                    catch (ArgumentOutOfRangeException)
                     {
                     }
                     return finalOutput.Trim();
                 }
             }
         }
-    }
 
-    internal class CompileResult
-    {
-        public CompileResult(IEnumerable<Diagnostic> diagnostics)
+        internal ExecuteResult Execute(CompileResult compileResult)
         {
-            CompileErrors = diagnostics.Where(diag => diag.Severity == DiagnosticSeverity.Error);
-            CompileWarnings = diagnostics.Where(diag => diag.Severity == DiagnosticSeverity.Warning);
+            var result = _driver.Execute(new()
+            {
+                Debug = compileResult.DebugAssembly,
+                Release = compileResult.ReleaseAssembly
+            });
+            if (result.IsJitAssert)
+            {
+                return ExecuteResult.GetAssertionFailureResult(GetFailureOutput(result));
+            }
+            else if (result.IsTimeout)
+            {
+                return ExecuteResult.GetTimeoutResult();
+            }
+            else if (!string.IsNullOrEmpty(result.DebugError) || !string.IsNullOrEmpty(result.ReleaseError))
+            {
+                if (result.DebugError != result.ReleaseError)
+                {
+                    return ExecuteResult.GetOutputMismatchResult(GetFailureOutput(result));
+                }
+                else
+                {
+                    return ExecuteResult.GetOtherErrorResult(result.DebugError);
+                }
+            }
+            else if (result.DebugOutput != result.ReleaseOutput)
+            {
+                return ExecuteResult.GetOutputMismatchResult(GetFailureOutput(result));
+            }
+            else
+            {
+                return ExecuteResult.GetSuccessResult();
+            }
         }
 
-        public CompileResult(string assemblyName, string assemblyFullPath)
+        internal string GetFailureOutput(Response response)
         {
-            AssemblyName = assemblyName;
-            AssemblyFullPath = assemblyFullPath;
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("Environment:");
+            foreach (var envVar in response.EnvironmentVariables)
+            {
+                sb.AppendLine($"{envVar.Key}={envVar.Value}");
+            }
+            sb.AppendLine();
+            sb.AppendLine($"Debug: {response.DebugOutput}");
+            sb.AppendLine(response.DebugError);
+            sb.AppendLine($"Release: {response.ReleaseOutput}");
+            sb.AppendLine(response.ReleaseError);
+            return sb.ToString();
         }
-
-        public CompileResult(Exception roslynException)
-        {
-            RoslynException = roslynException;
-        }
-
-        public string AssemblyName { get; }
-        public Exception RoslynException { get; }
-        public IEnumerable<Diagnostic> CompileErrors { get; }
-        public IEnumerable<Diagnostic> CompileWarnings { get; }
-        public string AssemblyFullPath { get; }
     }
 }
