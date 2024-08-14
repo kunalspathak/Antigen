@@ -36,7 +36,7 @@ namespace Trimmer
         private ExecuteResult _lkgExecuteResult;
         private int _sizeOfTestFileToTrim;
         private static TestRunner _testRunner;
-        private int _iterId = 1;
+        private int _iterId = 0;
         static int TRIMMER_RESET_COUNT = 10;
         private readonly CommandLineOptions _opts = null;
         private readonly Compiler _compiler;
@@ -424,11 +424,9 @@ TRIMMER_LOOP:
                     validationResult = TestResult.CompileError;
                     break;
                 case RunOutcome.AssertionFailure:
-                {
                     validationResult = _reproDetails.assertionText == executeResult.ShortAssertionText ?
                         TestResult.Pass : TestResult.Assertion;
                     break;
-                }
                 case RunOutcome.OutputMismatch:
                     validationResult = TestResult.OutputMismatch;
                     break;
@@ -440,14 +438,15 @@ TRIMMER_LOOP:
                     throw new Exception("Unknown outcome.");
             }
 
-            if (validationResult != TestResult.Pass)
+            if (_iterId % 100 == 0)
+            {
+                SaveRepro();
+            }
+
+            if ((validationResult == TestResult.Assertion) || (validationResult == TestResult.OutputMismatch))
             {
                 _treeToTrim = programRootNode;
                 _lkgExecuteResult = executeResult;
-                if (_iterId % 100 == 0)
-                {
-                    SaveRepro();
-                }
             }
 
             return validationResult;
