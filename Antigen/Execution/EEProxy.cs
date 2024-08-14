@@ -48,6 +48,7 @@ namespace Antigen.Execution
             {
                 StartInfo = startInfo
             };
+
             SetEnvironmentVariables(startInfo);
             _process.Start();
             _testCaseExecutionCount = 0;
@@ -178,5 +179,7 @@ namespace Antigen.Execution
             }
             return false;
         }
+
+        public bool IsRunning => (_process != null) && !_process.HasExited;
     }
 }

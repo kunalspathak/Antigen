@@ -29,11 +29,6 @@ namespace Antigen.Execution
             AppDomain.CurrentDomain.UnhandledException += (sender, args) => TerminateAllProxys();
         }
 
-        private void CreateEEProxy()
-        {
-            Proxys.Add(EEProxy.GetInstance(_hostName, _executionEngine));
-        }
-
         private void TerminateAllProxys()
         {
             for (int i = 0; i < Proxys.Count; i++)
@@ -64,7 +59,15 @@ namespace Antigen.Execution
                     return proxy;
                 }
             }
-            return EEProxy.GetInstance(_hostName, _executionEngine);
+
+            while (true)
+            {
+                var proxy = EEProxy.GetInstance(_hostName, _executionEngine);
+                if (proxy.IsRunning)
+                {
+                    return proxy;
+                }
+            }
         }
 
         private void Return(EEProxy proxy)
