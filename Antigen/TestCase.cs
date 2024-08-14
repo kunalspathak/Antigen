@@ -14,6 +14,7 @@ using Utils;
 using Antigen.Compilation;
 using Antigen.Execution;
 using static System.Net.Mime.MediaTypeNames;
+using System.Reflection;
 
 namespace Antigen
 {
@@ -80,10 +81,12 @@ namespace Antigen
             new Weights<int>(int.MaxValue, (double) PRNG.Next(1, 10) / 10000 ),
         };
 
-        private static TestRunner s_testRunner;
-        private static RunOptions s_runOptions;
+        internal static EEDriver s_Driver = null;
+        internal static TestRunner s_TestRunner = null;
+        internal static RunOptions s_RunOptions = null;
 
-        internal Compiler Compiler { get; private set; }
+        private Compiler m_compiler { get; set; }
+
         internal ConfigOptions Config { get; private set; }
         public string Name { get; private set; }
         public AstUtils AstUtils { get; private set; }
@@ -91,8 +94,7 @@ namespace Antigen
 
         public TestCase(int testId, RunOptions runOptions)
         {
-            s_runOptions = runOptions;
-            Config = s_runOptions.Configs[PRNG.Next(s_runOptions.Configs.Count)];
+            Config = s_RunOptions.Configs[PRNG.Next(s_RunOptions.Configs.Count)];
             ContainsVectorData = PRNG.Decide(Config.VectorDataProbability);
 
             if (RuntimeInformation.OSArchitecture == Architecture.X64)
@@ -112,8 +114,8 @@ namespace Antigen
 
             AstUtils = new AstUtils(this, new ConfigOptions(), null);
             Name = "TestClass" + testId;
-            s_testRunner = TestRunner.GetInstance(s_runOptions.CoreRun, s_runOptions.OutputDirectory);
-            Compiler = new Compiler(s_runOptions.OutputDirectory);
+
+            m_compiler = new Compiler(s_RunOptions.OutputDirectory);
         }
 
         public void Generate()
@@ -126,8 +128,8 @@ namespace Antigen
         public TestResult Verify()
         {
             SyntaxTree syntaxTree = testCaseRoot.SyntaxTree; // RslnUtilities.GetValidSyntaxTree(testCaseRoot);
-            CompileResult compileResult = Compiler.Compile(syntaxTree, Name);
-            ExecuteResult executeResult = s_testRunner.Execute(compileResult);
+            CompileResult compileResult = m_compiler.Compile(syntaxTree, Name);
+            ExecuteResult executeResult = s_TestRunner.Execute(compileResult);
 
             switch(executeResult.Result)
             {
@@ -136,7 +138,7 @@ namespace Antigen
                 case RunOutcome.AssertionFailure:
                 {
                     var assertionMessage = executeResult.AssertionMessage;
-                    var parsedAssertion = RslnUtilities.ParseAssertionError(assertionMessage);
+                    var parsedAssertion = executeResult.ShortAssertionText;
 
                     if (!string.IsNullOrEmpty(parsedAssertion))
                     {
@@ -147,7 +149,7 @@ namespace Antigen
                                 return TestResult.Pass;
                             }
                         }
-                        SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, assertionMessage, executeResult.EnvVars, parsedAssertion, $"{Name}-test-assertion");
+                        SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, executeResult.AssertionMessage, executeResult.EnvVars, parsedAssertion, $"{Name}-test-assertion");
                         return TestResult.Assertion;
                     }
                     else
@@ -275,7 +277,7 @@ namespace Antigen
 
 
                 // Create hash of testAssertion and copy files in respective bucket.
-                uniqueIssueDirName = Path.Combine(s_runOptions.OutputDirectory, $"UniqueIssue{uniqueIssueFile.UniqueIssueId}");
+                uniqueIssueDirName = Path.Combine(s_RunOptions.OutputDirectory, $"UniqueIssue{uniqueIssueFile.UniqueIssueId}");
 
                 if (!Directory.Exists(uniqueIssueDirName))
                 {
@@ -306,7 +308,7 @@ namespace Antigen
         public void Dispose()
         {
             this.testCaseRoot = null;
-            this.Compiler = null;
+            this.m_compiler = null;
             GC.Collect();
         }
     }

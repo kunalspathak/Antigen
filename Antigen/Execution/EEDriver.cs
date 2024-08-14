@@ -14,16 +14,18 @@ namespace Antigen.Execution
     {
         private readonly string _hostName;
         private readonly string _executionEngine;
+        private Func<Dictionary<string, string>> _envVarsGen;
 
-        public static EEDriver GetInstance(string host, string executionEngine)
+        public static EEDriver GetInstance(string host, string executionEngine, Func<Dictionary<string, string>> envVarGen)
         {
-            return new EEDriver(host, executionEngine);
+            return new EEDriver(host, executionEngine, envVarGen);
         }
 
-        private EEDriver(string host, string executionEngine)
+        private EEDriver(string host, string executionEngine, Func<Dictionary<string, string>> envVarGen)
         {
             _hostName = host;
             _executionEngine = executionEngine;
+            _envVarsGen = envVarGen;
 
             AppDomain.CurrentDomain.ProcessExit += (sender, args) => TerminateAllProxys();
             AppDomain.CurrentDomain.UnhandledException += (sender, args) => TerminateAllProxys();
@@ -62,7 +64,8 @@ namespace Antigen.Execution
 
             while (true)
             {
-                var proxy = EEProxy.GetInstance(_hostName, _executionEngine);
+                var envVars = _envVarsGen();
+                var proxy = EEProxy.GetInstance(_hostName, _executionEngine, envVars);
                 if (proxy.IsRunning)
                 {
                     return proxy;

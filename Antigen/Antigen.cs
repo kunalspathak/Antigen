@@ -8,6 +8,8 @@ using CommandLine;
 using Utils;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Antigen.Execution;
+using System.Reflection;
 
 namespace Antigen
 {
@@ -169,8 +171,18 @@ namespace Antigen
                 { TestResult.Timeout, 0 },
             };
 
-            // Generate vector methods
-            VectorHelpers.RecordVectorMethods();
+            lock (s_spinLock)
+            {
+                if (TestCase.s_RunOptions == null)
+                {
+                    TestCase.s_RunOptions = s_runOptions;
+                    TestCase.s_Driver = EEDriver.GetInstance(s_runOptions.CoreRun, Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "ExecutionEngine.dll"), () => EnvVarOptions.TestVars(includeOsrSwitches: PRNG.Decide(0.3), false));
+                    TestCase.s_TestRunner = TestRunner.GetInstance(TestCase.s_Driver, s_runOptions.CoreRun, s_runOptions.OutputDirectory);
+
+                    // Generate vector methods
+                    VectorHelpers.RecordVectorMethods();
+                }
+            }
 
             int testCount = 0;
             while (!Done)

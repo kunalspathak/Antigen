@@ -59,21 +59,18 @@ namespace Utils
              MetadataReference.CreateFromFile(typeof(CSharpSyntaxTree).Assembly.Location),
         };
 
-        private TestRunner(string coreRun, string outputFolder)
+        private TestRunner(EEDriver driver, string coreRun, string outputFolder)
         {
             _coreRun = coreRun;
             _outputDirectory = outputFolder;
-            _driver = EEDriver.GetInstance(coreRun, Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "ExecutionEngine.dll"));
+            _driver = driver;
         }
 
-        public static TestRunner GetInstance(string coreRun, string outputFolder)
+        internal static TestRunner GetInstance(EEDriver driver, string coreRun, string outputFolder)
         {
-            lock (ReleaseCompileOptions)
+            if (_testRunner == null)
             {
-                if (_testRunner == null)
-                {
-                    _testRunner = new TestRunner(coreRun, outputFolder);
-                }
+                _testRunner = new TestRunner(driver, coreRun, outputFolder);
             }
             return _testRunner;
         }

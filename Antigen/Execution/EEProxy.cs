@@ -12,7 +12,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Antigen.Config;
+//using Antigen.Config;
 using ExecutionEngine;
 using Newtonsoft.Json;
 using Utils;
@@ -32,7 +32,7 @@ namespace Antigen.Execution
         private const int RecycleCount = 100;
         private const int TimeoutInSeconds = 10;
 
-        private EEProxy(string host, string executionEngine)
+        private EEProxy(string host, string executionEngine, Dictionary<string, string> envVars)
         {
             ProcessStartInfo startInfo = new ProcessStartInfo
             {
@@ -49,15 +49,13 @@ namespace Antigen.Execution
                 StartInfo = startInfo
             };
 
-            SetEnvironmentVariables(startInfo);
+            SetEnvironmentVariables(startInfo, envVars);
             _process.Start();
             _testCaseExecutionCount = 0;
         }
 
-        private void SetEnvironmentVariables(ProcessStartInfo startInfo)
+        private void SetEnvironmentVariables(ProcessStartInfo startInfo, Dictionary<string, string> envVars)
         {
-            Dictionary<string, string> envVars = EnvVarOptions.TestVars(includeOsrSwitches: PRNG.Decide(0.3), false);
-
             envVars["DOTNET_TieredCompilation"] = "0";
             envVars["DOTNET_JitThrowOnAssertionFailure"] = "1";
             envVars["DOTNET_LegacyExceptionHandling"] = "1";
@@ -86,14 +84,14 @@ namespace Antigen.Execution
             return result;
         }
 
-        internal static EEProxy GetInstance(string host, string executionEngine)
+        internal static EEProxy GetInstance(string host, string executionEngine, Dictionary<string, string> envVars)
         {
             if (!File.Exists(host) || !File.Exists(executionEngine))
             {
                 throw new FileNotFoundException($"'{host}' or '{executionEngine}' not found.");
             }
 
-            return new EEProxy(host, executionEngine);
+            return new EEProxy(host, executionEngine, envVars);
         }
 
         public Response Execute(Request request)
