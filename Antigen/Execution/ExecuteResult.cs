@@ -17,6 +17,7 @@ namespace Antigen.Execution
         AssertionFailure,
         OutputMismatch,
         OtherError,
+        CompilationError,
     }
 
     internal struct ExecuteResult
@@ -24,15 +25,16 @@ namespace Antigen.Execution
         internal string OtherErrorMessage { get; private set; }
         internal string AssertionMessage { get; private set; }
         internal RunOutcome Result { get; private set; }
+        internal IReadOnlyList<Tuple<string, string>> EnvVars { get; private set; }
 
         internal static ExecuteResult GetSuccessResult()
         {
             return new ExecuteResult(RunOutcome.Success, null);
         }
 
-        internal static ExecuteResult GetOtherErrorResult(string errorMessage)
+        internal static ExecuteResult GetOtherErrorResult(string errorMessage, IReadOnlyList<Tuple<string, string>> envVars)
         {
-            return new ExecuteResult(RunOutcome.OtherError, null, errorMessage);
+            return new ExecuteResult(RunOutcome.OtherError, null, errorMessage, envVars);
         }
 
         internal static ExecuteResult GetTimeoutResult()
@@ -40,22 +42,27 @@ namespace Antigen.Execution
             return new ExecuteResult(RunOutcome.Timeout, null);
         }
 
-        internal static ExecuteResult GetAssertionFailureResult(string assertionMessage)
+        internal static ExecuteResult GetAssertionFailureResult(string assertionMessage, IReadOnlyList<Tuple<string, string>> envVars)
         {
-            return new ExecuteResult(RunOutcome.AssertionFailure, assertionMessage);
+            return new ExecuteResult(RunOutcome.AssertionFailure, assertionMessage, null, envVars);
         }
 
-        internal static ExecuteResult GetOutputMismatchResult(string outputDiff)
+        internal static ExecuteResult GetOutputMismatchResult(string outputDiff, IReadOnlyList<Tuple<string, string>> envVars)
         {
-            ExecuteResult result = new ExecuteResult(RunOutcome.OutputMismatch, null, outputDiff);
-            return result;
+            return new ExecuteResult(RunOutcome.OutputMismatch, null, outputDiff, envVars);
         }
 
-        private ExecuteResult(RunOutcome result, string assertionMessage, string errorMessage = null)
+        internal static ExecuteResult GetCompilationError()
+        {
+            return new ExecuteResult(RunOutcome.CompilationError, null);
+        }
+
+        private ExecuteResult(RunOutcome result, string assertionMessage, string errorMessage = null, IReadOnlyList<Tuple<string, string>> envVars = null)
         {
             Result = result;
             AssertionMessage = assertionMessage;
             OtherErrorMessage = errorMessage;
+            EnvVars = envVars;
         }
 
     }

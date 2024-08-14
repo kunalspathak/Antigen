@@ -14,7 +14,6 @@ namespace Antigen.Execution
     {
         private readonly string _hostName;
         private readonly string _executionEngine;
-        private static readonly TimeSpan s_inactivityPeriod = TimeSpan.FromMinutes(3);
 
         public static EEDriver GetInstance(string host, string executionEngine)
         {
@@ -73,7 +72,7 @@ namespace Antigen.Execution
             List<EEProxy> toRemove;
             lock(Proxys)
             {
-                toRemove = Proxys.Where(p => p.LastUsedTime.Elapsed > s_inactivityPeriod).ToList();
+                toRemove = Proxys.Where(p => p.ShouldRecycle()).ToList();
                 Proxys.RemoveAll(toRemove.Contains);
                 Proxys.Add(proxy);
             }
@@ -96,11 +95,11 @@ namespace Antigen.Execution
             {
                 proxy = Get();
                 var response = proxy.Execute(request);
-                if (response == null || response.HasCrashed)
+                if (response == null || response.HasCrashed || response.IsTimeout)
                 {
                     proxy = null;
                 }
-                if (response.IsJitAssert || (response.DebugOutput != response.ReleaseOutput))
+                else if (response.IsJitAssert || (response.DebugOutput != response.ReleaseOutput))
                 {
                     response.EnvironmentVariables = proxy.GetEnvironmentVariables();
                 }

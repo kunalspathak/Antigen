@@ -126,235 +126,98 @@ namespace Antigen
         public TestResult Verify()
         {
             SyntaxTree syntaxTree = testCaseRoot.SyntaxTree; // RslnUtilities.GetValidSyntaxTree(testCaseRoot);
-
-            CompileResult compileResult = s_testRunner.Compile(syntaxTree, Name);
-            if (compileResult.AssemblyFullPath == null)
-            {
-//#if UNREACHABLE
-                StringBuilder fileContents = new StringBuilder();
-
-                fileContents.AppendLine(testCaseRoot.NormalizeWhitespace().ToFullString());
-                fileContents.AppendLine("/*");
-                fileContents.AppendLine($"Got {compileResult.CompileErrors.Count()} compiler error(s):");
-                foreach (var error in compileResult.CompileErrors)
-                {
-                   fileContents.AppendLine(error.ToString());
-                }
-                fileContents.AppendLine("*/");
-
-                string errorFile = Path.Combine(s_runOptions.OutputDirectory, $"{Name}-compile-error.g.cs");
-                File.WriteAllText(errorFile, fileContents.ToString());
-//#endif
-                return compileResult.RoslynException != null ? TestResult.RoslynException : TestResult.CompileError;
-            }
-#if UNREACHABLE
-            else
-            {
-                string workingFile = Path.Combine(s_runOptions.OutputDirectory, $"{Name}-working.g.cs");
-                File.WriteAllText(workingFile, testCaseRoot.ToFullString());
-            }
-#endif
-            bool isx64 = RuntimeInformation.OSArchitecture == Architecture.X64;
-            var baselineVariables = EnvVarOptions.BaseLineVars(Config.UseSve && isx64);
-            var testVariables = EnvVarOptions.TestVars(includeOsrSwitches: PRNG.Decide(0.3), Config.UseSve && isx64);
-
-            // Execute test first and see if we have any errors/asserts
-            //var test = s_testRunner.Execute2(compileResult);
-            var test = s_testRunner.Execute(compileResult, testVariables);
-
-            // If timeout, skip
-            if (test == "TIMEOUT")
-            {
-                return TheTestResult(compileResult.AssemblyFullPath, TestResult.Pass);
-            }
-
-            // If OOM, skip
-            else if (test.Contains("Out of memory"))
-            {
-#if UNREACHABLE
-                SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, test, testVariables, "Out of memory", $"{Name}-test-oom");
-
-#endif
-                return TheTestResult(compileResult.AssemblyFullPath, TestResult.OOM);
-            }
-
-            var testAssertion = RslnUtilities.ParseAssertionError(test);
-
-            // If test assertion
-            if (!string.IsNullOrEmpty(testAssertion))
-            {
-                foreach (var knownError in _knownDiffs)
-                {
-                    if (testAssertion.Contains(knownError))
-                    {
-                        return TheTestResult(compileResult.AssemblyFullPath, TestResult.Pass);
-                    }
-                }
-                SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, test, testVariables, testAssertion, $"{Name}-test-assertion");
-                return TheTestResult(compileResult.AssemblyFullPath, TestResult.Assertion);
-            }
-            else
-            {
-                foreach (string knownError in _knownDiffs)
-                {
-                    if (test.Contains(knownError))
-                    {
-                        //SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, test, testVariables, "Out of memory", $"{Name}-test-divbyzero");
-
-                        return TheTestResult(compileResult.AssemblyFullPath, test.Contains("System.OverflowException:") ? TestResult.Overflow : TestResult.DivideByZero);
-                    }
-                }
-            }
-
-            if (!PRNG.Decide(s_runOptions.ExecuteBaseline))
-            {
-                return TheTestResult(compileResult.AssemblyFullPath, TestResult.Pass);
-            }
-
-            string baseline = s_testRunner.Execute(compileResult, baselineVariables);
-
-            // If timeout, skip
-            if (baseline == "TIMEOUT" || string.IsNullOrEmpty(baseline) || string.IsNullOrEmpty(test))
-            {
-                return TheTestResult(compileResult.AssemblyFullPath, TestResult.Pass);
-            }
-
-            // If OOM, ignore this diff
-            else if (baseline.Contains("Out of memory"))
-            {
-#if UNREACHABLE
-                SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, baseline, baselineVariables, null, null, "Out of memory", $"{Name}-base-oom"); ;
-#endif
-                return TheTestResult(compileResult.AssemblyFullPath, TestResult.OOM);
-            }
-
-            string baselineAssertion = RslnUtilities.ParseAssertionError(baseline);
-
-            // Is there assertion in baseline?
-            if (!string.IsNullOrEmpty(baselineAssertion))
-            {
-                SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, baseline, baselineVariables, null, null, baselineAssertion, $"{Name}-base-assertion");
-                return TheTestResult(compileResult.AssemblyFullPath, TestResult.Assertion);
-            }
-            // If baseline and test output doesn't match
-            else if (baseline != test)
-            {
-                var unsupportedOperationInBaseline = baseline.Contains("System.PlatformNotSupportedException");
-                var unsupportedOperationInTest = test.Contains("System.PlatformNotSupportedException");
-                if (unsupportedOperationInBaseline == unsupportedOperationInTest)
-                {
-                    // Only return mismatch output if both baseline/test contains "not supported" or both doesn't contain this exception.
-                    SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, baseline, baselineVariables, test, testVariables, "OutputMismatch", $"{Name}-output-mismatch");
-                    return TheTestResult(compileResult.AssemblyFullPath, TestResult.OutputMismatch);
-                }
-            }
-
-            return TheTestResult(compileResult.AssemblyFullPath, TestResult.Pass);
-        }
-
-        public TestResult Verify2()
-        {
-            SyntaxTree syntaxTree = testCaseRoot.SyntaxTree; // RslnUtilities.GetValidSyntaxTree(testCaseRoot);
             CompileResult compileResult = Compiler.Compile(syntaxTree, Name);
             ExecuteResult executeResult = s_testRunner.Execute(compileResult);
-            if (executeResult.Result == RunOutcome.AssertionFailure)
-            {
-                var assertionMessage = executeResult.AssertionMessage;
-                var parsedAssertion = RslnUtilities.ParseAssertionError(assertionMessage);
 
-                if (!string.IsNullOrEmpty(parsedAssertion))
+            switch(executeResult.Result)
+            {
+                case RunOutcome.CompilationError:
+                    return TestResult.CompileError;
+                case RunOutcome.AssertionFailure:
                 {
-                    foreach (var knownError in _knownDiffs)
+                    var assertionMessage = executeResult.AssertionMessage;
+                    var parsedAssertion = RslnUtilities.ParseAssertionError(assertionMessage);
+
+                    if (!string.IsNullOrEmpty(parsedAssertion))
                     {
-                        if (parsedAssertion.Contains(knownError))
+                        foreach (var knownError in _knownDiffs)
                         {
-                            return TestResult.Pass;
+                            if (parsedAssertion.Contains(knownError))
+                            {
+                                return TestResult.Pass;
+                            }
+                        }
+                        SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, assertionMessage, executeResult.EnvVars, parsedAssertion, $"{Name}-test-assertion");
+                        return TestResult.Assertion;
+                    }
+                    else
+                    {
+                        foreach (var knownError in _knownDiffs)
+                        {
+                            if (assertionMessage.Contains(knownError))
+                            {
+                                //SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, test, testVariables, "Out of memory", $"{Name}-test-divbyzero");
+
+                                return assertionMessage.Contains("System.OverflowException:") ? TestResult.Overflow : TestResult.DivideByZero;
+                            }
                         }
                     }
-                    SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, assertionMessage, null, parsedAssertion, $"{Name}-test-assertion");
                     return TestResult.Assertion;
                 }
-                else
+                case RunOutcome.OtherError:
                 {
+                    string errorMessage = executeResult.OtherErrorMessage;
+                    if (errorMessage.Contains("System.OutOfMemoryException"))
+                    {
+                        return TestResult.OOM;
+                    }
+                    if (errorMessage == "Operation is not supported on this platform.")
+                    {
+                        // probably we are running with Altjit.
+
+                        return TestResult.Pass;
+                    }
                     foreach (var knownError in _knownDiffs)
                     {
-                        if (assertionMessage.Contains(knownError))
+                        if (errorMessage.Contains(knownError))
                         {
-                            //SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, test, testVariables, "Out of memory", $"{Name}-test-divbyzero");
-
-                            return assertionMessage.Contains("System.OverflowException:") ? TestResult.Overflow : TestResult.DivideByZero;
+                            if (errorMessage.Contains("Attempted to divide by zero"))
+                            {
+                                return TestResult.DivideByZero;
+                            }
+                            else if (errorMessage.Contains("overflow") || errorMessage.Contains("too large or too small"))
+                            {
+                                return TestResult.Overflow;
+                            }
                         }
+                        return TestResult.OtherError;
                     }
-                }
-                return TestResult.Assertion;
-            }
-            else if (executeResult.Result == RunOutcome.OtherError)
-            {
-                string errorMessage = executeResult.OtherErrorMessage;
-                if (errorMessage.Contains("System.OutOfMemoryException"))
-                {
-                    return TestResult.OOM;
-                }
-                if (errorMessage == "Operation is not supported on this platform.")
-                {
-                    // probably we are running with Altjit.
+                    var parsedError = RslnUtilities.ParseAssertionError(errorMessage);
+                    parsedError = parsedError ?? errorMessage;
 
-                    return TestResult.Pass;
-                }
-                foreach (var knownError in _knownDiffs)
-                {
-                    if (errorMessage.Contains(knownError))
-                    {
-                        if (errorMessage.Contains("Attempted to divide by zero"))
-                        {
-                            return TestResult.DivideByZero;
-                        }
-                        else if (errorMessage.Contains("overflow") || errorMessage.Contains("too large or too small"))
-                        {
-                            return TestResult.Overflow;
-                        }
-                    }
+                    SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, executeResult.OtherErrorMessage, executeResult.EnvVars, parsedError, $"{Name}-test-error");
                     return TestResult.OtherError;
                 }
-                var parsedError = RslnUtilities.ParseAssertionError(errorMessage);
-                parsedError = parsedError ?? errorMessage;
-
-                SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, executeResult.OtherErrorMessage, null, parsedError, $"{Name}-test-error");
-                return TestResult.OtherError;
+                case RunOutcome.OutputMismatch:
+                {
+                    var outputDiff = executeResult.OtherErrorMessage;
+                    SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, outputDiff, executeResult.EnvVars, outputDiff, $"{Name}-test-output-mismatch");
+                    return TestResult.OutputMismatch;
+                }
+                case RunOutcome.Timeout:
+                {
+                    return TestResult.Timeout;
+                }
+                default:
+                    return TestResult.Pass;
             }
-            else if (executeResult.Result == RunOutcome.OutputMismatch)
-            {
-                var outputDiff = executeResult.OtherErrorMessage;
-                SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, null, null, outputDiff, null, outputDiff, $"{Name}-test-output-mismatch");
-                return TestResult.OutputMismatch;
-            }
-            else
-            {
-                return TestResult.Pass;
-            }
-            // execute
-        }
-
-        private TestResult TheTestResult(string assemblyPath, TestResult result)
-        {
-            try
-            {
-                File.Delete(assemblyPath);
-            }
-            catch
-            {
-                // ignore errors 
-            }
-            return result;
         }
 
         private void SaveTestCase(
             string assemblyPath,
             SyntaxNode testCaseRoot,
-            string baselineOutput,
-            Dictionary<string, string> baselineVars,
             string testOutput,
-            Dictionary<string, string> testVars,
+            IReadOnlyList<Tuple<string, string>> envVars,
             string failureText,
             string testFileName)
         {
@@ -363,13 +226,9 @@ namespace Antigen
 #endif
 
             StringBuilder fileContents = new StringBuilder();
-            if (baselineVars != null)
+            if (envVars != null)
             {
-                fileContents.AppendLine($"// BaselineVars: {string.Join("|", baselineVars.ToList().Select(x => $"{x.Key}={x.Value}"))}");
-            }
-            if (testVars != null)
-            {
-                fileContents.AppendLine($"// TestVars: {string.Join("|", testVars.ToList().Select(x => $"{x.Key}={x.Value}"))}");
+                fileContents.AppendLine($"// EnvVars: {string.Join("|", envVars.ToList().Select(x => $"{x.Item1}={x.Item2}"))}");
             }
             fileContents.AppendLine("//");
             fileContents.AppendLine(testCaseRoot.NormalizeWhitespace().SyntaxTree.GetText().ToString());
@@ -379,11 +238,11 @@ namespace Antigen
             fileContents.AppendLine();
             fileContents.AppendLine("Environment:");
             fileContents.AppendLine();
-            if (testVars != null)
+            if (envVars != null)
             {
-                foreach (var envVars in testVars)
+                foreach (var envVar in envVars)
                 {
-                    fileContents.AppendFormat("{0}={1}", envVars.Key, envVars.Value).AppendLine();
+                    fileContents.AppendFormat("{0}={1}", envVar.Item1, envVar.Item2).AppendLine();
                 }
             }
             fileContents.AppendLine();
@@ -394,8 +253,7 @@ namespace Antigen
             fileContents.AppendLine(failureText);
             fileContents.AppendLine("*/");
 
-            string output = string.IsNullOrEmpty(baselineOutput) ? testOutput : baselineOutput;
-            StringBuilder summaryContents = new StringBuilder(output);
+            StringBuilder summaryContents = new StringBuilder(testOutput);
             string uniqueIssueDirName = null;
             int assertionHashCode = failureText.GetHashCode();
             string currentReproFile = $"{testFileName}.g.cs";

@@ -27,6 +27,7 @@ namespace Antigen
             { TestResult.Pass, 0 },
             { TestResult.OOM, 0 },
             { TestResult.OtherError, 0 },
+            { TestResult.Timeout, 0 },
         };
 
         private static int s_testId = 0;
@@ -165,6 +166,7 @@ namespace Antigen
                 { TestResult.Pass, 0 },
                 { TestResult.OOM, 0 },
                 { TestResult.OtherError, 0 },
+                { TestResult.Timeout, 0 },
             };
 
             // Generate vector methods
@@ -186,8 +188,7 @@ namespace Antigen
                     {
                         configName += " (SVE)";
                     }
-                    //var result = testCase.Verify();
-                    var result = testCase.Verify2();
+                    var result = testCase.Verify();
 
                     Console.WriteLine("[{4}] Test# {0, -5} [{1, -25}] - {2, -15} {3, -10} MB ",
                         currTestId,

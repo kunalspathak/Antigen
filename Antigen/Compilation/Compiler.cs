@@ -90,7 +90,7 @@ namespace Antigen.Compilation
             fileContents.AppendLine(tree.GetRoot().NormalizeWhitespace().ToFullString());
             fileContents.AppendLine("/*");
             fileContents.AppendLine($"Got {diagnostics.Count()} compiler error(s):");
-            var errorLines = diagnostics.Select(diag => $"{diag.Location.GetLineSpan().StartLinePosition.Line}: {diag.GetMessage()}");
+            var errorLines = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Select(diag => $"{diag.Location.GetLineSpan().StartLinePosition.Line}: {diag.GetMessage()}");
             var errorFile = Path.Combine(m_outputDirectory, $"{tree.FilePath}.error");
             File.WriteAllLines(errorFile, errorLines);
         }

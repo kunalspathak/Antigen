@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Antigen.Config;
 using ExecutionEngine;
@@ -23,7 +24,13 @@ namespace Antigen.Execution
     {
         public readonly Process _process;
         public Stopwatch LastUsedTime { get; } = new Stopwatch();
-        private  ReadOnlyDictionary<string, string> _envVars;
+        private ReadOnlyDictionary<string, string> _envVars;
+        private IReadOnlyList<Tuple<string, string>> _envVarsList;
+        private int _testCaseExecutionCount = 0;
+
+        private static readonly TimeSpan s_inactivityPeriod = TimeSpan.FromMinutes(3);
+        private const int RecycleCount = 100;
+        private const int TimeoutInSeconds = 10;
 
         private EEProxy(string host, string executionEngine)
         {
@@ -43,6 +50,7 @@ namespace Antigen.Execution
             };
             SetEnvironmentVariables(startInfo);
             _process.Start();
+            _testCaseExecutionCount = 0;
         }
 
         private void SetEnvironmentVariables(ProcessStartInfo startInfo)
@@ -59,7 +67,9 @@ namespace Antigen.Execution
             }
 
             _envVars = new ReadOnlyDictionary<string, string>(envVars);
+            _envVarsList = envVars.Select(kv => new Tuple<string, string>(kv.Key, kv.Value)).ToList();
         }
+
         public override string ToString()
         {
             string result = "";
@@ -89,6 +99,9 @@ namespace Antigen.Execution
         {
             _process.StandardInput.WriteLine(JsonConvert.SerializeObject(request));
 
+            bool killed = false;
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(TimeoutInSeconds));
+            using var reg = cts.Token.Register(() => { killed = true; Kill(); });
             StringBuilder responseReader = new StringBuilder();
             while (true)
             {
@@ -99,7 +112,16 @@ namespace Antigen.Execution
                 }
                 responseReader.AppendLine(line);
             }
+            _testCaseExecutionCount++;
             LastUsedTime.Restart();
+
+            if (killed)
+            {
+                return new Response
+                {
+                    IsTimeout = true
+                };
+            }
 
             try
             {
@@ -118,9 +140,17 @@ namespace Antigen.Execution
         ///     Returns environment variables used by this process.
         /// </summary>
         /// <returns></returns>
-        public ReadOnlyDictionary<string, string> GetEnvironmentVariables()
+        public IReadOnlyList<Tuple<string, string>> GetEnvironmentVariables()
         {
-            return _envVars;
+            return _envVarsList;
+        }
+
+        public void Kill()
+        {
+            if (!_process.HasExited)
+            {
+                _process.Kill();
+            }
         }
 
         public void Dispose()
@@ -130,6 +160,23 @@ namespace Antigen.Execution
                 _process.Kill();
                 _process.Dispose();
             }
+        }
+
+        /// <summary>
+        ///     Recycle if it ran around {RecycleCount} test cases or has been inactive for 3 minutes. 
+        /// </summary>
+        /// <returns></returns>
+        public bool ShouldRecycle()
+        {
+            if (_testCaseExecutionCount >= RecycleCount)
+            {
+                return true;
+            }
+            if (LastUsedTime.Elapsed > s_inactivityPeriod)
+            {
+                return true;
+            }
+            return false;
         }
     }
 }

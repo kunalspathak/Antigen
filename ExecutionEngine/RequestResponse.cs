@@ -26,6 +26,6 @@ namespace ExecutionEngine
         public bool IsTimeout { get; set; }
         public bool IsJitAssert { get; set; }
         public bool HasCrashed { get; set; }
-        public ReadOnlyDictionary<string, string> EnvironmentVariables { get; set; }
+        public IReadOnlyList<Tuple<string, string>> EnvironmentVariables { get; set; }
     }
 }
