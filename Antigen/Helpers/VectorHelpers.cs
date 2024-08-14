@@ -140,51 +140,55 @@ namespace Antigen
 
         public static void RecordVectorMethods()
         {
-            lock (Program.s_spinLock)
+            Debug.Assert(s_allVectorTypes == null);
+            
+            if (s_allVectorTypes != null)
             {
-                RecordVectorTypes();
-
-                s_allVectorMethods = new List<MethodSignature>();
-
-                RecordIntrinsicMethods(typeof(Vector));
-                RecordIntrinsicMethods(typeof(Vector2));
-                RecordIntrinsicMethods(typeof(Vector3));
-                RecordIntrinsicMethods(typeof(Vector4));
-                RecordVectorCtors(typeof(Vector2));
-                RecordVectorCtors(typeof(Vector3));
-                RecordVectorCtors(typeof(Vector4));
-                RecordIntrinsicMethods(typeof(Vector64));
-                RecordIntrinsicMethods(typeof(Vector128));
-                RecordIntrinsicMethods(typeof(Vector256));
-                RecordIntrinsicMethods(typeof(Vector512));
-                RecordIntrinsicMethods(typeof(AdvSimd));
-                RecordIntrinsicMethods(typeof(AdvSimd.Arm64), "AdvSimd.Arm64");
-                RecordIntrinsicMethods(typeof(Sve));
-                RecordIntrinsicMethods(typeof(System.Runtime.Intrinsics.X86.Aes));
-                RecordIntrinsicMethods(typeof(Bmi1));
-                RecordIntrinsicMethods(typeof(Bmi1.X64), "Bmi1.X64");
-                RecordIntrinsicMethods(typeof(Bmi2));
-                RecordIntrinsicMethods(typeof(Bmi2.X64), "Bmi2.X64");
-                RecordIntrinsicMethods(typeof(Fma));
-                RecordIntrinsicMethods(typeof(Lzcnt));
-                RecordIntrinsicMethods(typeof(Lzcnt.X64), "Lzcnt.X64");
-                RecordIntrinsicMethods(typeof(Pclmulqdq));
-                RecordIntrinsicMethods(typeof(Popcnt));
-                RecordIntrinsicMethods(typeof(Popcnt.X64), "Popcnt.X64");
-                RecordIntrinsicMethods(typeof(Avx));
-                RecordIntrinsicMethods(typeof(Avx2));
-                RecordIntrinsicMethods(typeof(Avx512BW));
-                RecordIntrinsicMethods(typeof(Avx512CD));
-                RecordIntrinsicMethods(typeof(Avx512DQ));
-                RecordIntrinsicMethods(typeof(Avx512F));
-                RecordIntrinsicMethods(typeof(Avx512Vbmi));
-                RecordIntrinsicMethods(typeof(Sse));
-                RecordIntrinsicMethods(typeof(Sse2));
-                RecordIntrinsicMethods(typeof(Sse3));
-                RecordIntrinsicMethods(typeof(Sse41));
-                RecordIntrinsicMethods(typeof(Sse42));
-                RecordIntrinsicMethods(typeof(Sse));
+                return;
             }
+
+            RecordVectorTypes();
+
+            s_allVectorMethods = new List<MethodSignature>();
+
+            RecordIntrinsicMethods(typeof(Vector));
+            RecordIntrinsicMethods(typeof(Vector2));
+            RecordIntrinsicMethods(typeof(Vector3));
+            RecordIntrinsicMethods(typeof(Vector4));
+            RecordVectorCtors(typeof(Vector2));
+            RecordVectorCtors(typeof(Vector3));
+            RecordVectorCtors(typeof(Vector4));
+            RecordIntrinsicMethods(typeof(Vector64));
+            RecordIntrinsicMethods(typeof(Vector128));
+            RecordIntrinsicMethods(typeof(Vector256));
+            RecordIntrinsicMethods(typeof(Vector512));
+            RecordIntrinsicMethods(typeof(AdvSimd));
+            RecordIntrinsicMethods(typeof(AdvSimd.Arm64), "AdvSimd.Arm64");
+            RecordIntrinsicMethods(typeof(Sve));
+            RecordIntrinsicMethods(typeof(System.Runtime.Intrinsics.X86.Aes));
+            RecordIntrinsicMethods(typeof(Bmi1));
+            RecordIntrinsicMethods(typeof(Bmi1.X64), "Bmi1.X64");
+            RecordIntrinsicMethods(typeof(Bmi2));
+            RecordIntrinsicMethods(typeof(Bmi2.X64), "Bmi2.X64");
+            RecordIntrinsicMethods(typeof(Fma));
+            RecordIntrinsicMethods(typeof(Lzcnt));
+            RecordIntrinsicMethods(typeof(Lzcnt.X64), "Lzcnt.X64");
+            RecordIntrinsicMethods(typeof(Pclmulqdq));
+            RecordIntrinsicMethods(typeof(Popcnt));
+            RecordIntrinsicMethods(typeof(Popcnt.X64), "Popcnt.X64");
+            RecordIntrinsicMethods(typeof(Avx));
+            RecordIntrinsicMethods(typeof(Avx2));
+            RecordIntrinsicMethods(typeof(Avx512BW));
+            RecordIntrinsicMethods(typeof(Avx512CD));
+            RecordIntrinsicMethods(typeof(Avx512DQ));
+            RecordIntrinsicMethods(typeof(Avx512F));
+            RecordIntrinsicMethods(typeof(Avx512Vbmi));
+            RecordIntrinsicMethods(typeof(Sse));
+            RecordIntrinsicMethods(typeof(Sse2));
+            RecordIntrinsicMethods(typeof(Sse3));
+            RecordIntrinsicMethods(typeof(Sse41));
+            RecordIntrinsicMethods(typeof(Sse42));
+            RecordIntrinsicMethods(typeof(Sse));
         }
 
         private static bool ShouldSkipVectorMethod(string fullMethodName)
