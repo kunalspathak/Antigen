@@ -748,7 +748,8 @@
       "MaxStmtDepth": 2,
       "MaxExprDepth": 3,
       "MethodCount": 5,
-      "TryCatchFinallyStatementWeight": 0
+      "TryCatchFinallyStatementWeight": 0,
+      "CSEUsageProbability": 0.45
     },
     {
       "Name": "Structs",
@@ -758,7 +759,8 @@
       "NestedStructProbability": 0.4,
       "StructFieldTypeProbability": 0.5,
       "StructAliasProbability": 0.5,
-      "StructUsageProbability": 0.8
+      "StructUsageProbability": 0.8,
+      "CSEUsageProbability": 0.35
     },
     {
       "Name": "MethodCalls",
@@ -782,7 +784,8 @@
       "MethodCount": 5,
       "MaxStatementCount": 3,
       "TryCatchFinallyStatementWeight": 0.03,
-      "LocalVariablesLogProbability": 1.0
+      "LocalVariablesLogProbability": 1.0,
+      "CSEUsageProbability": 0.25
     },
     {
       "Name": "ExceptionHandler",
@@ -804,6 +807,7 @@
       "LoopStartFromInvariantProbabilty": 0.3,
       "LoopStepPreBreakCondProbability": 0.6,
       "UseLoopInvariantVariableProbability": 1.0,
+      "CSEUsageProbability": 0.32,
       "AllowLoopCondAtEnd": false
     },
     {
@@ -815,7 +819,8 @@
       "ForStatementWeight": 0.2,
       "DoWhileStatementWeight": 0.3,
       "WhileStatementWeight": 0.5,
-      "SwitchStatementWeight": 0.45
+      "SwitchStatementWeight": 0.45,
+      "CSEUsageProbability": 0.48
     }
   ]
 }

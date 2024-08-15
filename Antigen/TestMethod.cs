@@ -708,139 +708,157 @@ namespace Antigen
                 exprKind = PRNG.Decide(0.5) ? ExprKind.LiteralExpression : ExprKind.VariableExpression;
             }
 
+            if (PRNG.Decide(TC.Config.CSEUsageProbability))
+            {
+                Expression expr = CurrentScope.GetRandomExpression(exprKind, exprType);
+                if (expr != null)
+                {
+                    return expr;
+                }
+            }
+
+            Expression resultExpression = null;
             switch (exprKind)
             {
                 case ExprKind.LiteralExpression:
-                    {
-                        return ConstantValue.GetConstantValue(exprType, TC._numerals);
-                    }
+                {
+                    resultExpression = ConstantValue.GetConstantValue(exprType, TC._numerals);
+                    break;
+                }
 
                 case ExprKind.VariableExpression:
-                    {
-                        return new VariableExpression(TC, CurrentScope.GetRandomVariable(exprType));
-                    }
+                {
+                    resultExpression = new VariableExpression(TC, CurrentScope.GetRandomVariable(exprType));
+                    break;
+                }
 
                 case ExprKind.BinaryOpExpression:
+                {
+                    //Debug.Assert(depth <= TC.Config.MaxExprDepth);
+
+                    Operator op = GetASTUtils().GetRandomBinaryOperator(exprType);
+
+                    Tree.ValueType lhsExprType, rhsExprType;
+
+                    if (exprType.IsVectorType)
                     {
-                        //Debug.Assert(depth <= TC.Config.MaxExprDepth);
-
-                        Operator op = GetASTUtils().GetRandomBinaryOperator(exprType);
-
-                        Tree.ValueType lhsExprType, rhsExprType;
-
-                        if (exprType.IsVectorType)
-                        {
-                            // The vector type should match exactly.
-                            lhsExprType = rhsExprType = exprType;
-                        }
-                        else
-                        {
-                            Primitive returnType = exprType.PrimitiveType;
-
-                            if (op.HasFlag(OpFlags.Divide))
-                            {
-                                // For '/' or '%' operations, just use int as dividend and divisor
-                                lhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
-                                rhsExprType = lhsExprType;
-                            }
-                            else
-                            {
-                                // If the return type is boolean, then take any ExprType that returns boolean.
-                                // However for other types, choose the same type for BinOp expression as the one used to store the result on LHS.
-                                //TODO-future: Consider doing GetRandomExprType(op.InputTypes) below. Currently, if this is done,
-                                // we end up getting code like (short)(1233342432.5M + 35435435.5M), where "short" is the exprType and
-                                // the literals are selected of different type ("decimal" in this example) and we get compilation error
-                                // because they can't be casted to short.
-                                lhsExprType = GetASTUtils().GetRandomPrimitiveType(returnType == Primitive.Boolean ? op.InputTypes : returnType);
-                                //Tree.ValueType lhsExprType = GetASTUtils().GetRandomExprType(op.InputTypes);
-                                rhsExprType = lhsExprType;
-
-                                if (op.HasFlag(OpFlags.Shift))
-                                {
-                                    rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
-                                }
-                            }
-                        }
-
-                        ExprKind lhsExprKind, rhsExprKind;
-                        if (depth < TC.Config.MaxExprDepth)
-                        {
-                            lhsExprKind = GetASTUtils().GetRandomExpressionReturningValueType(lhsExprType);
-                            rhsExprKind = GetASTUtils().GetRandomExpressionReturningValueType(rhsExprType);
-                        }
-                        else
-                        {
-                            lhsExprKind = GetASTUtils().GetRandomTerminalExpression(_testClass, exprType);
-                            rhsExprKind = GetASTUtils().GetRandomTerminalExpression(_testClass, exprType);
-                        }
-
-                        // Fold arithmetic binop expressions that has constants.
-                        // csc.exe would automatically fold that for us, but by doing it here, we eliminate generate 
-                        // errors during compiling the test case.
-                        if (op.HasFlag(OpFlags.Math) && lhsExprKind == ExprKind.LiteralExpression && rhsExprKind == ExprKind.LiteralExpression)
-                        {
-                            return ConstantValue.GetConstantValue(exprType, TC._numerals);
-                        }
-
-                        Expression lhs = ExprHelper(lhsExprKind, lhsExprType, depth + 1);
-                        Expression rhs = ExprHelper(rhsExprKind, rhsExprType, depth + 1);
-
-                        return new CastExpression(TC, new BinaryExpression(TC, lhsExprType, lhs, op, rhs), exprType);
-                    }
-                case ExprKind.AssignExpression:
-                    {
-                        //Debug.Assert(depth <= TC.Config.MaxExprDepth);
-
-                        Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator(exprType);
-                        Tree.ValueType lhsExprType, rhsExprType;
+                        // The vector type should match exactly.
                         lhsExprType = rhsExprType = exprType;
+                    }
+                    else
+                    {
+                        Primitive returnType = exprType.PrimitiveType;
 
-                        if (!assignOper.IsVectorOper)
+                        if (op.HasFlag(OpFlags.Divide))
                         {
-                            if (assignOper.HasFlag(OpFlags.Divide))
-                            {
-                                // For divide, just use 'int` type.
-                                lhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
-                                rhsExprType = lhsExprType;
-                            }
-                            else if (assignOper.HasFlag(OpFlags.Shift))
+                            // For '/' or '%' operations, just use int as dividend and divisor
+                            lhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
+                            rhsExprType = lhsExprType;
+                        }
+                        else
+                        {
+                            // If the return type is boolean, then take any ExprType that returns boolean.
+                            // However for other types, choose the same type for BinOp expression as the one used to store the result on LHS.
+                            //TODO-future: Consider doing GetRandomExprType(op.InputTypes) below. Currently, if this is done,
+                            // we end up getting code like (short)(1233342432.5M + 35435435.5M), where "short" is the exprType and
+                            // the literals are selected of different type ("decimal" in this example) and we get compilation error
+                            // because they can't be casted to short.
+                            lhsExprType = GetASTUtils().GetRandomPrimitiveType(returnType == Primitive.Boolean ? op.InputTypes : returnType);
+                            //Tree.ValueType lhsExprType = GetASTUtils().GetRandomExprType(op.InputTypes);
+                            rhsExprType = lhsExprType;
+
+                            if (op.HasFlag(OpFlags.Shift))
                             {
                                 rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
                             }
                         }
-
-                        ExprKind rhsKind;
-                        if (depth < TC.Config.MaxExprDepth)
-                        {
-                            rhsKind = GetASTUtils().GetRandomExpressionReturningValueType(rhsExprType);
-                        }
-                        else
-                        {
-                            rhsKind = GetASTUtils().GetRandomTerminalExpression(_testClass, rhsExprType);
-                        }
-
-                        Expression lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, depth + 1);
-                        Expression rhs = ExprHelper(rhsKind, rhsExprType, depth + 1);
-
-                        return new CastExpression(TC, new AssignExpression(TC, lhsExprType, lhs, assignOper, rhs), exprType);
                     }
-                case ExprKind.MethodCallExpression:
+
+                    ExprKind lhsExprKind, rhsExprKind;
+                    if (depth < TC.Config.MaxExprDepth)
                     {
-                        if (depth < TC.Config.MaxExprDepth)
+                        lhsExprKind = GetASTUtils().GetRandomExpressionReturningValueType(lhsExprType);
+                        rhsExprKind = GetASTUtils().GetRandomExpressionReturningValueType(rhsExprType);
+                    }
+                    else
+                    {
+                        lhsExprKind = GetASTUtils().GetRandomTerminalExpression(_testClass, exprType);
+                        rhsExprKind = GetASTUtils().GetRandomTerminalExpression(_testClass, exprType);
+                    }
+
+                    // Fold arithmetic binop expressions that has constants.
+                    // csc.exe would automatically fold that for us, but by doing it here, we eliminate generate 
+                    // errors during compiling the test case.
+                    if (op.HasFlag(OpFlags.Math) && lhsExprKind == ExprKind.LiteralExpression && rhsExprKind == ExprKind.LiteralExpression)
+                    {
+                        resultExpression = ConstantValue.GetConstantValue(exprType, TC._numerals);
+                    }
+                    else
+                    {
+
+                        Expression lhs = ExprHelper(lhsExprKind, lhsExprType, depth + 1);
+                        Expression rhs = ExprHelper(rhsExprKind, rhsExprType, depth + 1);
+
+                        resultExpression = new CastExpression(TC, new BinaryExpression(TC, lhsExprType, lhs, op, rhs), exprType);
+                    }
+                    break;
+                }
+                case ExprKind.AssignExpression:
+                {
+                    //Debug.Assert(depth <= TC.Config.MaxExprDepth);
+
+                    Tree.Operator assignOper = GetASTUtils().GetRandomAssignmentOperator(exprType);
+                    Tree.ValueType lhsExprType, rhsExprType;
+                    lhsExprType = rhsExprType = exprType;
+
+                    if (!assignOper.IsVectorOper)
+                    {
+                        if (assignOper.HasFlag(OpFlags.Divide))
                         {
-                            return MethodCallHelper(_testClass.GetRandomMethod(exprType), depth + 1);
+                            // For divide, just use 'int` type.
+                            lhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
+                            rhsExprType = lhsExprType;
                         }
-                        else
+                        else if (assignOper.HasFlag(OpFlags.Shift))
                         {
-                            return MethodCallHelper(_testClass.GetRandomLeafMethod(exprType), depth + 1);
+                            rhsExprType = Tree.ValueType.ForPrimitive(Primitive.Int);
                         }
                     }
+
+                    ExprKind rhsKind;
+                    if (depth < TC.Config.MaxExprDepth)
+                    {
+                        rhsKind = GetASTUtils().GetRandomExpressionReturningValueType(rhsExprType);
+                    }
+                    else
+                    {
+                        rhsKind = GetASTUtils().GetRandomTerminalExpression(_testClass, rhsExprType);
+                    }
+
+                    Expression lhs = ExprHelper(ExprKind.VariableExpression, lhsExprType, depth + 1);
+                    Expression rhs = ExprHelper(rhsKind, rhsExprType, depth + 1);
+
+                    resultExpression = new CastExpression(TC, new AssignExpression(TC, lhsExprType, lhs, assignOper, rhs), exprType);
+                    break;
+                }
+                case ExprKind.MethodCallExpression:
+                {
+                    resultExpression = depth < TC.Config.MaxExprDepth
+                        ? MethodCallHelper(_testClass.GetRandomMethod(exprType), depth + 1)
+                        : MethodCallHelper(_testClass.GetRandomLeafMethod(exprType), depth + 1);
+                        break;
+                }
 
                 default:
                     Debug.Assert(false, string.Format("Hit unknown expression type {0}", Enum.GetName(typeof(ExprKind), exprKind)));
                     break;
             }
-            return null;
+
+            if (resultExpression != null)
+            {
+                CurrentScope.AddExpression(exprKind, exprType, resultExpression);
+            }
+            return resultExpression;
         }
 
         /// <summary>

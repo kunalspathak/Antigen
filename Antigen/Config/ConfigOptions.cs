@@ -291,6 +291,11 @@ namespace Antigen.Config
         public int MaxCaseCounts = 4;
 
         /// <summary>
+        ///     Probability of using CSE.
+        /// </summary>
+        public double CSEUsageProbability = 0.3;
+
+        /// <summary>
         ///     Avx/Avx2 methods probability
         /// </summary>
         public double TraditionalMethodsProbability = 0.089;
