@@ -129,14 +129,17 @@ namespace Trimmer
             {
                 var lineContent = line.Trim();
 
-                if (lineContent.StartsWith("// EnvVars: "))
+                if (lineContent.StartsWith("// EnvVars:"))
                 {
                     var testContents = lineContent.Replace("// EnvVars: ", string.Empty).Trim();
                     var testVariables = testContents.Split("|").ToList().ToDictionary(x => x.Split("=")[0], x => x.Split("=")[1]);
                     reproDetails.envVars = testVariables;
                     break;
                 }
+            }
 
+            if (reproDetails.envVars == null)
+            {
                 throw new Exception("EnvVars not present.");
             }
 
@@ -454,7 +457,7 @@ TRIMMER_LOOP:
                     break;
                 case RunOutcome.AssertionFailure:
                     validationResult = _reproDetails.assertionText == executeResult.ShortAssertionText ?
-                        TestResult.Pass : TestResult.Assertion;
+                        TestResult.Assertion : TestResult.Pass;
                     break;
                 case RunOutcome.OutputMismatch:
                     validationResult = TestResult.OutputMismatch;
