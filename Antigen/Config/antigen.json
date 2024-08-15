@@ -31,58 +31,8 @@
       "Weight": 0,
       "Variables": [
         {
-          "Name": "JitCloneLoops",
-          "Weight": 0.04,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
           "Name": "JitAlignLoops",
           "Weight": 0.02,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitAlignLoopAdaptive",
-          "Weight": 0.01,
-          "Values": [
-            "1"
-          ]
-        },
-        {
-          "Name": "JitAlignLoopMinBlockWeight",
-          "Weight": 0.01,
-          "Values": [
-            "0",
-            "1",
-            "2",
-            "10",
-            "20"
-          ]
-        },
-        {
-          "Name": "JitDoubleAlign",
-          "Weight": 0.01,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitEnableDevirtualization",
-          "Weight": 0.01,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitEnableLateDevirtualization",
-          "Weight": 0.01,
           "Values": [
             "0",
             "1"
@@ -97,100 +47,11 @@
           ]
         },
         {
-          "Name": "JITInlineDepth",
-          "Weight": 0.01,
-          "Values": [
-            "0",
-            "1",
-            "2",
-            "10",
-            "20"
-          ]
-        },
-        {
-          "Name": "JitNoCMOV",
-          "Weight": 0.04,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitNoCSE",
-          "Weight": 0.03,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitNoCSE2",
-          "Weight": 0.05,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
           "Name": "JitNoForceFallback",
           "Weight": 0.01,
           "Values": [
             "0",
             "1"
-          ]
-        },
-        {
-          "Name": "JitNoHoist",
-          "Weight": 0.05,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitNoInline",
-          "Weight": 0.04,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitNoMemoryBarriers",
-          "Weight": 0.02,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitNoStructPromotion",
-          "Weight": 0.02,
-          "Values": [
-            "0",
-            "1",
-            "2"
-          ]
-        },
-        {
-          "Name": "JitNoUnroll",
-          "Weight": 0.02,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitStackAllocToLocalSize",
-          "Weight": 0.01,
-          "Values": [
-            "0",
-            "1",
-            "2",
-            "4",
-            "10",
-            "16",
-            "100"
           ]
         },
         {
@@ -210,19 +71,6 @@
           ]
         },
         {
-          "Name": "JitSplitFunctionSize",
-          "Weight": 0.01,
-          "Values": [
-            "0",
-            "1",
-            "2",
-            "4",
-            "10",
-            "16",
-            "100"
-          ]
-        },
-        {
           "Name": "JitStackChecks",
           "Weight": 0.01,
           "Values": [
@@ -239,14 +87,6 @@
           ]
         },
         {
-          "Name": "JitNoRngChks",
-          "Weight": 0.01,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
           "Name": "JitEnableNoWayAssert",
           "Weight": 0.01,
           "Values": [
@@ -256,89 +96,6 @@
         },
         {
           "Name": "JitAggressiveInlining",
-          "Weight": 0.05,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitMaxLocalsToTrack",
-          "Weight": 0.05,
-          "Values": [
-            "0",
-            "0x10",
-            "0x400",
-            "0x800",
-            "0x1000"
-          ]
-        },
-        {
-          "Name": "JitDoAssertionProp",
-          "Weight": 0.05,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitDoCopyProp",
-          "Weight": 0.05,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitDoEarlyProp",
-          "Weight": 0.05,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitDoLoopHoisting",
-          "Weight": 0.05,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitDoLoopInversion",
-          "Weight": 0.05,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitDoRangeAnalysis",
-          "Weight": 0.05,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitDoRedundantBranchOpts",
-          "Weight": 0.05,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitDoSsa",
-          "Weight": 0.05,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitDoValueNumber",
           "Weight": 0.05,
           "Values": [
             "0",
@@ -365,47 +122,7 @@
           ]
         },
         {
-          "Name": "TailCallLoopOpt",
-          "Weight": 0.03,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "FastTailCalls",
-          "Weight": 0.03,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitEnableFinallyCloning",
-          "Weight": 0.03,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitEnableRemoveEmptyTry",
-          "Weight": 0.03,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
           "Name": "JitEnableGuardedDevirtualization",
-          "Weight": 0.03,
-          "Values": [
-            "0",
-            "1"
-          ]
-        },
-        {
-          "Name": "JitExpandCallsEarly",
           "Weight": 0.03,
           "Values": [
             "0",
