@@ -122,10 +122,185 @@
           ]
         },
         {
-          "Name": "JitEnableGuardedDevirtualization",
+          "Name": "JitStressEvexEncoding",
+          "Weight": 0.1,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "HeapVerify",
+          "Weight": 0.1,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "JitELTHookEnabled",
+          "Weight": 0.04,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "JitFakeProcedureSplitting",
+          "Weight": 0.03,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "JitStressProcedureSplitting",
+          "Weight": 0.04,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "TailcallStress",
+          "Weight": 0.05,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "ReadyToRun",
+          "Weight": 0.08,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "JitObjectStackAllocation",
+          "Weight": 0.04,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "JitClassProfiling",
+          "Weight": 0.04,
+          "Values": [
+            "0"
+          ]
+        },
+        {
+          "Name": "JitDelegateProfiling",
+          "Weight": 0.04,
+          "Values": [
+            "0"
+          ]
+        },
+        {
+          "Name": "JitVTableProfiling",
+          "Weight": 0.04,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "JitEdgeProfiling",
+          "Weight": 0.04,
+          "Values": [
+            "0"
+          ]
+        },
+        {
+          "Name": "JitRandomGuardedDevirtualization",
+          "Weight": 0.04,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "JitRandomEdgeCounts",
+          "Weight": 0.04,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "JitRandomOnStackReplacement",
+          "Weight": 0.04,
+          "Values": [
+            "5",
+            "10",
+            "15"
+          ]
+        },
+        {
+          "Name": "JitGuardedDevirtualizationMaxTypeChecks",
+          "Weight": 0.03,
+          "Values": [
+            "1",
+            "2",
+            "3",
+            "5"
+          ]
+        },
+        {
+          "Name": "JitRandomlyCollect64BitCounts",
+          "Weight": 0.03,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "JitProfileCasts",
+          "Weight": 0.03,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "TieredPGO_InstrumentedTierAlwaysOptimized",
+          "Weight": 0.03,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "JitForceControlFlowGuard",
+          "Weight": 0.06,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "JitCFGUseDispatcher",
           "Weight": 0.03,
           "Values": [
             "0",
+            "1"
+          ]
+        },
+        {
+          "Name": "JitSynthesizeCounts",
+          "Weight": 0.03,
+          "Values": [
+            "1",
+            "3",
+            "5"
+          ]
+        },
+        {
+          "Name": "JitCheckSynthesizedCounts",
+          "Weight": 0.03,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "JitRLCSEGreedy",
+          "Weight": 0.03,
+          "Values": [
+            "1"
+          ]
+        },
+        {
+          "Name": "JitDoReversePostOrderLayout",
+          "Weight": 0.03,
+          "Values": [
             "1"
           ]
         }
