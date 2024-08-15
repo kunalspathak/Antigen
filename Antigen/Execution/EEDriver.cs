@@ -58,7 +58,10 @@ namespace Antigen.Execution
                     var proxy = Proxys[leastUsedIndex];
                     Proxys[leastUsedIndex] = Proxys[Proxys.Count - 1];
                     Proxys.RemoveAt(Proxys.Count - 1);
-                    return proxy;
+                    if (proxy.IsRunning)
+                    {
+                        return proxy;
+                    }
                 }
             }
 
