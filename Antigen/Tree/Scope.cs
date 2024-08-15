@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Antigen.Expressions;
 using Antigen.Statements;
 
 namespace Antigen.Tree
@@ -49,6 +50,8 @@ namespace Antigen.Tree
         // List of string vars in the current scope.
         private List<string> LocalStringVariables = new List<string>();
 
+        public Dictionary<string, List<Expression>> ListOfExpressions = new Dictionary<string, List<Expression>>();
+
         #region Contructors
         public Scope(TestCase tc)
         {
@@ -92,16 +95,43 @@ namespace Antigen.Tree
             return ListOfStructTypes[PRNG.Next(ListOfStructTypes.Count)];
         }
 
-        #endregion
-
-        #region Gets From Scope
-        public int GetVariablesCount()
+        public Expression GetRandomExpression(ExprKind exprKind, ValueType exprType)
         {
-            return ListOfVariables.Count;
+            var key = $"{Enum.GetName(typeof(ExprKind), exprKind)}_{exprType}";
+            Expression expression = null;
+            var curr = this;
+
+            while (curr != null)
+            {
+                if (curr.ListOfExpressions.TryGetValue(key, out List<Expression> expressions))
+                {
+                    expression = expressions[PRNG.Next(expressions.Count)];
+                    if (PRNG.Decide(0.3))
+                    {
+                        return expression;
+                    }
+                }
+                curr = curr.parent;
+            }
+            return expression;
         }
+
         #endregion
 
         #region Add variables/types to scope
+
+        public void AddExpression(ExprKind exprKind, ValueType exprType, Expression expr)
+        {
+            var key = $"{Enum.GetName(typeof(ExprKind), exprKind)}_{exprType}";
+
+            if (!ListOfExpressions.ContainsKey(key))
+            {
+                ListOfExpressions[key] = new List<Expression>();
+            }
+
+            ListOfExpressions[key].Add(expr);
+        }
+
         public void AddLocal(ValueType variableType, string variableName)
         {
 //#if DEBUG
