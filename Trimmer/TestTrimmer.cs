@@ -35,8 +35,8 @@ namespace Trimmer
     public class TestTrimmer
     {
         const int TRIMMER_RESET_COUNT = 10;
-        const int TRIMMER_TIMEOUT_IN_MINS = 10;
-        const int TRIMMER_NEW_FOLDER_CHECK_IN_MINS = 10;
+        const int TRIMMER_TIMEOUT_IN_MINS = 15;
+        const int TRIMMER_NEW_FOLDER_CHECK_IN_MINS = 5;
         const int SAVE_LKG_EVERY = 100;
 
         private SyntaxNode _treeToTrim;
