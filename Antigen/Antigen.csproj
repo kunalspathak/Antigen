@@ -33,6 +33,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ExecutionEngine\ExecutionEngine.csproj" />
+    <ProjectReference Include="..\Trimmer\Trimmer.csproj" />
   </ItemGroup>
 
   <ItemGroup>
