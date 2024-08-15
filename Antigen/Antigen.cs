@@ -93,6 +93,11 @@ namespace Antigen
                 Console.WriteLine($"  Paged memory size         : {myProcess.PagedMemorySize64}");
                 return 1;
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Got following exception, but will return exitcode= 0 so issues folder gets copied.");
+                Console.WriteLine(ex.Message);
+            }
             return 0;
         }
 
