@@ -45,8 +45,8 @@ namespace Antigen
         private class UniqueIssueFile
         {
             public readonly int UniqueIssueId;
-            public readonly int FileSize;
-            public readonly string FileName;
+            public int FileSize { get; private set; }
+            public string FileName { get; private set; }
             public int HitCount { get; private set; }
 
             public UniqueIssueFile(int _uniqueIssueId, int _fileSize, string _fileName, int hitCount)
@@ -60,6 +60,12 @@ namespace Antigen
             public void IncreaseHitCount()
             {
                 HitCount++;
+            }
+
+            public void UpdateIssueFileDetails(string fileName, int fileSize)
+            {
+                FileName = fileName;
+                FileSize = fileSize;
             }
         }
         private static readonly ConcurrentDictionary<int, UniqueIssueFile> s_uniqueIssues = new();
@@ -203,7 +209,7 @@ namespace Antigen
                 case RunOutcome.OutputMismatch:
                 {
                     var outputDiff = executeResult.OtherErrorMessage;
-                    SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, outputDiff, executeResult.EnvVars, outputDiff, $"{Name}-test-output-mismatch");
+                    SaveTestCase(compileResult.AssemblyFullPath, testCaseRoot, outputDiff, executeResult.EnvVars, "OutputMismatch", $"{ Name}-test-output-mismatch");
                     return TestResult.OutputMismatch;
                 }
                 case RunOutcome.Timeout:
@@ -265,6 +271,7 @@ namespace Antigen
                 if (!s_uniqueIssues.ContainsKey(assertionHashCode))
                 {
                     uniqueIssueFile = new UniqueIssueFile(s_uniqueIssues.Count, int.MaxValue, currentReproFile, 0);
+                    s_uniqueIssues[assertionHashCode] = uniqueIssueFile;
                 }
                 else
                 {
@@ -290,7 +297,7 @@ namespace Antigen
                 if (uniqueIssueFile.FileSize > fileContents.Length)
                 {
                     string largerReproFile = Path.Combine(uniqueIssueDirName, uniqueIssueFile.FileName);
-                    if (File.Exists(largerReproFile))
+                    if ((failureText != "OutputMismatch") && File.Exists(largerReproFile))
                     {
                         File.Delete(largerReproFile);
                     }
@@ -300,7 +307,7 @@ namespace Antigen
                     File.WriteAllText(failFile, fileContents.ToString());
 
                     // Update the file size
-                    s_uniqueIssues[assertionHashCode] = new UniqueIssueFile(uniqueIssueFile.UniqueIssueId, fileContents.Length, currentReproFile, uniqueIssueFile.HitCount);
+                    uniqueIssueFile.UpdateIssueFileDetails(currentReproFile, fileContents.Length);
                 }
             }
         }
