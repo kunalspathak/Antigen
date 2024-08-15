@@ -10,6 +10,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using Antigen.Execution;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 namespace Antigen
 {
@@ -112,9 +113,14 @@ namespace Antigen
 
         private static void StartTrimmer(CommandLineOptions opts)
         {
+            string trimmer_exe = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Trimmer");
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                trimmer_exe += ".exe";
+            }
             ProcessStartInfo startInfo = new ProcessStartInfo
             {
-                FileName = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Trimmer.exe"),
+                FileName = trimmer_exe,
                 Arguments = $"-c {opts.CoreRunPath} -o {opts.IssuesFolder} -p {Environment.ProcessId}", // Optional: arguments for the process
                 UseShellExecute = false,
                 RedirectStandardInput = true,
