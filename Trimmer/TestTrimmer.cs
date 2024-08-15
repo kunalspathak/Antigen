@@ -48,7 +48,6 @@ namespace Trimmer
         private readonly CommandLineOptions _opts = null;
         private readonly Compiler _compiler;
         private readonly ReproDetails _reproDetails;
-        private readonly string _issueTopFolder;
         private string _issueFolder;
 
         static int Main(string[] args)
@@ -57,6 +56,18 @@ namespace Trimmer
         }
 
         private static int Run(CommandLineOptions opts)
+        {
+            if (!string.IsNullOrEmpty(opts.ReproFile) && File.Exists(opts.ReproFile))
+            {
+                return RunOne(opts);
+            }
+            else
+            {
+                return RunMany(opts);
+            }
+        }
+
+        private static int RunMany(CommandLineOptions opts)
         {
             int.TryParse(opts.ParentPid, out s_parentProcessId);
             Task monitorTask = Task.Run(() => MonitorParentProcess());
@@ -92,13 +103,21 @@ namespace Trimmer
             }
         }
 
+        private static int RunOne(CommandLineOptions opts)
+        {
+            TestTrimmer testTrimmer = new TestTrimmer(opts.ReproFile, opts);
+            testTrimmer._issueFolder = opts.IssuesFolder;
+            testTrimmer.Trim();
+            testTrimmer.SaveRepro();
+            return 0;
+        }
+
         public TestTrimmer(string testFileToTrim, CommandLineOptions opts)
         {
             if (!System.IO.File.Exists(testFileToTrim))
             {
                 throw new Exception($"{testFileToTrim} doesn't exist.");
             }
-            _issueTopFolder = opts.IssuesFolder;
             _opts = opts;
             _compiler = new Compiler(opts.IssuesFolder);
 
@@ -133,6 +152,16 @@ namespace Trimmer
                 {
                     var testContents = lineContent.Replace("// EnvVars: ", string.Empty).Trim();
                     var testVariables = testContents.Split("|").ToList().ToDictionary(x => x.Split("=")[0], x => x.Split("=")[1]);
+
+                    if (!string.IsNullOrEmpty(_opts.AltJitName))
+                    {
+                        testVariables["DOTNET_AltJitName"] = _opts.AltJitName;
+                    }
+
+                    if (!string.IsNullOrEmpty(_opts.AltJitMethodName))
+                    {
+                        testVariables["DOTNET_AltJit"] = _opts.AltJitMethodName;
+                    }
                     reproDetails.envVars = testVariables;
                     break;
                 }
@@ -585,5 +614,14 @@ TRIMMER_LOOP:
 
         [Option(shortName: 'o', longName: "IssuesFolder", Required = true, HelpText = "Path to folder where trimmed issue will be copied.")]
         public string IssuesFolder { get; set; }
+
+        [Option(shortName: 'f', longName: "ReproFile", Required = false, HelpText = "Full path of the repro file.")]
+        public string ReproFile { get; set; }
+
+        [Option(shortName: 'j', longName: "AltJitName", Required = false, HelpText = "Name of altjit. By default, current OS/arch.")]
+        public string AltJitName { get; set; }
+
+        [Option(shortName: 'm', longName: "AltJitMethodName", Required = false, HelpText = "Name of method for altjit. By default, current OS/arch.")]
+        public string AltJitMethodName { get; set; }
     }
 }
