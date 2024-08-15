@@ -127,6 +127,14 @@ namespace Antigen
                 StartInfo = startInfo
             };
             process.Start();
+            if (process.HasExited)
+            {
+                Console.WriteLine("Trimmer exited immediately.");
+            }
+            else
+            {
+                Console.WriteLine($"Started Trimmer with PID {process.Id}");
+            }
         }
 
         private static int GetNextTestId()

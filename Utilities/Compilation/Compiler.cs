@@ -71,7 +71,7 @@ namespace Antigen.Compilation
 
                 if (!result.Success)
                 {
-#if DEBUG
+#if UNREACHABLE
                     SaveCompilationError(programTree, result.Diagnostics);
 #endif
                     return null;

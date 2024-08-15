@@ -56,7 +56,6 @@ namespace Antigen.Execution
 
         private void SetEnvironmentVariables(ProcessStartInfo startInfo, Dictionary<string, string> envVars)
         {
-            envVars["DOTNET_JitBreak"] = "Antigen";
             envVars["DOTNET_TieredCompilation"] = "0";
             envVars["DOTNET_JitThrowOnAssertionFailure"] = "1";
             envVars["DOTNET_LegacyExceptionHandling"] = "1";
