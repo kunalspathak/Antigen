@@ -20,7 +20,7 @@ using Utils;
 namespace Antigen.Execution
 {
     // Each instance of class represents a corresponding instance of ExecutionEngine
-    internal class EEProxy
+    public class EEProxy
     {
         public readonly Process _process;
         public Stopwatch LastUsedTime { get; } = new Stopwatch();
@@ -84,7 +84,7 @@ namespace Antigen.Execution
             return result;
         }
 
-        internal static EEProxy GetInstance(string host, string executionEngine, Dictionary<string, string> envVars)
+        public static EEProxy GetInstance(string host, string executionEngine, Dictionary<string, string> envVars)
         {
             if (!File.Exists(host) || !File.Exists(executionEngine))
             {

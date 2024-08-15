@@ -12,12 +12,14 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Utils;
 
@@ -32,16 +34,22 @@ namespace Trimmer
 
     public class TestTrimmer
     {
+        const int TRIMMER_RESET_COUNT = 10;
+        const int TRIMMER_TIMEOUT_IN_MINS = 10;
+        const int TRIMMER_NEW_FOLDER_CHECK_IN_MINS = 10;
+        const int SAVE_LKG_EVERY = 100;
+
         private SyntaxNode _treeToTrim;
         private ExecuteResult _lkgExecuteResult;
         private int _sizeOfTestFileToTrim;
         private static TestRunner _testRunner;
+        private static int s_parentProcessId;
         private int _iterId = 0;
-        static int TRIMMER_RESET_COUNT = 10;
         private readonly CommandLineOptions _opts = null;
         private readonly Compiler _compiler;
         private readonly ReproDetails _reproDetails;
-        private readonly string _issueFolder;
+        private readonly string _issueTopFolder;
+        private string _issueFolder;
 
         static int Main(string[] args)
         {
@@ -50,20 +58,47 @@ namespace Trimmer
 
         private static int Run(CommandLineOptions opts)
         {
-            string testCaseToTrim = opts.ReproFile;
-            TestTrimmer testTrimmer = new TestTrimmer(testCaseToTrim, opts);
-            testTrimmer.Trim();
-            testTrimmer.SaveRepro();
-            return 0;
+            int.TryParse(opts.ParentPid, out s_parentProcessId);
+            Task monitorTask = Task.Run(() => MonitorParentProcess());
+
+            int uniqueId = 0;
+            while (true)
+            {
+                string uniqueFolder = Path.Combine(opts.IssuesFolder, $"UniqueIssue{uniqueId}");
+                if (!Directory.Exists(uniqueFolder))
+                {
+                    Thread.Sleep(TRIMMER_NEW_FOLDER_CHECK_IN_MINS * 60 * 1000); // wait for 10 minutes
+                    continue;
+                }
+
+                string[] csFiles = Directory.GetFiles(uniqueFolder, "*.cs", SearchOption.AllDirectories);
+                if (csFiles.Length == 0)
+                {
+                    Thread.Sleep(TRIMMER_NEW_FOLDER_CHECK_IN_MINS * 60 * 1000); // wait for 10 minutes
+                    continue;
+                }
+                uniqueId++;
+
+                // Create FileInfo objects and sort by file size
+                var testCaseToTrim = csFiles
+                    .Select(file => new FileInfo(file))
+                    .OrderBy(fileInfo => fileInfo.Length) // Sort by file size
+                    .First().FullName;
+
+                TestTrimmer testTrimmer = new TestTrimmer(testCaseToTrim, opts);
+                testTrimmer._issueFolder = uniqueFolder;
+                testTrimmer.Trim();
+                testTrimmer.SaveRepro();
+            }
         }
 
         public TestTrimmer(string testFileToTrim, CommandLineOptions opts)
         {
-            if (!File.Exists(testFileToTrim))
+            if (!System.IO.File.Exists(testFileToTrim))
             {
                 throw new Exception($"{testFileToTrim} doesn't exist.");
             }
-            _issueFolder = opts.IssuesFolder;
+            _issueTopFolder = opts.IssuesFolder;
             _opts = opts;
             _compiler = new Compiler(opts.IssuesFolder);
 
@@ -98,16 +133,6 @@ namespace Trimmer
                 {
                     var testContents = lineContent.Replace("// EnvVars: ", string.Empty).Trim();
                     var testVariables = testContents.Split("|").ToList().ToDictionary(x => x.Split("=")[0], x => x.Split("=")[1]);
-
-                    if (!string.IsNullOrEmpty(_opts.AltJitName))
-                    {
-                        testVariables["DOTNET_AltJitName"] = _opts.AltJitName;
-                    }
-
-                    if (!string.IsNullOrEmpty(_opts.AltJitMethodName))
-                    {
-                        testVariables["DOTNET_AltJit"] = _opts.AltJitMethodName;
-                    }
                     reproDetails.envVars = testVariables;
                     break;
                 }
@@ -144,8 +169,12 @@ namespace Trimmer
 
         public void Trim()
         {
-            var trimTask = Task.Run(TrimTree);
-            trimTask.Wait(TimeSpan.FromMinutes(40));
+            try
+            {
+                var trimTask = Task.Run(TrimTree);
+                trimTask.Wait(TimeSpan.FromMinutes(TRIMMER_TIMEOUT_IN_MINS));
+            }
+            catch { }
         }
 
         /// <summary>
@@ -438,7 +467,7 @@ TRIMMER_LOOP:
                     throw new Exception("Unknown outcome.");
             }
 
-            if (_iterId % 100 == 0)
+            if (_iterId % SAVE_LKG_EVERY == 0)
             {
                 SaveRepro();
             }
@@ -454,6 +483,10 @@ TRIMMER_LOOP:
 
         private void SaveRepro()
         {
+            if (_treeToTrim == null)
+            {
+                return;
+            }
             string programContents = _treeToTrim.ToFullString();
             programContents = Regex.Replace(programContents, @"[\r\n]*$", string.Empty, RegexOptions.Multiline);
 
@@ -509,6 +542,34 @@ TRIMMER_LOOP:
             // show a single decimal place, and no space.
             return String.Format("{0:0.##} {1}", len, sizes[order]);
         }
+
+
+        /// <summary>
+        /// Monitor parent process every 10 seconds and exit if it terminates
+        /// </summary>
+        private static void MonitorParentProcess()
+        {
+            if (s_parentProcessId == 0)
+            {
+                // No need to monitor parent process
+                return;
+            }
+            try
+            {
+                while (true)
+                {
+                    // Check if the parent process is still running
+                    Process.GetProcessById(s_parentProcessId);
+                    Thread.Sleep(10000); // Check every 10 seconds
+                }
+            }
+            catch (ArgumentException)
+            {
+                // Parent process is no longer running
+                Console.WriteLine("Parent process terminated. Exiting...");
+                Environment.Exit(0);
+            }
+        }
     }
 
     public class CommandLineOptions
@@ -516,16 +577,10 @@ TRIMMER_LOOP:
         [Option(shortName: 'c', longName: "CoreRun", Required = true, HelpText = "Path to CoreRun/CoreRun.exe.")]
         public string CoreRunPath { get; set; }
 
-        [Option(shortName: 'f', longName: "ReproFile", Required = true, HelpText = "Full path of the repro file.")]
-        public string ReproFile { get; set; }
+        [Option(shortName: 'p', longName: "ParentPid", Required = false, HelpText = "Antigen process id")]
+        public string ParentPid { get; set; }
 
         [Option(shortName: 'o', longName: "IssuesFolder", Required = true, HelpText = "Path to folder where trimmed issue will be copied.")]
         public string IssuesFolder { get; set; }
-
-        [Option(shortName: 'j', longName: "AltJitName", Required = false, HelpText = "Name of altjit. By default, current OS/arch.")]
-        public string AltJitName { get; set; }
-
-        [Option(shortName: 'm', longName: "AltJitMethodName", Required = false, HelpText = "Name of method for altjit. By default, current OS/arch.")]
-        public string AltJitMethodName { get; set; }
     }
 }

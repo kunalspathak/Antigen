@@ -75,6 +75,15 @@ namespace Antigen
                     Directory.CreateDirectory(s_runOptions.OutputDirectory);
                 }
 
+                StartTrimmer(opts);
+
+                TestCase.s_RunOptions = s_runOptions;
+                TestCase.s_Driver = EEDriver.GetInstance(s_runOptions.CoreRun, Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "ExecutionEngine.dll"), () => EnvVarOptions.TestVars(includeOsrSwitches: PRNG.Decide(0.3), false));
+                TestCase.s_TestRunner = TestRunner.GetInstance(TestCase.s_Driver, s_runOptions.CoreRun, s_runOptions.OutputDirectory);
+
+                // Generate vector methods
+                VectorHelpers.RecordVectorMethods();
+
                 Parallel.For(0, 4, (p) => RunTest());
                 Console.WriteLine($"Executed {s_testId} test cases.");
                 DisplayStats();
@@ -99,6 +108,33 @@ namespace Antigen
                 Console.WriteLine(ex.Message);
             }
             return 0;
+        }
+
+        private static void StartTrimmer(CommandLineOptions opts)
+        {
+            ProcessStartInfo startInfo = new ProcessStartInfo
+            {
+                FileName = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Trimmer.exe"),
+                Arguments = $"-c {opts.CoreRunPath} -o {opts.IssuesFolder} -p {Environment.ProcessId}", // Optional: arguments for the process
+                UseShellExecute = false,
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+            Process process = new Process
+            {
+                StartInfo = startInfo
+            };
+            process.Start();
+            if (process.HasExited)
+            {
+                Console.WriteLine("Trimmer exited immediately.");
+            }
+            else
+            {
+                Console.WriteLine($"Started Trimmer with PID {process.Id}");
+            }
         }
 
         private static int GetNextTestId()
@@ -175,19 +211,6 @@ namespace Antigen
                 { TestResult.OtherError, 0 },
                 { TestResult.Timeout, 0 },
             };
-
-            lock (s_spinLock)
-            {
-                if (TestCase.s_RunOptions == null)
-                {
-                    TestCase.s_RunOptions = s_runOptions;
-                    TestCase.s_Driver = EEDriver.GetInstance(s_runOptions.CoreRun, Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "ExecutionEngine.dll"), () => EnvVarOptions.TestVars(includeOsrSwitches: PRNG.Decide(0.3), false));
-                    TestCase.s_TestRunner = TestRunner.GetInstance(TestCase.s_Driver, s_runOptions.CoreRun, s_runOptions.OutputDirectory);
-
-                    // Generate vector methods
-                    VectorHelpers.RecordVectorMethods();
-                }
-            }
 
             int testCount = 0;
             while (!Done)

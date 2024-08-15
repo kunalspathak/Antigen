@@ -66,7 +66,7 @@ namespace Utils
             _driver = driver;
         }
 
-        internal static TestRunner GetInstance(EEDriver driver, string coreRun, string outputFolder)
+        public static TestRunner GetInstance(EEDriver driver, string coreRun, string outputFolder)
         {
             if (_testRunner == null)
             {
@@ -75,7 +75,7 @@ namespace Utils
             return _testRunner;
         }
 
-        internal ExecuteResult Execute(CompileResult compileResult)
+        public ExecuteResult Execute(CompileResult compileResult)
         {
             if (compileResult.DebugAssembly == null || compileResult.ReleaseAssembly == null)
             {

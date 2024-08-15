@@ -12,20 +12,8 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Compile Include="..\Utils\TestRunner.cs" Link="TestRunner.cs" />
-    <Compile Include="..\Utils\RslnUtilities.cs" Link="RslnUtilities.cs" />
-  </ItemGroup>
-  
-  <ItemGroup>
-    <Compile Include="..\Antigen\Compilation\Compiler.cs" Link="Compilation\Compiler.cs" />
-    <Compile Include="..\Antigen\Compilation\CompileResult.cs" Link="Compilation\CompileResult.cs" />
-    <Compile Include="..\Antigen\Execution\EEDriver.cs" Link="Execution\EEDriver.cs" />
-    <Compile Include="..\Antigen\Execution\EEProxy.cs" Link="Execution\EEProxy.cs" />
-    <Compile Include="..\Antigen\Execution\ExecuteResult.cs" Link="Execution\ExecuteResult.cs" />
-  </ItemGroup>
-  
-  <ItemGroup>
     <ProjectReference Include="..\ExecutionEngine\ExecutionEngine.csproj" />
+    <ProjectReference Include="..\Utilities\Utilities.csproj" />
   </ItemGroup>
 
 </Project>

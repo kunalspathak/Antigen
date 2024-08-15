@@ -15,7 +15,7 @@ using Microsoft.CodeAnalysis;
 
 namespace Antigen.Compilation
 {
-    internal class Compiler
+    public class Compiler
     {
         private static readonly CSharpCompilationOptions ReleaseCompileOptions = new(
             OutputKind.ConsoleApplication,
@@ -39,12 +39,12 @@ namespace Antigen.Compilation
 
         private readonly string m_outputDirectory;
 
-        internal Compiler(string outputDirectory)
+        public Compiler(string outputDirectory)
         {
             m_outputDirectory = outputDirectory;
         }
 
-        internal CompileResult Compile(SyntaxTree programTree, string assemblyName)
+        public CompileResult Compile(SyntaxTree programTree, string assemblyName)
         {
             var debugBytes = CompileAndGetBytes(programTree, assemblyName, DebugCompileOptions);
             var releaseBytes = CompileAndGetBytes(programTree, assemblyName, ReleaseCompileOptions);
@@ -71,7 +71,7 @@ namespace Antigen.Compilation
 
                 if (!result.Success)
                 {
-#if DEBUG
+#if UNREACHABLE
                     SaveCompilationError(programTree, result.Diagnostics);
 #endif
                     return null;
