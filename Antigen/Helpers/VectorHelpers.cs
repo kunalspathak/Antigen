@@ -201,7 +201,7 @@ namespace Antigen
                     fullMethodName.Contains("Numerics.Plane") || fullMethodName.Contains("Divide") ||
                     /*fullMethodName.Contains("SveMaskPattern") ||*/ fullMethodName.Contains("SvePrefetchType") ||
                     fullMethodName.Contains("FloatComparisonMode") || fullMethodName.Contains("FloatRoundingMode") ||
-                    fullMethodName.Contains("Unsafe");
+                    fullMethodName.Contains("MidpointRounding") || fullMethodName.Contains("Unsafe");
         }
 
         /// <summary>
