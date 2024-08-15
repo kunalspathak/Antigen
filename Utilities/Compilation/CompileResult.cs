@@ -11,7 +11,7 @@ using Microsoft.CodeAnalysis;
 
 namespace Antigen.Compilation
 {
-    internal struct CompileResult
+    public struct CompileResult
     {
         public CompileResult(IEnumerable<Diagnostic> diagnostics)
         {

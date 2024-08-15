@@ -10,7 +10,7 @@ using ExecutionEngine;
 namespace Antigen.Execution
 {
     // Driver that creates EEProxy instances and responsible for its lifetime.
-    internal class EEDriver
+    public class EEDriver
     {
         private readonly string _hostName;
         private readonly string _executionEngine;

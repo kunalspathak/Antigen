@@ -18,11 +18,6 @@
   <ItemGroup>
     <Compile Remove="*.g.cs" />
   </ItemGroup>
-  
-  <ItemGroup>
-    <Compile Include="..\Utils\TestRunner.cs" Link="TestRunner.cs" />
-    <Compile Include="..\Utils\RslnUtilities.cs" Link="RslnUtilities.cs" />
-  </ItemGroup>
 
   <PropertyGroup>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
@@ -34,6 +29,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ExecutionEngine\ExecutionEngine.csproj" />
     <ProjectReference Include="..\Trimmer\Trimmer.csproj" />
+    <ProjectReference Include="..\Utilities\Utilities.csproj" />
   </ItemGroup>
 
   <ItemGroup>
