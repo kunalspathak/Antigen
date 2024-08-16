@@ -212,7 +212,9 @@ namespace Trimmer
                 var trimTask = Task.Run(TrimTree);
                 trimTask.Wait(TimeSpan.FromMinutes(TRIMMER_TIMEOUT_IN_MINS));
             }
-            catch { }
+            catch (Exception ex) {
+                Console.WriteLine("Timed out." + ex.Message);
+            }
         }
 
         /// <summary>
@@ -497,6 +499,7 @@ TRIMMER_LOOP:
                 case RunOutcome.OutputMismatch:
                     validationResult = TestResult.OutputMismatch;
                     break;
+                case RunOutcome.OtherError:
                 case RunOutcome.Timeout:
                 case RunOutcome.Success:
                     validationResult = TestResult.Pass;
