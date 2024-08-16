@@ -35,7 +35,7 @@ namespace Trimmer
     public class TestTrimmer
     {
         const int TRIMMER_RESET_COUNT = 10;
-        const int TRIMMER_TIMEOUT_IN_MINS = 15;
+        const int TRIMMER_TIMEOUT_IN_MINS = 30;
         const int TRIMMER_NEW_FOLDER_CHECK_IN_MINS = 5;
         const int SAVE_LKG_EVERY = 100;
 
@@ -57,21 +57,22 @@ namespace Trimmer
 
         private static int Run(CommandLineOptions opts)
         {
+            int.TryParse(opts.ParentPid, out s_parentProcessId);
+            Task monitorTask = Task.Run(() => MonitorParentProcess());
+
             if (!string.IsNullOrEmpty(opts.ReproFile) && File.Exists(opts.ReproFile))
             {
                 return RunOne(opts);
             }
-            else
+            else if (!string.IsNullOrEmpty(opts.IssuesFolder) && Directory.Exists(opts.IssuesFolder))
             {
                 return RunMany(opts);
             }
+            throw new ArgumentException("Valid ReproFile or IssuesFolder needed.");
         }
 
         private static int RunMany(CommandLineOptions opts)
         {
-            int.TryParse(opts.ParentPid, out s_parentProcessId);
-            Task monitorTask = Task.Run(() => MonitorParentProcess());
-
             int uniqueId = 0;
             while (true)
             {
@@ -96,8 +97,7 @@ namespace Trimmer
                     .OrderBy(fileInfo => fileInfo.Length) // Sort by file size
                     .First().FullName;
 
-                TestTrimmer testTrimmer = new TestTrimmer(testCaseToTrim, opts);
-                testTrimmer._issueFolder = uniqueFolder;
+                TestTrimmer testTrimmer = new TestTrimmer(testCaseToTrim, uniqueFolder, opts);
                 testTrimmer.Trim();
                 testTrimmer.SaveRepro();
             }
@@ -105,28 +105,29 @@ namespace Trimmer
 
         private static int RunOne(CommandLineOptions opts)
         {
-            TestTrimmer testTrimmer = new TestTrimmer(opts.ReproFile, opts);
-            testTrimmer._issueFolder = opts.IssuesFolder;
+            string issueFolder = Path.GetDirectoryName(opts.ReproFile);
+            TestTrimmer testTrimmer = new TestTrimmer(opts.ReproFile, issueFolder, opts);
             testTrimmer.Trim();
             testTrimmer.SaveRepro();
             return 0;
         }
 
-        public TestTrimmer(string testFileToTrim, CommandLineOptions opts)
+        public TestTrimmer(string testFileToTrim, string issueFolder, CommandLineOptions opts)
         {
             if (!System.IO.File.Exists(testFileToTrim))
             {
                 throw new Exception($"{testFileToTrim} doesn't exist.");
             }
             _opts = opts;
-            _compiler = new Compiler(opts.IssuesFolder);
+            _issueFolder = issueFolder;
+            _compiler = new Compiler(_issueFolder);
 
             _reproDetails = ParseReproFile(testFileToTrim);
             EEDriver driver = EEDriver.GetInstance(opts.CoreRunPath,
                 Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "ExecutionEngine.dll"),
                 () => _reproDetails.envVars);
 
-            _testRunner = TestRunner.GetInstance(driver, opts.CoreRunPath, opts.IssuesFolder);
+            _testRunner = TestRunner.GetInstance(driver, opts.CoreRunPath);
         }
 
         /// <summary>
@@ -612,7 +613,7 @@ TRIMMER_LOOP:
         [Option(shortName: 'p', longName: "ParentPid", Required = false, HelpText = "Antigen process id")]
         public string ParentPid { get; set; }
 
-        [Option(shortName: 'o', longName: "IssuesFolder", Required = true, HelpText = "Path to folder where trimmed issue will be copied.")]
+        [Option(shortName: 'o', longName: "IssuesFolder", Required = false, HelpText = "Path to folder where trimmed issue will be copied.")]
         public string IssuesFolder { get; set; }
 
         [Option(shortName: 'f', longName: "ReproFile", Required = false, HelpText = "Full path of the repro file.")]

@@ -46,7 +46,6 @@ namespace Utils
 
         private static TestRunner _testRunner;
         private readonly string _coreRun;
-        private readonly string _outputDirectory;
         private readonly EEDriver _driver;
 
         private static readonly string s_corelibPath = typeof(object).Assembly.Location;
@@ -59,18 +58,17 @@ namespace Utils
              MetadataReference.CreateFromFile(typeof(CSharpSyntaxTree).Assembly.Location),
         };
 
-        private TestRunner(EEDriver driver, string coreRun, string outputFolder)
+        private TestRunner(EEDriver driver, string coreRun)
         {
             _coreRun = coreRun;
-            _outputDirectory = outputFolder;
             _driver = driver;
         }
 
-        public static TestRunner GetInstance(EEDriver driver, string coreRun, string outputFolder)
+        public static TestRunner GetInstance(EEDriver driver, string coreRun)
         {
             if (_testRunner == null)
             {
-                _testRunner = new TestRunner(driver, coreRun, outputFolder);
+                _testRunner = new TestRunner(driver, coreRun);
             }
             return _testRunner;
         }

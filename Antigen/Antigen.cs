@@ -76,11 +76,13 @@ namespace Antigen
                     Directory.CreateDirectory(s_runOptions.OutputDirectory);
                 }
 
-                StartTrimmer(opts);
+                // Disable trimmer for folder and instead start trimmer for a specific repro file
+                // when it comes.
+                //StartTrimmerForFolder(opts);
 
                 TestCase.s_RunOptions = s_runOptions;
                 TestCase.s_Driver = EEDriver.GetInstance(s_runOptions.CoreRun, Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "ExecutionEngine.dll"), () => EnvVarOptions.TestVars(includeOsrSwitches: PRNG.Decide(0.3), false));
-                TestCase.s_TestRunner = TestRunner.GetInstance(TestCase.s_Driver, s_runOptions.CoreRun, s_runOptions.OutputDirectory);
+                TestCase.s_TestRunner = TestRunner.GetInstance(TestCase.s_Driver, s_runOptions.CoreRun);
 
                 // Generate vector methods
                 VectorHelpers.RecordVectorMethods();
@@ -111,7 +113,11 @@ namespace Antigen
             return 0;
         }
 
-        private static void StartTrimmer(CommandLineOptions opts)
+        /// <summary>
+        ///     Start trimmer for entire folder. Trimmer will monitor if there is any new UniqueIssue* folder
+        ///     and if yes, trim the repro file.
+        /// </summary>
+        private static void StartTrimmerForFolder()
         {
             string trimmer_exe = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Trimmer");
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -121,7 +127,43 @@ namespace Antigen
             ProcessStartInfo startInfo = new ProcessStartInfo
             {
                 FileName = trimmer_exe,
-                Arguments = $"-c {opts.CoreRunPath} -o {opts.IssuesFolder} -p {Environment.ProcessId}", // Optional: arguments for the process
+                Arguments = $"-c {s_runOptions.CoreRun} -o {s_runOptions.OutputDirectory} -p {Environment.ProcessId}",
+                UseShellExecute = false,
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true
+            };
+            Process process = new Process
+            {
+                StartInfo = startInfo
+            };
+            process.Start();
+            if (process.HasExited)
+            {
+                Console.WriteLine("Trimmer exited immediately.");
+            }
+            else
+            {
+                Console.WriteLine($"Started Trimmer with PID {process.Id}");
+            }
+        }
+
+        /// <summary>
+        ///     Start trimmer for a specific repro file.
+        /// </summary>
+        /// <param name="reproFile"></param>
+        internal static void StartTrimmerForFile(string reproFile)
+        {
+            string trimmer_exe = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Trimmer");
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                trimmer_exe += ".exe";
+            }
+            ProcessStartInfo startInfo = new ProcessStartInfo
+            {
+                FileName = trimmer_exe,
+                Arguments = $"-c {s_runOptions.CoreRun} -f {reproFile} -p {Environment.ProcessId}",
                 UseShellExecute = false,
                 RedirectStandardInput = true,
                 RedirectStandardOutput = true,

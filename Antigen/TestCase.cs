@@ -45,27 +45,17 @@ namespace Antigen
         private class UniqueIssueFile
         {
             public readonly int UniqueIssueId;
-            public int FileSize { get; private set; }
-            public string FileName { get; private set; }
             public int HitCount { get; private set; }
 
-            public UniqueIssueFile(int _uniqueIssueId, int _fileSize, string _fileName, int hitCount)
+            public UniqueIssueFile(int _uniqueIssueId, int hitCount)
             {
                 UniqueIssueId = _uniqueIssueId;
-                FileSize = _fileSize;
-                FileName = _fileName;
                 HitCount = hitCount;
             }
 
             public void IncreaseHitCount()
             {
                 HitCount++;
-            }
-
-            public void UpdateIssueFileDetails(string fileName, int fileSize)
-            {
-                FileName = fileName;
-                FileSize = fileSize;
             }
         }
         private static readonly ConcurrentDictionary<int, UniqueIssueFile> s_uniqueIssues = new();
@@ -270,7 +260,7 @@ namespace Antigen
                 UniqueIssueFile uniqueIssueFile;
                 if (!s_uniqueIssues.ContainsKey(assertionHashCode))
                 {
-                    uniqueIssueFile = new UniqueIssueFile(s_uniqueIssues.Count, int.MaxValue, currentReproFile, 0);
+                    uniqueIssueFile = new UniqueIssueFile(s_uniqueIssues.Count, 0);
                     s_uniqueIssues[assertionHashCode] = uniqueIssueFile;
                 }
                 else
@@ -282,7 +272,6 @@ namespace Antigen
                 summaryContents.AppendLine();
                 summaryContents.AppendLine($"HitCount: {uniqueIssueFile.HitCount}");
 
-
                 // Create hash of testAssertion and copy files in respective bucket.
                 uniqueIssueDirName = Path.Combine(s_RunOptions.OutputDirectory, $"UniqueIssue{uniqueIssueFile.UniqueIssueId}");
 
@@ -293,22 +282,14 @@ namespace Antigen
 
                 File.WriteAllText(Path.Combine(uniqueIssueDirName, "summary.txt"), summaryContents.ToString());
 
-                // Only cache 1 file of smallest possible size.
-                if (uniqueIssueFile.FileSize > fileContents.Length)
+                if (uniqueIssueFile.HitCount > 1)
                 {
-                    string largerReproFile = Path.Combine(uniqueIssueDirName, uniqueIssueFile.FileName);
-                    if ((failureText != "OutputMismatch") && File.Exists(largerReproFile))
-                    {
-                        File.Delete(largerReproFile);
-                    }
-
-                    // Write the smallest file
-                    string failFile = Path.Combine(uniqueIssueDirName, currentReproFile);
-                    File.WriteAllText(failFile, fileContents.ToString());
-
-                    // Update the file size
-                    uniqueIssueFile.UpdateIssueFileDetails(currentReproFile, fileContents.Length);
+                    return;
                 }
+
+                string failFile = Path.Combine(uniqueIssueDirName, currentReproFile);
+                File.WriteAllText(failFile, fileContents.ToString());
+                Program.StartTrimmerForFile(failFile);
             }
         }
 
