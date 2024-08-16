@@ -19,7 +19,7 @@ namespace Antigen.Compilation
             CompileWarnings = diagnostics.Where(diag => diag.Severity == DiagnosticSeverity.Warning);
         }
 
-        public CompileResult(string assemblyName, string assemblyFullPath, byte[] debugMs, byte[] releaseMs)
+        public CompileResult(string assemblyName, string assemblyFullPath, byte[]? debugMs, byte[]? releaseMs)
         {
             AssemblyName = assemblyName;
             AssemblyFullPath = assemblyFullPath;
@@ -37,7 +37,7 @@ namespace Antigen.Compilation
         public IEnumerable<Diagnostic> CompileErrors { get; }
         public IEnumerable<Diagnostic> CompileWarnings { get; }
         public string AssemblyFullPath { get; }
-        public byte[] DebugAssembly { get; }
-        public byte[] ReleaseAssembly { get; }
+        public byte[]? DebugAssembly { get; }
+        public byte[]? ReleaseAssembly { get; }
     }
 }

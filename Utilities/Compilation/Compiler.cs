@@ -46,8 +46,12 @@ namespace Antigen.Compilation
 
         public CompileResult Compile(SyntaxTree programTree, string assemblyName)
         {
-            var debugBytes = CompileAndGetBytes(programTree, assemblyName, DebugCompileOptions);
-            var releaseBytes = CompileAndGetBytes(programTree, assemblyName, ReleaseCompileOptions);
+            byte[]? debugBytes = null, releaseBytes = null;
+            debugBytes = CompileAndGetBytes(programTree, assemblyName, DebugCompileOptions);
+            if (debugBytes != null)
+            {
+                releaseBytes = CompileAndGetBytes(programTree, assemblyName, ReleaseCompileOptions);
+            }
             return new CompileResult(assemblyName, null, debugBytes, releaseBytes);
         }
 
@@ -89,10 +93,14 @@ namespace Antigen.Compilation
 
             fileContents.AppendLine(tree.GetRoot().NormalizeWhitespace().ToFullString());
             fileContents.AppendLine("/*");
-            fileContents.AppendLine($"Got {diagnostics.Count()} compiler error(s):");
             var errorLines = diagnostics.Where(d => d.Severity == DiagnosticSeverity.Error).Select(diag => $"{diag.Location.GetLineSpan().StartLinePosition.Line}: {diag.GetMessage()}");
+            fileContents.AppendLine($"Got {errorLines.Count()} compiler error(s):");
+            foreach (var error in errorLines)
+            {
+                fileContents.AppendLine(error);
+            }
             var errorFile = Path.Combine(m_outputDirectory, $"{tree.FilePath}.error");
-            File.WriteAllLines(errorFile, errorLines);
+            File.WriteAllText(errorFile, fileContents.ToString());
         }
     }
 }

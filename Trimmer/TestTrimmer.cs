@@ -185,6 +185,11 @@ namespace Trimmer
             for (var i = fileContentLines.Length - 1; i >= 0; i--)
             {
                 var line = fileContentLines[i].Trim();
+                if (line.Contains("OutputMismatch") || line.Contains("Output mismatch"))
+                {
+                    reproDetails.failureKind = TestResult.OutputMismatch;
+                    return reproDetails;
+                }
                 if (line.StartsWith("Debug: "))
                 {
                     debugCode = int.Parse(line.Replace("Debug: ", string.Empty));
