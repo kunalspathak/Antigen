@@ -67,10 +67,10 @@ using System.Numerics;
                 StringBuilder staticMethodBuilder = new StringBuilder();
 
                 // Main method
-                staticMethodBuilder.AppendLine("public static void Main(string[] args) { ");
+                staticMethodBuilder.AppendLine("public static int Main(string[] args) { ");
                 //staticMethodBuilder.AppendLine($"new {MainClassName}().Method0();");
                 //staticMethodBuilder.AppendLine("PrintLog();");
-                staticMethodBuilder.AppendLine("Antigen();");
+                staticMethodBuilder.AppendLine("return Antigen();");
                 staticMethodBuilder.AppendLine("}");
 
                 staticMethodBuilder.AppendLine("public static int Antigen() { ");

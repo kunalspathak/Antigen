@@ -86,8 +86,8 @@ namespace ExecutionEngine
         {
             int hashCode;
             var assembly = s_loader.LoadFromBytes(assemblyBytes);
-            var methodInfo = assembly.GetType("TestClass").GetMethod("Antigen");
-            var methodExec = methodInfo.CreateDelegate<Func<int>>();
+            var methodInfo = assembly.GetType("TestClass").GetMethod("Main");
+            var methodExec = methodInfo.CreateDelegate<Func<string[], int>>();
 
             // Adopted from Jakob's Fuzzlyn
             int threadID = Environment.CurrentManagedThreadId;
@@ -104,7 +104,7 @@ namespace ExecutionEngine
 
             try
             {
-                hashCode = methodExec();
+                hashCode = methodExec(null);
             }
             catch
             {
