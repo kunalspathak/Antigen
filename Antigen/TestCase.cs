@@ -93,21 +93,6 @@ namespace Antigen
             Config = s_RunOptions.Configs[PRNG.Next(s_RunOptions.Configs.Count)];
             ContainsVectorData = PRNG.Decide(Config.VectorDataProbability);
 
-            if (RuntimeInformation.OSArchitecture == Architecture.X64)
-            {
-                if (PRNG.Decide(Config.SveMethodsProbability))
-                {
-                    Config.UseSve = true;
-                    ContainsVectorData = true;
-                }
-            }
-            // else
-            // {
-            //     // local temporary change
-            //     Config.UseSve = true;
-            //     ContainsVectorData = true;
-            // }
-
             AstUtils = new AstUtils(this, new ConfigOptions(), null);
             Name = "TestClass" + testId;
 

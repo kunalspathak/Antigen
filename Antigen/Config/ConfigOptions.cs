@@ -318,7 +318,7 @@ namespace Antigen.Config
         /// <summary>
         ///     AdvSimd methods probability
         /// </summary>
-        public double SveMethodsProbability = 0.0;
+        public double SveMethodsProbability = 0.65;
 
         /// <summary>
         ///     Probability in which vector methods will be included.
