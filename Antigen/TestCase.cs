@@ -91,7 +91,11 @@ namespace Antigen
         public TestCase(int testId, RunOptions runOptions)
         {
             Config = s_RunOptions.Configs[PRNG.Next(s_RunOptions.Configs.Count)];
-            ContainsVectorData = PRNG.Decide(Config.VectorDataProbability);
+            Config.UseSve = PRNG.Decide(Config.SveMethodsProbability);
+            if (Config.UseSve || PRNG.Decide(Config.VectorDataProbability))
+            {
+                ContainsVectorData = true;
+            }
 
             AstUtils = new AstUtils(this, new ConfigOptions(), null);
             Name = "TestClass" + testId;
