@@ -91,7 +91,7 @@ namespace Antigen
         public TestCase(int testId, RunOptions runOptions)
         {
             Config = s_RunOptions.Configs[PRNG.Next(s_RunOptions.Configs.Count)];
-            Config.UseSve = PRNG.Decide(Config.SveMethodsProbability);
+            Config.UseSve = Sve.IsSupported && PRNG.Decide(Config.SveMethodsProbability);
             if (Config.UseSve || PRNG.Decide(Config.VectorDataProbability))
             {
                 ContainsVectorData = true;

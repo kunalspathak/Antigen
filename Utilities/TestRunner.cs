@@ -35,15 +35,6 @@ namespace Utils
 
     public class TestRunner
     {
-        internal static readonly CSharpCompilationOptions ReleaseCompileOptions = new (
-            OutputKind.ConsoleApplication,
-            concurrentBuild: true,
-            optimizationLevel: OptimizationLevel.Release);
-        internal static readonly CSharpCompilationOptions DebugCompileOptions = new(
-            OutputKind.ConsoleApplication,
-            concurrentBuild: true,
-            optimizationLevel: OptimizationLevel.Debug);
-
         private static TestRunner _testRunner;
         private readonly string _coreRun;
         private readonly EEDriver _driver;

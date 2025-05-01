@@ -57,7 +57,7 @@ namespace Antigen
             bool addAvx = PRNG.Decide(TC.Config.AvxMethodsProbability);
             bool addSse = PRNG.Decide(TC.Config.SSEMethodsProbability);
             bool addTraditional = PRNG.Decide(TC.Config.TraditionalMethodsProbability);
-            bool addSve = TC.Config.UseSve || PRNG.Decide(TC.Config.SveMethodsProbability);
+            bool addSve = TC.Config.UseSve;
             bool addAdvsimd = TC.Config.UseSve || PRNG.Decide(TC.Config.AdvSimdMethodsProbability);
 
             // Register all the vector create methods

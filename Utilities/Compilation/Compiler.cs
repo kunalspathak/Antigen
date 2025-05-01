@@ -20,12 +20,20 @@ namespace Antigen.Compilation
         private static readonly CSharpCompilationOptions ReleaseCompileOptions = new(
             OutputKind.ConsoleApplication,
             concurrentBuild: true,
-            optimizationLevel: OptimizationLevel.Release);
+            optimizationLevel: OptimizationLevel.Release,
+            specificDiagnosticOptions: new Dictionary<string, ReportDiagnostic>
+            {
+                { "SYSLIB5003", ReportDiagnostic.Suppress }
+            });
 
         private static readonly CSharpCompilationOptions DebugCompileOptions = new(
             OutputKind.ConsoleApplication,
             concurrentBuild: true,
-            optimizationLevel: OptimizationLevel.Debug);
+            optimizationLevel: OptimizationLevel.Debug,
+            specificDiagnosticOptions: new Dictionary<string, ReportDiagnostic>
+            {
+                { "SYSLIB5003", ReportDiagnostic.Suppress }
+            });
 
         private static readonly string s_corelibPath = typeof(object).Assembly.Location;
         private static readonly MetadataReference[] s_references =
