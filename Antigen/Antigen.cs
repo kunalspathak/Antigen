@@ -14,7 +14,7 @@ using System.Runtime.InteropServices;
 
 namespace Antigen
 {
-    class Program
+    public class Program
     {
         internal static readonly object s_spinLock = new object();
         private static int totalTestCount = 0;
@@ -39,6 +39,21 @@ namespace Antigen
         static int Main(string[] args)
         {
             return Parser.Default.ParseArguments<CommandLineOptions>(args).MapResult(Run, err => 1);
+        }
+
+        public static void Init()
+        {
+            PRNG.Initialize(s_runOptions.Seed);
+            TestCase.s_RunOptions = s_runOptions;
+        }
+
+        public static string GenerateTestCase(int currTestId)
+        {
+            using (var testCase = new TestCase(currTestId, s_runOptions))
+            {
+                testCase.Generate();
+                return testCase.GetCode();
+            }
         }
 
         private static int Run(CommandLineOptions opts)

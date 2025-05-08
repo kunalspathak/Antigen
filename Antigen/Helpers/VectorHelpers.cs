@@ -141,7 +141,7 @@ namespace Antigen
         public static void RecordVectorMethods()
         {
             Debug.Assert(s_allVectorTypes == null);
-            
+
             if (s_allVectorTypes != null)
             {
                 return;

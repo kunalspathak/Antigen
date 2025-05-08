@@ -54,6 +54,8 @@ namespace Antigen
 
         private void GenerateVectorMethods()
         {
+            if (!TC.ContainsVectorData) return;
+
             bool addAvx = PRNG.Decide(TC.Config.AvxMethodsProbability);
             bool addSse = PRNG.Decide(TC.Config.SSEMethodsProbability);
             bool addTraditional = PRNG.Decide(TC.Config.TraditionalMethodsProbability);

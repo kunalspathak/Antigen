@@ -323,7 +323,7 @@ namespace Antigen.Config
         /// <summary>
         ///     Probability in which vector methods will be included.
         /// </summary>
-        public double VectorDataProbability = 0.5;
+        public double VectorDataProbability = 0.0;
 
         /// <summary>
         ///     Number of methods to be included. Only relevant ifVectorMethodsProbability is non-zero.

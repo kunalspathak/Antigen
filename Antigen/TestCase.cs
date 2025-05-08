@@ -111,6 +111,11 @@ namespace Antigen
             testCaseRoot = CSharpSyntaxTree.ParseText(finalCode).GetRoot();
         }
 
+        public string GetCode()
+        {
+            return testCaseRoot.SyntaxTree.GetRoot().NormalizeWhitespace().ToFullString();
+        }
+
         public TestResult Verify()
         {
             SyntaxTree syntaxTree = testCaseRoot.SyntaxTree; // RslnUtilities.GetValidSyntaxTree(testCaseRoot);
@@ -197,6 +202,7 @@ namespace Antigen
                     return TestResult.Timeout;
                 }
                 default:
+                    File.WriteAllText(Path.Combine(s_RunOptions.OutputDirectory, $"{Name}-pass.cs"), testCaseRoot.NormalizeWhitespace().SyntaxTree.GetText().ToString());
                     return TestResult.Pass;
             }
         }
